@@ -84,28 +84,25 @@ if fichier_telecharge is not None:
 
         # Data analysis
         compte_fournisseurs, prix_moyen_par_couleur, analyse_stock = analyser_donnees(df)
-
-        # Display results in columns
-        col1, col2, col3 = st.columns(3)
         
-        with col1:
-            st.subheader("Analyse des Fournisseurs")
-            st.write(compte_fournisseurs)
+        # Display analyses in a single column layout
+        st.subheader("Analyse des Fournisseurs")
+        st.write(compte_fournisseurs)
         
-        with col2:
-            st.subheader("Prix Moyen par Couleur")
-            st.write(prix_moyen_par_couleur)
-            # Visualize average price by color
-            chart = alt.Chart(df).mark_bar().encode(
-                x='couleur',
-                y='Prix Achat',
-                color='couleur'
-            )
-            st.altair_chart(chart, use_container_width=True)
+        st.subheader("Prix Moyen par Couleur")
+        st.write(prix_moyen_par_couleur)
+        
+        # Visualize average price by color
+        chart = alt.Chart(df).mark_bar().encode(
+            x='couleur',
+            y='Prix Achat',
+            color='couleur'
+        )
+        st.subheader("Graphique: Prix Achat par Couleur")
+        st.altair_chart(chart, use_container_width=True)
 
-        with col3:
-            st.subheader("Analyse des Stocks")
-            st.write(analyse_stock)
+        st.subheader("Analyse des Stocks")
+        st.write(analyse_stock)
 
         # Filter data for stock quantities from 1 to 5
         filtered_df = df[df['Qté stock dispo'].isin([1, 2, 3, 4, 5])][['Magasin', 'fournisseur', 'barcode', 'couleur', 'Qté stock dispo']]
