@@ -98,7 +98,7 @@ if fichier_telecharge is not None:
             # Visualize average price by color
             chart = alt.Chart(df).mark_bar().encode(
                 x='couleur',
-                y='mean(Prix Achat)',
+                y='Prix Achat',
                 color='couleur'
             )
             st.altair_chart(chart, use_container_width=True)
