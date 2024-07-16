@@ -1,7 +1,8 @@
 import streamlit as st
 import pandas as pd
+import altair as alt
 
-## Fonction pour effectuer des analyses
+## Function to perform analyses
 def analyser_donnees(df):
     compte_fournisseurs = df['fournisseur'].value_counts().head(10)
     df['Prix Achat'] = df['Prix Achat'].astype(str).str.replace(',', '.').astype(float)
@@ -11,10 +12,10 @@ def analyser_donnees(df):
     analyse_stock = df.groupby('famille').agg({'Qté stock dispo': 'sum', 'Valeur Stock': 'sum'}).sort_values(by='Qté stock dispo', ascending=False).head(10)
     return compte_fournisseurs, prix_moyen_par_couleur, analyse_stock
 
-## Application Streamlit
+## Streamlit Application
 st.set_page_config(page_title="Application d'Analyse de Fichier", layout="wide")
 
-## CSS personnalisé
+## Custom CSS
 st.markdown("""
     <style>
         .main {
@@ -32,7 +33,7 @@ st.markdown("""
 
 st.title("Application d'Analyse de Fichier")
 
-## Téléchargement du fichier
+## File upload
 fichier_telecharge = st.file_uploader("Téléchargez un fichier CSV ou Excel", type=['csv', 'xlsx'])
 
 if fichier_telecharge is not None:
@@ -45,27 +46,39 @@ if fichier_telecharge is not None:
         else:
             st.error("Format de fichier non supporté")
 
-        # Afficher un résumé des données
+        # Show a summary of the data
         st.subheader("Résumé des Données")
         st.write(df.describe())
 
-        # Analyse des données
+        # Data analysis
         compte_fournisseurs, prix_moyen_par_couleur, analyse_stock = analyser_donnees(df)
 
-        # Affichage des résultats
-        st.subheader("Analyse des Fournisseurs")
-        st.write(compte_fournisseurs)
+        # Display results in columns
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.subheader("Analyse des Fournisseurs")
+            st.write(compte_fournisseurs)
+        
+        with col2:
+            st.subheader("Prix Moyen par Couleur")
+            st.write(prix_moyen_par_couleur)
+            # Visualize average price by color
+            chart = alt.Chart(df).mark_bar().encode(
+                x='couleur',
+                y='mean(Prix Achat)',
+                color='couleur'
+            )
+            st.altair_chart(chart, use_container_width=True)
 
-        st.subheader("Prix Moyen par Couleur")
-        st.write(prix_moyen_par_couleur)
+        with col3:
+            st.subheader("Analyse des Stocks")
+            st.write(analyse_stock)
 
-        st.subheader("Analyse des Stocks")
-        st.write(analyse_stock)
-
-        # Filtrer les données pour Qté stock dispo de 1 à 5
+        # Filter data for stock quantities from 1 to 5
         filtered_df = df[df['Qté stock dispo'].isin([1, 2, 3, 4, 5])][['Magasin', 'fournisseur', 'barcode', 'couleur', 'Qté stock dispo']]
         
-        # Afficher les résultats filtrés
+        # Display filtered results
         st.subheader("Détails des Stocks avec Qté de 1 à 5")
         st.write(filtered_df)
 
