@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
+from fpdf import FPDF
 
 ## Function to perform analyses
 def analyser_donnees(df):
@@ -11,6 +12,37 @@ def analyser_donnees(df):
     df['Valeur Stock'] = df['Valeur Stock'].astype(str).str.replace(',', '.').astype(float)
     analyse_stock = df.groupby('famille').agg({'Qté stock dispo': 'sum', 'Valeur Stock': 'sum'}).sort_values(by='Qté stock dispo', ascending=False).head(10)
     return compte_fournisseurs, prix_moyen_par_couleur, analyse_stock
+
+## Function to create PDF report
+def creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filtered_df):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size = 12)
+
+    # Add title
+    pdf.cell(200, 10, txt = "Rapport d'Analyse de Fichier", ln = True, align = 'C')
+    
+    # Add fournisseur analysis
+    pdf.cell(200, 10, txt = "Analyse des Fournisseurs", ln = True)
+    for idx, (fournisseur, count) in enumerate(compte_fournisseurs.items(), start=1):
+        pdf.cell(200, 10, txt = f"{idx}. {fournisseur}: {count}", ln = True)
+
+    # Add average price by color
+    pdf.cell(200, 10, txt = "Prix Moyen par Couleur", ln = True)
+    for idx, (couleur, prix) in enumerate(prix_moyen_par_couleur.items(), start=1):
+        pdf.cell(200, 10, txt = f"{idx}. {couleur}: {prix:.2f}", ln = True)
+
+    # Add stock analysis
+    pdf.cell(200, 10, txt = "Analyse des Stocks", ln = True)
+    for idx, (famille, row) in enumerate(analyse_stock.iterrows(), start=1):
+        pdf.cell(200, 10, txt = f"{idx}. {famille}: Qté stock dispo = {row['Qté stock dispo']}, Valeur Stock = {row['Valeur Stock']:.2f}", ln = True)
+
+    # Add filtered stock details
+    pdf.cell(200, 10, txt = "Détails des Stocks avec Qté de 1 à 5", ln = True)
+    for idx, row in filtered_df.iterrows():
+        pdf.cell(200, 10, txt = f"{row['Magasin']}, {row['fournisseur']}, {row['barcode']}, {row['couleur']}, Qté stock dispo = {row['Qté stock dispo']}", ln = True)
+
+    return pdf.output(dest="S").encode("latin1")
 
 ## Streamlit Application
 st.set_page_config(page_title="Application d'Analyse de Fichier", layout="wide")
@@ -81,6 +113,11 @@ if fichier_telecharge is not None:
         # Display filtered results
         st.subheader("Détails des Stocks avec Qté de 1 à 5")
         st.write(filtered_df)
+
+        # PDF Generation and Download
+        if st.button("Télécharger le rapport en PDF"):
+            pdf = creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filtered_df)
+            st.download_button(label="Télécharger le PDF", data=pdf, file_name="rapport_analyse.pdf", mime="application/pdf")
 
     except Exception as e:
         st.error(f"Une erreur s'est produite lors de l'analyse des données : {e}")
