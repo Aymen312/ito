@@ -71,7 +71,11 @@ if fichier_telecharge is not None:
     extension_fichier = fichier_telecharge.name.split('.')[-1]
     try:
         if extension_fichier == 'csv':
-            df = pd.read_csv(fichier_telecharge, encoding='ISO-8859-1', sep=',', on_bad_lines='skip')
+            # Try different separators
+            try:
+                df = pd.read_csv(fichier_telecharge, encoding='ISO-8859-1', sep=';')
+            except Exception:
+                df = pd.read_csv(fichier_telecharge, encoding='ISO-8859-1', sep=',')
         elif extension_fichier == 'xlsx':
             df = pd.read_excel(fichier_telecharge)
         else:
@@ -83,14 +87,14 @@ if fichier_telecharge is not None:
 
         # Data analysis
         compte_fournisseurs, prix_moyen_par_couleur, analyse_stock = analyser_donnees(df)
-        
+
         # Display analyses in a single column layout
         st.subheader("Analyse des Fournisseurs")
         st.write(compte_fournisseurs)
         
         st.subheader("Prix Moyen par Couleur")
         st.write(prix_moyen_par_couleur)
-
+        
         st.subheader("Analyse des Stocks")
         st.write(analyse_stock)
 
