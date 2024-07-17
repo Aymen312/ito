@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import altair as alt
 from fpdf import FPDF
 
 ## Function to perform analyses
@@ -91,15 +90,6 @@ if fichier_telecharge is not None:
         
         st.subheader("Prix Moyen par Couleur")
         st.write(prix_moyen_par_couleur)
-        
-        # Visualize average price by color
-        chart = alt.Chart(df).mark_bar().encode(
-            x='couleur',
-            y='Prix Achat',
-            color='couleur'
-        )
-        st.subheader("Graphique: Prix Achat par Couleur")
-        st.altair_chart(chart, use_container_width=True)
 
         st.subheader("Analyse des Stocks")
         st.write(analyse_stock)
