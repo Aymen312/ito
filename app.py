@@ -3,11 +3,6 @@ import pandas as pd
 import plotly.express as px
 from fpdf import FPDF
 from passlib.hash import pbkdf2_sha256
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.base import MIMEBase
-from email import encoders
 import io
 
 # Secure user passwords
@@ -62,33 +57,6 @@ def creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filter
         pdf.cell(200, 10, txt=f"{row['Magasin']}, {row['fournisseur']}, {row['barcode']}, {row['couleur']}, Qté stock dispo = {row['Qté stock dispo']}", ln=True)
 
     return pdf.output(dest="S").encode("latin1")
-
-# Function to send email report
-def send_email_report(to_email, pdf_data):
-    from_email = "your_email@example.com"
-    from_password = "your_email_password"
-    
-    msg = MIMEMultipart()
-    msg['From'] = from_email
-    msg['To'] = to_email
-    msg['Subject'] = "Rapport d'Analyse de Fichier"
-    
-    body = "Veuillez trouver ci-joint le rapport d'analyse de fichier."
-    msg.attach(MIMEText(body, 'plain'))
-    
-    part = MIMEBase('application', 'octet-stream')
-    part.set_payload(pdf_data)
-    encoders.encode_base64(part)
-    part.add_header('Content-Disposition', f"attachment; filename= rapport_analyse.pdf")
-    
-    msg.attach(part)
-    
-    with smtplib.SMTP('smtp.gmail.com', 587) as server:
-        server.starttls()
-        server.login(from_email, from_password)
-        server.send_message(msg)
-
-    return "Email sent successfully."
 
 # Streamlit Application
 st.set_page_config(page_title="Application d'Analyse de Fichier", layout="wide")
@@ -206,4 +174,21 @@ else:
                     st.plotly_chart(fig_fournisseurs)
                 with col2:
                     st.subheader("Prix Moyen par Couleur")
-                    st.write(prix_m
+                    st.write(prix_moyen_par_couleur)
+                    st.plotly_chart(fig_prix_couleur)
+                with col3:
+                    st.subheader("Analyse des Stocks")
+                    st.write(analyse_stock)
+                    st.plotly_chart(fig_analyse_stock)
+
+                # Filtered data details
+                filtered_df = df[(df['Qté stock dispo'] >= 1) & (df['Qté stock dispo'] <= 5)]
+                st.subheader("Détails des Stocks avec Qté de 1 à 5")
+                st.write(filtered_df)
+
+                # Export to PDF
+                if st.button("Générer PDF"):
+                    pdf_data = creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filtered_df)
+                    st.download_button("Télécharger PDF", pdf_data, file_name="rapport_analyse.pdf", mime="application/pdf")
+        except Exception as e:
+            st.error(f"Une erreur s'est produite : {e}")
