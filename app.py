@@ -1,17 +1,22 @@
 import streamlit as st
 import pandas as pd
 from fpdf import FPDF
+from passlib.hash import pbkdf2_sha256
+import time
 
-## Valid users dictionary
-VALID_USERS = {"ayada": "123", "username2": "password2"}
+# Secure user passwords
+VALID_USERS = {
+    "ayada": pbkdf2_sha256.hash("123"),
+    "username2": pbkdf2_sha256.hash("password2")
+}
 
-## Authentication function
+# Authentication function
 def authenticate(username, password):
-    if username in VALID_USERS and VALID_USERS[username] == password:
+    if username in VALID_USERS and pbkdf2_sha256.verify(password, VALID_USERS[username]):
         return True
     return False
 
-## Function to perform analyses
+# Function to perform analyses
 def analyser_donnees(df):
     compte_fournisseurs = df['fournisseur'].value_counts().head(10)
     df['Prix Achat'] = df['Prix Achat'].astype(str).str.replace(',', '.').astype(float)
@@ -21,41 +26,41 @@ def analyser_donnees(df):
     analyse_stock = df.groupby('famille').agg({'Qté stock dispo': 'sum', 'Valeur Stock': 'sum'}).sort_values(by='Qté stock dispo', ascending=False).head(10)
     return compte_fournisseurs, prix_moyen_par_couleur, analyse_stock
 
-## Function to create PDF report
+# Function to create PDF report
 def creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filtered_df):
     pdf = FPDF()
     pdf.add_page()
-    pdf.set_font("Arial", size = 12)
+    pdf.set_font("Arial", size=12)
 
     # Add title
-    pdf.cell(200, 10, txt = "Rapport d'Analyse de Fichier", ln = True, align = 'C')
+    pdf.cell(200, 10, txt="Rapport d'Analyse de Fichier", ln=True, align='C')
     
     # Add fournisseur analysis
-    pdf.cell(200, 10, txt = "Analyse des Fournisseurs", ln = True)
+    pdf.cell(200, 10, txt="Analyse des Fournisseurs", ln=True)
     for idx, (fournisseur, count) in enumerate(compte_fournisseurs.items(), start=1):
-        pdf.cell(200, 10, txt = f"{idx}. {fournisseur}: {count}", ln = True)
+        pdf.cell(200, 10, txt=f"{idx}. {fournisseur}: {count}", ln=True)
 
     # Add average price by color
-    pdf.cell(200, 10, txt = "Prix Moyen par Couleur", ln = True)
+    pdf.cell(200, 10, txt="Prix Moyen par Couleur", ln=True)
     for idx, (couleur, prix) in enumerate(prix_moyen_par_couleur.items(), start=1):
-        pdf.cell(200, 10, txt = f"{idx}. {couleur}: {prix:.2f}", ln = True)
+        pdf.cell(200, 10, txt=f"{idx}. {couleur}: {prix:.2f}", ln=True)
 
     # Add stock analysis
-    pdf.cell(200, 10, txt = "Analyse des Stocks", ln = True)
+    pdf.cell(200, 10, txt="Analyse des Stocks", ln=True)
     for idx, (famille, row) in enumerate(analyse_stock.iterrows(), start=1):
-        pdf.cell(200, 10, txt = f"{idx}. {famille}: Qté stock dispo = {row['Qté stock dispo']}, Valeur Stock = {row['Valeur Stock']:.2f}", ln = True)
+        pdf.cell(200, 10, txt=f"{idx}. {famille}: Qté stock dispo = {row['Qté stock dispo']}, Valeur Stock = {row['Valeur Stock']:.2f}", ln=True)
 
     # Add filtered stock details
-    pdf.cell(200, 10, txt = "Détails des Stocks avec Qté de 1 à 5", ln = True)
+    pdf.cell(200, 10, txt="Détails des Stocks avec Qté de 1 à 5", ln=True)
     for idx, row in filtered_df.iterrows():
-        pdf.cell(200, 10, txt = f"{row['Magasin']}, {row['fournisseur']}, {row['barcode']}, {row['couleur']}, Qté stock dispo = {row['Qté stock dispo']}", ln = True)
+        pdf.cell(200, 10, txt=f"{row['Magasin']}, {row['fournisseur']}, {row['barcode']}, {row['couleur']}, Qté stock dispo = {row['Qté stock dispo']}", ln=True)
 
     return pdf.output(dest="S").encode("latin1")
 
-## Streamlit Application
+# Streamlit Application
 st.set_page_config(page_title="Application d'Analyse de Fichier", layout="wide")
 
-## Custom CSS
+# Custom CSS
 st.markdown("""
     <style>
         .main {
@@ -73,7 +78,7 @@ st.markdown("""
 
 st.title("Application d'Analyse de Fichier")
 
-## User authentication
+# User authentication
 if 'authenticated' not in st.session_state:
     st.session_state.authenticated = False
 
@@ -88,52 +93,58 @@ if not st.session_state.authenticated:
         else:
             st.error("Nom d'utilisateur ou mot de passe incorrect")
 else:
-    ## File upload
+    st.sidebar.button("Se déconnecter", on_click=lambda: st.session_state.update(authenticated=False))
+    st.sidebar.markdown("### Menu")
+    st.sidebar.info("Téléchargez un fichier CSV ou Excel pour commencer l'analyse.")
+
+    # File upload
     fichier_telecharge = st.file_uploader("Téléchargez un fichier CSV ou Excel", type=['csv', 'xlsx'])
 
     if fichier_telecharge is not None:
         extension_fichier = fichier_telecharge.name.split('.')[-1]
         try:
-            if extension_fichier == 'csv':
-                # Try different separators
-                try:
-                    df = pd.read_csv(fichier_telecharge, encoding='ISO-8859-1', sep=';')
-                except Exception:
-                    df = pd.read_csv(fichier_telecharge, encoding='ISO-8859-1', sep=',')
-            elif extension_fichier == 'xlsx':
-                df = pd.read_excel(fichier_telecharge)
-            else:
-                st.error("Format de fichier non supporté")
+            with st.spinner("Chargement des données..."):
+                if extension_fichier == 'csv':
+                    # Try different separators
+                    try:
+                        df = pd.read_csv(fichier_telecharge, encoding='ISO-8859-1', sep=';')
+                    except Exception:
+                        df = pd.read_csv(fichier_telecharge, encoding='ISO-8859-1', sep=',')
+                elif extension_fichier == 'xlsx':
+                    df = pd.read_excel(fichier_telecharge)
+                else:
+                    st.error("Format de fichier non supporté")
+                    df = None
 
-            # Show a summary of the data
-            st.subheader("Résumé des Données")
-            st.write(df.describe())
+            if df is not None:
+                # Show a summary of the data
+                st.subheader("Résumé des Données")
+                st.write(df.describe())
 
-            # Data analysis
-            compte_fournisseurs, prix_moyen_par_couleur, analyse_stock = analyser_donnees(df)
+                # Data analysis
+                compte_fournisseurs, prix_moyen_par_couleur, analyse_stock = analyser_donnees(df)
 
-            # Display analyses in a single column layout
-            st.subheader("Analyse des Fournisseurs")
-            st.write(compte_fournisseurs)
-            
-            st.subheader("Prix Moyen par Couleur")
-            st.write(prix_moyen_par_couleur)
-            
-            st.subheader("Analyse des Stocks")
-            st.write(analyse_stock)
+                # Display analyses
+                st.subheader("Analyse des Fournisseurs")
+                st.write(compte_fournisseurs)
+                
+                st.subheader("Prix Moyen par Couleur")
+                st.write(prix_moyen_par_couleur)
+                
+                st.subheader("Analyse des Stocks")
+                st.write(analyse_stock)
 
-            # Filter data for stock quantities from 1 to 5
-            filtered_df = df[df['Qté stock dispo'].isin([1, 2, 3, 4, 5])][['Magasin', 'fournisseur', 'barcode', 'couleur', 'Qté stock dispo']]
-            
-            # Display filtered results
-            st.subheader("Détails des Stocks avec Qté de 1 à 5")
-            st.write(filtered_df)
+                # Filter data for stock quantities from 1 to 5
+                filtered_df = df[df['Qté stock dispo'].isin([1, 2, 3, 4, 5])][['Magasin', 'fournisseur', 'barcode', 'couleur', 'Qté stock dispo']]
+                
+                # Display filtered results
+                st.subheader("Détails des Stocks avec Qté de 1 à 5")
+                st.write(filtered_df)
 
-            # PDF Generation and Download
-            if st.button("Télécharger le rapport en PDF"):
-                pdf = creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filtered_df)
-                st.download_button(label="Télécharger le PDF", data=pdf, file_name="rapport_analyse.pdf", mime="application/pdf")
-
+                # PDF Generation and Download
+                if st.button("Télécharger le rapport en PDF"):
+                    pdf = creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filtered_df)
+                    st.download_button(label="Télécharger le PDF", data=pdf, file_name="rapport_analyse.pdf", mime="application/pdf")
         except Exception as e:
             st.error(f"Une erreur s'est produite lors de l'analyse des données : {e}")
     else:
