@@ -79,7 +79,11 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
+# Title and introduction
 st.title("Application d'Analyse de Fichier")
+st.markdown("""
+    Bienvenue dans l'application d'analyse de fichier. Téléchargez un fichier CSV ou Excel pour commencer.
+    """)
 
 # User authentication
 if 'authenticated' not in st.session_state:
@@ -92,7 +96,7 @@ if not st.session_state.authenticated:
     if st.button("Se connecter"):
         if authenticate(username, password):
             st.session_state.authenticated = True
-            st.experimental_rerun()
+            st.success("Connecté avec succès!")
         else:
             st.error("Nom d'utilisateur ou mot de passe incorrect")
 else:
@@ -128,6 +132,8 @@ else:
                 compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, full_df = analyser_donnees(df)
 
                 # Display analyses with scrollable sections and filters
+                st.markdown("## Analyses Principales")
+                
                 with st.expander("Analyse des Fournisseurs"):
                     st.write(compte_fournisseurs)
 
@@ -138,23 +144,29 @@ else:
                     st.write(analyse_stock)
 
                 # Filtering options
-                filter_options = st.sidebar.selectbox("Filtrer par", ["Fournisseur", "Couleur"])
+                st.markdown("## Filtrage des Données")
+                filter_options = st.selectbox("Filtrer par", ["Aucun", "Fournisseur", "Couleur"])
+                filtered_df = full_df
+
                 if filter_options == "Fournisseur":
-                    selected_fournisseur = st.sidebar.selectbox("Sélectionnez un fournisseur", full_df['fournisseur'].unique())
+                    selected_fournisseur = st.selectbox("Sélectionnez un fournisseur", full_df['fournisseur'].unique())
                     filtered_df = full_df[full_df['fournisseur'] == selected_fournisseur]
                 elif filter_options == "Couleur":
-                    selected_couleur = st.sidebar.selectbox("Sélectionnez une couleur", full_df['couleur'].unique())
+                    selected_couleur = st.selectbox("Sélectionnez une couleur", full_df['couleur'].unique())
                     filtered_df = full_df[full_df['couleur'] == selected_couleur]
-                else:
-                    filtered_df = full_df
 
                 # Display filtered data
-                st.subheader("Détails des Stocks filtrés")
+                st.markdown("## Détails des Stocks")
                 st.write(filtered_df)
 
                 # Export to PDF
+                st.markdown("## Générer un Rapport PDF")
                 if st.button("Générer PDF"):
                     pdf_data = creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filtered_df)
                     st.download_button("Télécharger PDF", pdf_data, file_name="rapport_analyse.pdf", mime="application/pdf")
         except Exception as e:
             st.error(f"Une erreur s'est produite : {e}")
+
+# Footer
+st.sidebar.markdown("---")
+st.sidebar.markdown("Créé avec ❤️ par [Votre Nom]")
