@@ -2,6 +2,15 @@ import streamlit as st
 import pandas as pd
 from fpdf import FPDF
 
+## Valid users dictionary
+VALID_USERS = {"username1": "password1", "username2": "password2"}
+
+## Authentication function
+def authenticate(username, password):
+    if username in VALID_USERS and VALID_USERS[username] == password:
+        return True
+    return False
+
 ## Function to perform analyses
 def analyser_donnees(df):
     compte_fournisseurs = df['fournisseur'].value_counts().head(10)
@@ -64,53 +73,68 @@ st.markdown("""
 
 st.title("Application d'Analyse de Fichier")
 
-## File upload
-fichier_telecharge = st.file_uploader("Téléchargez un fichier CSV ou Excel", type=['csv', 'xlsx'])
+## User authentication
+if 'authenticated' not in st.session_state:
+    st.session_state.authenticated = False
 
-if fichier_telecharge is not None:
-    extension_fichier = fichier_telecharge.name.split('.')[-1]
-    try:
-        if extension_fichier == 'csv':
-            # Try different separators
-            try:
-                df = pd.read_csv(fichier_telecharge, encoding='ISO-8859-1', sep=';')
-            except Exception:
-                df = pd.read_csv(fichier_telecharge, encoding='ISO-8859-1', sep=',')
-        elif extension_fichier == 'xlsx':
-            df = pd.read_excel(fichier_telecharge)
+if not st.session_state.authenticated:
+    st.header("Veuillez vous authentifier")
+    username = st.text_input("Nom d'utilisateur")
+    password = st.text_input("Mot de passe", type="password")
+    if st.button("Se connecter"):
+        if authenticate(username, password):
+            st.session_state.authenticated = True
+            st.experimental_rerun()
         else:
-            st.error("Format de fichier non supporté")
-
-        # Show a summary of the data
-        st.subheader("Résumé des Données")
-        st.write(df.describe())
-
-        # Data analysis
-        compte_fournisseurs, prix_moyen_par_couleur, analyse_stock = analyser_donnees(df)
-
-        # Display analyses in a single column layout
-        st.subheader("Analyse des Fournisseurs")
-        st.write(compte_fournisseurs)
-        
-        st.subheader("Prix Moyen par Couleur")
-        st.write(prix_moyen_par_couleur)
-        
-        st.subheader("Analyse des Stocks")
-        st.write(analyse_stock)
-
-        # Filter data for stock quantities from 1 to 5
-        filtered_df = df[df['Qté stock dispo'].isin([1, 2, 3, 4, 5])][['Magasin', 'fournisseur', 'barcode', 'couleur', 'Qté stock dispo']]
-        
-        # Display filtered results
-        st.subheader("Détails des Stocks avec Qté de 1 à 5")
-        st.write(filtered_df)
-
-        # PDF Generation and Download
-        if st.button("Télécharger le rapport en PDF"):
-            pdf = creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filtered_df)
-            st.download_button(label="Télécharger le PDF", data=pdf, file_name="rapport_analyse.pdf", mime="application/pdf")
-
-    except Exception as e:
-        st.error(f"Une erreur s'est produite lors de l'analyse des données : {e}")
+            st.error("Nom d'utilisateur ou mot de passe incorrect")
 else:
-    st.info("Veuillez télécharger un fichier à analyser.")
+    ## File upload
+    fichier_telecharge = st.file_uploader("Téléchargez un fichier CSV ou Excel", type=['csv', 'xlsx'])
+
+    if fichier_telecharge is not None:
+        extension_fichier = fichier_telecharge.name.split('.')[-1]
+        try:
+            if extension_fichier == 'csv':
+                # Try different separators
+                try:
+                    df = pd.read_csv(fichier_telecharge, encoding='ISO-8859-1', sep=';')
+                except Exception:
+                    df = pd.read_csv(fichier_telecharge, encoding='ISO-8859-1', sep=',')
+            elif extension_fichier == 'xlsx':
+                df = pd.read_excel(fichier_telecharge)
+            else:
+                st.error("Format de fichier non supporté")
+
+            # Show a summary of the data
+            st.subheader("Résumé des Données")
+            st.write(df.describe())
+
+            # Data analysis
+            compte_fournisseurs, prix_moyen_par_couleur, analyse_stock = analyser_donnees(df)
+
+            # Display analyses in a single column layout
+            st.subheader("Analyse des Fournisseurs")
+            st.write(compte_fournisseurs)
+            
+            st.subheader("Prix Moyen par Couleur")
+            st.write(prix_moyen_par_couleur)
+            
+            st.subheader("Analyse des Stocks")
+            st.write(analyse_stock)
+
+            # Filter data for stock quantities from 1 to 5
+            filtered_df = df[df['Qté stock dispo'].isin([1, 2, 3, 4, 5])][['Magasin', 'fournisseur', 'barcode', 'couleur', 'Qté stock dispo']]
+            
+            # Display filtered results
+            st.subheader("Détails des Stocks avec Qté de 1 à 5")
+            st.write(filtered_df)
+
+            # PDF Generation and Download
+            if st.button("Télécharger le rapport en PDF"):
+                pdf = creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filtered_df)
+                st.download_button(label="Télécharger le PDF", data=pdf, file_name="rapport_analyse.pdf", mime="application/pdf")
+
+        except Exception as e:
+            st.error(f"Une erreur s'est produite lors de l'analyse des données : {e}")
+    else:
+        st.info("Veuillez télécharger un fichier à analyser.")
