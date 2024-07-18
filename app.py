@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
-from reportlab.lib import colors
 from passlib.hash import pbkdf2_sha256
 
 # Secure user passwords
@@ -153,9 +152,8 @@ else:
                 if st.button("Générer PDF"):
                     pdf_filename = creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filtered_df)
                     st.success(f"Rapport PDF généré avec succès: [Télécharger PDF]({pdf_filename})")
-        except Exception as e:
-            st.error(f"Une erreur s'est produite : {e}")
 
-# Footer
-st.sidebar.markdown("---")
-st.sidebar.markdown("Créé avec ❤️ par [Votre Nom]")
+        except Exception as e:
+            st.error(f"Une erreur s'est produite lors de l'analyse des données : {e}")
+    else:
+        st.info("Veuillez télécharger un fichier à analyser.")
