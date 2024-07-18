@@ -4,17 +4,9 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from io import BytesIO
 
-# Secure user passwords
-VALID_USERS = {
-    "ayada": "pbkdf2_sha256$29000$FWoDWVqT9Orw$kydG3tEgfYz3IcvVt0+eFfSJtVusLXgrSsBRl+K8o7o=",
-    "username2": "pbkdf2_sha256$29000$secrets$SxTfOKfUkK8CyG1wJbeTmN1ZTtZk1zFOv9JOF0ANR9o="
-}
-
 # Authentication function
 def authenticate(username, password):
-    if username in VALID_USERS and password == VALID_USERS[username]:
-        return True
-    return False
+    return username == "ayada" and password == "123"
 
 # Function to perform analyses
 def analyser_donnees(df):
