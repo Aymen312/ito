@@ -3,7 +3,7 @@ import pandas as pd
 from fpdf import FPDF
 
 ## Valid users dictionary
-VALID_USERS = {"username1": "password1", "username2": "password2"}
+VALID_USERS = {"ayada": "123", "username2": "password2"}
 
 ## Authentication function
 def authenticate(username, password):
