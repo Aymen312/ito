@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 from fpdf import FPDF
 from passlib.hash import pbkdf2_sha256
 import time
@@ -124,22 +125,24 @@ else:
                 # Data analysis
                 compte_fournisseurs, prix_moyen_par_couleur, analyse_stock = analyser_donnees(df)
 
-                # Display analyses
-                st.subheader("Analyse des Fournisseurs")
-                st.write(compte_fournisseurs)
-                
-                st.subheader("Prix Moyen par Couleur")
-                st.write(prix_moyen_par_couleur)
-                
-                st.subheader("Analyse des Stocks")
-                st.write(analyse_stock)
+                # Display analyses in columns
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.subheader("Analyse des Fournisseurs")
+                    st.write(compte_fournisseurs)
+                with col2:
+                    st.subheader("Prix Moyen par Couleur")
+                    st.write(prix_moyen_par_couleur)
+                with col3:
+                    st.subheader("Analyse des Stocks")
+                    st.write(analyse_stock)
 
                 # Filter data for stock quantities from 1 to 5
                 filtered_df = df[df['Qté stock dispo'].isin([1, 2, 3, 4, 5])][['Magasin', 'fournisseur', 'barcode', 'couleur', 'Qté stock dispo']]
                 
                 # Display filtered results
-                st.subheader("Détails des Stocks avec Qté de 1 à 5")
-                st.write(filtered_df)
+                with st.expander("Détails des Stocks avec Qté de 1 à 5"):
+                    st.write(filtered_df)
 
                 # PDF Generation and Download
                 if st.button("Télécharger le rapport en PDF"):
