@@ -3,7 +3,6 @@ import pandas as pd
 import plotly.express as px
 from fpdf import FPDF
 from passlib.hash import pbkdf2_sha256
-import io
 
 # Secure user passwords
 VALID_USERS = {
@@ -101,30 +100,6 @@ else:
     st.sidebar.markdown("### Menu")
     st.sidebar.info("Téléchargez un fichier CSV ou Excel pour commencer l'analyse.")
     
-    # Save user preferences
-    if 'preferences' not in st.session_state:
-        st.session_state.preferences = {
-            'magasin_filter': [],
-            'fournisseur_filter': [],
-            'couleur_filter': []
-        }
-
-    st.sidebar.header("Préférences")
-    st.sidebar.text("Sauvegardez vos préférences pour les futures sessions.")
-
-    if st.sidebar.button("Sauvegarder les préférences"):
-        st.session_state.preferences = {
-            'magasin_filter': magasin_filter,
-            'fournisseur_filter': fournisseur_filter,
-            'couleur_filter': couleur_filter
-        }
-        st.sidebar.success("Préférences sauvegardées !")
-
-    # Apply saved preferences
-    magasin_filter = st.session_state.preferences.get('magasin_filter', [])
-    fournisseur_filter = st.session_state.preferences.get('fournisseur_filter', [])
-    couleur_filter = st.session_state.preferences.get('couleur_filter', [])
-
     # File upload
     fichier_telecharge = st.file_uploader("Téléchargez un fichier CSV ou Excel", type=['csv', 'xlsx'])
 
@@ -145,19 +120,9 @@ else:
                     df = None
 
             if df is not None:
-                # Ensure date columns are properly parsed and formatted
-                if 'Date' in df.columns:
-                    df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
-                    st.write(df['Date'].dt.strftime('%Y-%m-%d').head())
-
                 # Show a summary of the data
-                st.subheader("Résumé des Données Amélioré")
-                st.write("Nombre de lignes : ", len(df))
-                st.write("Nombre de colonnes : ", len(df.columns))
-                st.write("Aperçu des premières lignes :")
-                st.write(df.head())
-                st.write("Statistiques descriptives :")
-                st.write(df.describe(include='all'))
+                st.subheader("Résumé des Données")
+                st.write(df.describe())
 
                 # Data analysis
                 compte_fournisseurs, prix_moyen_par_couleur, analyse_stock = analyser_donnees(df)
