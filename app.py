@@ -24,7 +24,7 @@ def analyser_donnees(df):
     df['Qté stock dispo'] = df['Qté stock dispo'].fillna(0).astype(int)
     df['Valeur Stock'] = df['Valeur Stock'].astype(str).str.replace(',', '.').astype(float)
     analyse_stock = df.groupby('famille').agg({'Qté stock dispo': 'sum', 'Valeur Stock': 'sum'}).sort_values(by='Qté stock dispo', ascending=False).head(10)
-    return compte_fournisseurs, prix_moyen_par_couleur, analyse_stock
+    return compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, df
 
 # Function to create PDF report
 def creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filtered_df):
@@ -125,30 +125,31 @@ else:
                 st.write(df.describe())
 
                 # Data analysis
-                compte_fournisseurs, prix_moyen_par_couleur, analyse_stock = analyser_donnees(df)
+                compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, full_df = analyser_donnees(df)
 
-                # Display analyses in columns with visualizations
-                fig_fournisseurs = px.bar(compte_fournisseurs, title="Top 10 Fournisseurs")
-                fig_prix_couleur = px.bar(prix_moyen_par_couleur, title="Prix Moyen par Couleur")
-                fig_analyse_stock = px.bar(analyse_stock.reset_index(), x='famille', y='Qté stock dispo', title="Quantité de Stock par Famille")
-
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.subheader("Analyse des Fournisseurs")
+                # Display analyses with scrollable sections and filters
+                with st.expander("Analyse des Fournisseurs"):
                     st.write(compte_fournisseurs)
-                    st.plotly_chart(fig_fournisseurs)
-                with col2:
-                    st.subheader("Prix Moyen par Couleur")
-                    st.write(prix_moyen_par_couleur)
-                    st.plotly_chart(fig_prix_couleur)
-                with col3:
-                    st.subheader("Analyse des Stocks")
-                    st.write(analyse_stock)
-                    st.plotly_chart(fig_analyse_stock)
 
-                # Filtered data details
-                filtered_df = df[(df['Qté stock dispo'] >= 1) & (df['Qté stock dispo'] <= 5)]
-                st.subheader("Détails des Stocks avec Qté de 1 à 5")
+                with st.expander("Prix Moyen par Couleur"):
+                    st.write(prix_moyen_par_couleur)
+
+                with st.expander("Analyse des Stocks"):
+                    st.write(analyse_stock)
+
+                # Filtering options
+                filter_options = st.sidebar.selectbox("Filtrer par", ["Fournisseur", "Couleur"])
+                if filter_options == "Fournisseur":
+                    selected_fournisseur = st.sidebar.selectbox("Sélectionnez un fournisseur", full_df['fournisseur'].unique())
+                    filtered_df = full_df[full_df['fournisseur'] == selected_fournisseur]
+                elif filter_options == "Couleur":
+                    selected_couleur = st.sidebar.selectbox("Sélectionnez une couleur", full_df['couleur'].unique())
+                    filtered_df = full_df[full_df['couleur'] == selected_couleur]
+                else:
+                    filtered_df = full_df
+
+                # Display filtered data
+                st.subheader("Détails des Stocks filtrés")
                 st.write(filtered_df)
 
                 # Export to PDF
