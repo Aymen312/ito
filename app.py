@@ -1,7 +1,8 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
-from fpdf import FPDF
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from reportlab.lib import colors
 from passlib.hash import pbkdf2_sha256
 
 # Secure user passwords
@@ -26,58 +27,46 @@ def analyser_donnees(df):
     analyse_stock = df.groupby('famille').agg({'Qté stock dispo': 'sum', 'Valeur Stock': 'sum'}).sort_values(by='Qté stock dispo', ascending=False).head(10)
     return compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, df
 
-# Function to create PDF report
+# Function to create PDF report using ReportLab
 def creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filtered_df):
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=12)
-
-    # Add title
-    pdf.cell(200, 10, txt="Rapport d'Analyse de Fichier", ln=True, align='C')
+    # Initialize PDF canvas
+    pdf_filename = "rapport_analyse.pdf"
+    c = canvas.Canvas(pdf_filename, pagesize=letter)
+    
+    # Set up styles
+    c.setFont("Helvetica-Bold", 16)
+    c.drawString(50, 750, "Rapport d'Analyse de Fichier")
+    c.setFont("Helvetica", 12)
+    c.drawString(50, 720, "Analyse des Fournisseurs:")
     
     # Add fournisseur analysis
-    pdf.cell(200, 10, txt="Analyse des Fournisseurs", ln=True)
+    y_position = 700
     for idx, (fournisseur, count) in enumerate(compte_fournisseurs.items(), start=1):
-        pdf.cell(200, 10, txt=f"{idx}. {fournisseur}: {count}", ln=True)
-
+        c.drawString(70, y_position - idx * 20, f"{idx}. {fournisseur}: {count}")
+    
     # Add average price by color
-    pdf.cell(200, 10, txt="Prix Moyen par Couleur", ln=True)
+    c.drawString(50, y_position - len(compte_fournisseurs) * 20 - 40, "Prix Moyen par Couleur:")
     for idx, (couleur, prix) in enumerate(prix_moyen_par_couleur.items(), start=1):
-        pdf.cell(200, 10, txt=f"{idx}. {couleur}: {prix:.2f}", ln=True)
-
+        c.drawString(70, y_position - len(compte_fournisseurs) * 20 - 40 - idx * 20, f"{idx}. {couleur}: {prix:.2f}")
+    
     # Add stock analysis
-    pdf.cell(200, 10, txt="Analyse des Stocks", ln=True)
+    c.drawString(50, y_position - len(compte_fournisseurs) * 20 - 40 - len(prix_moyen_par_couleur) * 20 - 60, "Analyse des Stocks:")
     for idx, (famille, row) in enumerate(analyse_stock.iterrows(), start=1):
-        pdf.cell(200, 10, txt=f"{idx}. {famille}: Qté stock dispo = {row['Qté stock dispo']}, Valeur Stock = {row['Valeur Stock']:.2f}", ln=True)
-
+        c.drawString(70, y_position - len(compte_fournisseurs) * 20 - 40 - len(prix_moyen_par_couleur) * 20 - 60 - idx * 20,
+                     f"{idx}. {famille}: Qté stock dispo = {row['Qté stock dispo']}, Valeur Stock = {row['Valeur Stock']:.2f}")
+    
     # Add filtered stock details
-    pdf.cell(200, 10, txt="Détails des Stocks avec Qté de 1 à 5", ln=True)
-    for idx, row in filtered_df.iterrows():
-        pdf.cell(200, 10, txt=f"{row['Magasin']}, {row['fournisseur']}, {row['barcode']}, {row['couleur']}, Qté stock dispo = {row['Qté stock dispo']}", ln=True)
+    c.drawString(50, y_position - len(compte_fournisseurs) * 20 - 40 - len(prix_moyen_par_couleur) * 20 - 60 - len(analyse_stock) * 20 - 80, "Détails des Stocks avec Qté de 1 à 5:")
+    for idx, (_, row) in enumerate(filtered_df.iterrows(), start=1):
+        c.drawString(70, y_position - len(compte_fournisseurs) * 20 - 40 - len(prix_moyen_par_couleur) * 20 - 60 - len(analyse_stock) * 20 - 80 - idx * 20,
+                     f"{row['Magasin']}, {row['fournisseur']}, {row['barcode']}, {row['couleur']}, Qté stock dispo = {row['Qté stock dispo']}")
 
-    return pdf.output(dest="S").encode("latin1")
+    # Save PDF
+    c.save()
+    return pdf_filename
 
 # Streamlit Application
 st.set_page_config(page_title="Application d'Analyse de Fichier", layout="wide")
-
-# Custom CSS
-st.markdown("""
-    <style>
-        .main {
-            background-color: #f0f2f6;
-        }
-        .stButton>button {
-            background-color: #101E50;
-            color: white;
-        }
-        .stHeader {
-            color: #101E50;
-        }
-        .stTextInput > div > div > input {
-            width: 100%;
-        }
-    </style>
-    """, unsafe_allow_html=True)
 
 # Title and introduction
 st.title("Application d'Analyse de Fichier")
@@ -162,8 +151,8 @@ else:
                 # Export to PDF
                 st.markdown("## Générer un Rapport PDF")
                 if st.button("Générer PDF"):
-                    pdf_data = creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filtered_df)
-                    st.download_button("Télécharger PDF", pdf_data, file_name="rapport_analyse.pdf", mime="application/pdf")
+                    pdf_filename = creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filtered_df)
+                    st.success(f"Rapport PDF généré avec succès: [Télécharger PDF]({pdf_filename})")
         except Exception as e:
             st.error(f"Une erreur s'est produite : {e}")
 
