@@ -3,7 +3,6 @@ import pandas as pd
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from io import BytesIO
-import plotly.express as px
 
 # Authentication function
 def authenticate(username, password):
@@ -115,34 +114,24 @@ else:
                     df = None
 
             if df is not None:
-                # User selects analyses
-                st.sidebar.header("Sélectionnez les Analyses à Effectuer")
-                analyse_fournisseurs = st.sidebar.checkbox("Analyse des Fournisseurs")
-                analyse_couleur = st.sidebar.checkbox("Prix Moyen par Couleur")
-                analyse_stock = st.sidebar.checkbox("Analyse des Stocks")
+                # Show a summary of the data
+                st.subheader("Résumé des Données")
+                st.write(df.describe())
 
-                if analyse_fournisseurs or analyse_couleur or analyse_stock:
-                    compte_fournisseurs, prix_moyen_par_couleur, analyse_stock_res = analyser_donnees(df)
+                # Data analysis
+                compte_fournisseurs, prix_moyen_par_couleur, analyse_stock = analyser_donnees(df)
 
-                    if analyse_fournisseurs:
-                        st.subheader("Analyse des Fournisseurs")
-                        st.write(compte_fournisseurs)
-                        fig1 = px.bar(compte_fournisseurs, x=compte_fournisseurs.index, y=compte_fournisseurs.values, title="Top 10 des Fournisseurs")
-                        st.plotly_chart(fig1)
-
-                    if analyse_couleur:
-                        st.subheader("Prix Moyen par Couleur")
-                        st.write(prix_moyen_par_couleur)
-                        fig2 = px.bar(prix_moyen_par_couleur, x=prix_moyen_par_couleur.index, y=prix_moyen_par_couleur.values, title="Prix Moyen par Couleur")
-                        st.plotly_chart(fig2)
-
-                    if analyse_stock:
-                        st.subheader("Analyse des Stocks")
-                        st.write(analyse_stock_res)
-                        fig3 = px.bar(analyse_stock_res, x=analyse_stock_res.index, y='Qté stock dispo', title="Quantité de Stock Disponible par Famille")
-                        st.plotly_chart(fig3)
-                        fig4 = px.bar(analyse_stock_res, x=analyse_stock_res.index, y='Valeur Stock', title="Valeur de Stock par Famille")
-                        st.plotly_chart(fig4)
+                # Display analyses in columns
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.subheader("Analyse des Fournisseurs")
+                    st.write(compte_fournisseurs)
+                with col2:
+                    st.subheader("Prix Moyen par Couleur")
+                    st.write(prix_moyen_par_couleur)
+                with col3:
+                    st.subheader("Analyse des Stocks")
+                    st.write(analyse_stock)
 
                 # Filter data for stock quantities from 1 to 5
                 filtered_df = df[df['Qté stock dispo'].isin([1, 2, 3, 4, 5])][['Magasin', 'fournisseur', 'barcode', 'couleur', 'Qté stock dispo']]
@@ -154,7 +143,7 @@ else:
                 # PDF Generation and Download
                 st.markdown("## Générer un Rapport PDF")
                 if st.button("Télécharger le rapport en PDF"):
-                    pdf_bytes = creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock_res, filtered_df)
+                    pdf_bytes = creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filtered_df)
                     st.download_button(label="Télécharger le PDF", data=pdf_bytes, file_name="rapport_analyse.pdf", mime="application/pdf")
 
         except Exception as e:
