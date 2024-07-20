@@ -3,10 +3,6 @@ import pandas as pd
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from io import BytesIO
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.base import MIMEBase
-from email import encoders
 
 # Authentication function
 def authenticate(username, password):
@@ -74,30 +70,6 @@ def creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filter
     buffer.close()
     
     return pdf_bytes
-
-# Function to send email with attachment
-def send_email(pdf_bytes, receiver_email):
-    sender_email = "your_email@gmail.com"  # Your email
-    sender_password = "your_password"      # Your email password
-
-    msg = MIMEMultipart()
-    msg['From'] = sender_email
-    msg['To'] = receiver_email
-    msg['Subject'] = "Rapport d'analyse"
-
-    part = MIMEBase('application', "octet-stream")
-    part.set_payload(pdf_bytes)
-    encoders.encode_base64(part)
-    part.add_header('Content-Disposition', 'attachment; filename="rapport_analyse.pdf"')
-    msg.attach(part)
-
-    try:
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
-            smtp.login(sender_email, sender_password)
-            smtp.send_message(msg)
-        st.success(f"Le rapport a été envoyé à {receiver_email}")
-    except Exception as e:
-        st.error(f"Erreur lors de l'envoi du rapport par email : {e}")
 
 # Streamlit Application
 st.set_page_config(page_title="Application d'Analyse de Fichier", layout="wide")
@@ -229,14 +201,10 @@ else:
                     if selections:
                         pdf_bytes = creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filtered_df, selections)
                         st.download_button(label="Télécharger le PDF", data=pdf_bytes, file_name="rapport_analyse.pdf", mime="application/pdf")
-
-                        # Send PDF via email
-                        receiver_email = "aymenskateboard@gmail.com"  # Replace with your receiver email
-                        send_email(pdf_bytes, receiver_email)
                     else:
                         st.error("Veuillez sélectionner au moins une section à inclure dans le rapport.")
 
         except Exception as e:
             st.error(f"Une erreur s'est produite lors de l'analyse des données : {e}")
     else:
-        st.info("Veuillez télécharger un fichier à analyser.")
+        st.info("Veuillez télécharger un fichier à analyser.")
