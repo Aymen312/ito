@@ -1,10 +1,10 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
-from reportlab.lib.utils import ImageReader
-import matplotlib.pyplot as plt
 from io import BytesIO
+import requests
 
 # Authentication function
 def authenticate(username, password):
@@ -32,28 +32,6 @@ def creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filter
     
     y_position = 720
     
-    # Function to add a chart to PDF
-    def add_chart_to_pdf(c, chart_title, data_series):
-        c.setFont("Helvetica", 12)
-        c.drawString(50, y_position, chart_title)
-        y_position -= 20
-        
-        # Example chart (you can replace with your actual data visualization)
-        plt.figure(figsize=(6, 4))
-        plt.bar(data_series.index, data_series.values)
-        plt.xlabel('Categories')
-        plt.ylabel('Values')
-        plt.title(chart_title)
-        plt.xticks(rotation=45)
-        plt.tight_layout()
-        chart_img = BytesIO()
-        plt.savefig(chart_img, format='png')
-        plt.close()
-        
-        c.drawImage(ImageReader(chart_img), 100, y_position - 200, width=400, height=200)
-        y_position -= 220
-    
-    # Include sections based on user selections
     if 'Analyse des Fournisseurs' in selections:
         # Add fournisseur analysis
         c.drawString(50, y_position, "Analyse des Fournisseurs:")
@@ -64,7 +42,11 @@ def creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filter
     
     if 'Prix Moyen par Couleur' in selections:
         # Add average price by color
-        add_chart_to_pdf(c, "Prix Moyen par Couleur", prix_moyen_par_couleur)
+        c.drawString(50, y_position, "Prix Moyen par Couleur:")
+        y_position -= 20
+        for idx, (couleur, prix) in enumerate(prix_moyen_par_couleur.items(), start=1):
+            c.drawString(70, y_position - idx * 20, f"{idx}. {couleur}: {prix:.2f}")
+        y_position -= len(prix_moyen_par_couleur) * 20 + 20
     
     if 'Analyse des Stocks' in selections:
         # Add stock analysis
@@ -90,6 +72,15 @@ def creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filter
     buffer.close()
     
     return pdf_bytes
+
+# Function to shorten URLs using TinyURL API
+def shorten_url(original_url):
+    api_url = "http://tinyurl.com/api-create.php?url="
+    response = requests.get(api_url + original_url)
+    if response.status_code == 200:
+        return response.text.strip()
+    else:
+        return None
 
 # Streamlit Application
 st.set_page_config(page_title="Application d'Analyse de Fichier", layout="wide")
@@ -224,13 +215,18 @@ else:
                     else:
                         st.error("Veuillez sélectionner au moins une section à inclure dans le rapport.")
 
-                # Export filtered data to CSV
-                if st.button("Exporter les données filtrées en CSV"):
-                    if filtered_df.empty:
-                        st.warning("Aucune donnée filtrée à exporter.")
+                # URL Shortening
+                st.markdown("## Raccourcir une URL")
+                original_url = st.text_input("Entrez l'URL à raccourcir")
+                if st.button("Raccourcir"):
+                    if original_url:
+                        shortened_url = shorten_url(original_url)
+                        if shortened_url:
+                            st.success(f"URL raccourcie : {shortened_url}")
+                        else:
+                            st.error("Échec du raccourcissement de l'URL. Veuillez réessayer.")
                     else:
-                        csv_data = filtered_df.to_csv(index=False)
-                        st.download_button(label="Télécharger le CSV", data=csv_data, file_name="donnees_filtrees.csv", mime="text/csv")
+                        st.warning("Veuillez entrer une URL à raccourcir.")
 
         except Exception as e:
             st.error(f"Une erreur s'est produite lors de l'analyse des données : {e}")
