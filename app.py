@@ -1,10 +1,8 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from io import BytesIO
-import requests
 
 # Authentication function
 def authenticate(username, password):
@@ -72,15 +70,6 @@ def creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filter
     buffer.close()
     
     return pdf_bytes
-
-# Function to shorten URLs using TinyURL API
-def shorten_url(original_url):
-    api_url = "http://tinyurl.com/api-create.php?url="
-    response = requests.get(api_url + original_url)
-    if response.status_code == 200:
-        return response.text.strip()
-    else:
-        return None
 
 # Streamlit Application
 st.set_page_config(page_title="Application d'Analyse de Fichier", layout="wide")
@@ -215,20 +204,7 @@ else:
                     else:
                         st.error("Veuillez sélectionner au moins une section à inclure dans le rapport.")
 
-                # URL Shortening
-                st.markdown("## Raccourcir une URL")
-                original_url = st.text_input("Entrez l'URL à raccourcir")
-                if st.button("Raccourcir"):
-                    if original_url:
-                        shortened_url = shorten_url(original_url)
-                        if shortened_url:
-                            st.success(f"URL raccourcie : {shortened_url}")
-                        else:
-                            st.error("Échec du raccourcissement de l'URL. Veuillez réessayer.")
-                    else:
-                        st.warning("Veuillez entrer une URL à raccourcir.")
-
         except Exception as e:
             st.error(f"Une erreur s'est produite lors de l'analyse des données : {e}")
     else:
-        st.info("Veuillez télécharger un fichier à analyser.")
+        st.info("Veuillez télécharger un fichier à analyser.")
