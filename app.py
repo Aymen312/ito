@@ -74,18 +74,55 @@ def creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filter
 # Streamlit Application
 st.set_page_config(page_title="Application d'Analyse de Fichier", layout="wide")
 
-# Custom CSS
+# Custom CSS for futuristic design
 st.markdown("""
     <style>
-        .main {
-            background-color: #f0f2f6;
+        body {
+            background: linear-gradient(135deg, #1E1E1E, #2D2D2D);
+            color: #F5F5F5;
+            font-family: 'Arial', sans-serif;
         }
         .stButton>button {
-            background-color: #101E50;
+            background-color: #007BFF;
             color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
         }
-        .stHeader {
-            color: #101E50;
+        .stButton>button:hover {
+            background-color: #0056b3;
+        }
+        .stTextInput>div>input {
+            border: 2px solid #007BFF;
+            border-radius: 5px;
+            padding: 10px;
+            background-color: #1E1E1E;
+            color: #F5F5F5;
+        }
+        .stTextInput>div>input:focus {
+            border-color: #0056b3;
+            outline: none;
+        }
+        .stMultiSelect>div>div {
+            border: 2px solid #007BFF;
+            border-radius: 5px;
+            background-color: #1E1E1E;
+            color: #F5F5F5;
+        }
+        .stMultiSelect>div>div>div>div {
+            color: #F5F5F5;
+        }
+        .stExpander>div>div {
+            background-color: #2D2D2D;
+            color: #F5F5F5;
+            border-radius: 5px;
+            padding: 10px;
+        }
+        .stExpander>div>div>div {
+            color: #F5F5F5;
         }
     </style>
     """, unsafe_allow_html=True)
