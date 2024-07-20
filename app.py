@@ -74,58 +74,55 @@ def creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filter
 # Streamlit Application
 st.set_page_config(page_title="Application d'Analyse de Fichier", layout="wide")
 
-# Custom CSS for modern design
+# Custom CSS for futuristic design
 st.markdown("""
     <style>
         body {
-            background: #141414;
-            color: #E0E0E0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        .main {
-            background: #141414;
+            background: linear-gradient(135deg, #1E1E1E, #2D2D2D);
+            color: #F5F5F5;
+            font-family: 'Arial', sans-serif;
         }
         .stButton>button {
-            background: #333;
-            color: #E0E0E0;
+            background-color: #007BFF;
+            color: white;
             border: none;
-            border-radius: 8px;
+            border-radius: 5px;
             padding: 10px 20px;
-            font-size: 16px;
+            font-size: 14px;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: background-color 0.3s ease;
         }
         .stButton>button:hover {
-            background: #555;
+            background-color: #0056b3;
         }
         .stTextInput>div>input {
-            border: 2px solid #333;
-            border-radius: 8px;
+            border: 2px solid #007BFF;
+            border-radius: 5px;
             padding: 10px;
-            background: #222;
-            color: #E0E0E0;
+            background-color: #1E1E1E;
+            color: #F5F5F5;
         }
         .stTextInput>div>input:focus {
-            border-color: #555;
+            border-color: #0056b3;
             outline: none;
         }
         .stMultiSelect>div>div {
-            border: 2px solid #333;
-            border-radius: 8px;
-            background: #222;
-            color: #E0E0E0;
+            border: 2px solid #007BFF;
+            border-radius: 5px;
+            background-color: #1E1E1E;
+            color: #F5F5F5;
         }
         .stMultiSelect>div>div>div>div {
-            color: #E0E0E0;
+            color: #F5F5F5;
         }
         .stExpander>div>div {
-            background: rgba(0, 0, 0, 0.6);
-            color: #E0E0E0;
-            border-radius: 8px;
+            background-color: #2D2D2D;
+            color: #F5F5F5;
+            border-radius: 5px;
             padding: 10px;
         }
         .stExpander>div>div>div {
-            color: #E0E0E0;
+            color: #F5F5F5;
         }
     </style>
     """, unsafe_allow_html=True)
