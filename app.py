@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from io import BytesIO
@@ -176,12 +177,29 @@ else:
                 with col1:
                     st.subheader("Analyse des Fournisseurs")
                     st.write(compte_fournisseurs)
+
+                    # Plotly chart for top suppliers
+                    fig1 = px.bar(compte_fournisseurs, x=compte_fournisseurs.index, y=compte_fournisseurs.values,
+                                  labels={'x': 'Fournisseur', 'y': 'Nombre de Produits'}, title="Top Fournisseurs")
+                    st.plotly_chart(fig1)
+
                 with col2:
                     st.subheader("Prix Moyen par Couleur")
                     st.write(prix_moyen_par_couleur)
+
+                    # Plotly chart for average price by color
+                    fig2 = px.bar(prix_moyen_par_couleur, x=prix_moyen_par_couleur.index, y=prix_moyen_par_couleur.values,
+                                  labels={'x': 'Couleur', 'y': 'Prix Moyen'}, title="Prix Moyen par Couleur")
+                    st.plotly_chart(fig2)
+
                 with col3:
                     st.subheader("Analyse des Stocks")
                     st.write(analyse_stock)
+
+                    # Plotly chart for stock analysis
+                    fig3 = px.bar(analyse_stock, x=analyse_stock.index, y='Qté stock dispo',
+                                  labels={'x': 'Famille', 'y': 'Qté Stock Disponible'}, title="Analyse des Stocks")
+                    st.plotly_chart(fig3)
 
                 # Filter data for stock quantities from 1 to 5
                 filtered_df = df[df['Qté stock dispo'].isin([1, 2, 3, 4, 5])][['Magasin', 'fournisseur', 'barcode', 'couleur', 'Qté stock dispo']]
