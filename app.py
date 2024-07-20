@@ -1,6 +1,11 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error, r2_score
+import numpy as np
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from io import BytesIO
@@ -18,6 +23,36 @@ def analyser_donnees(df):
     df['Valeur Stock'] = df['Valeur Stock'].astype(str).str.replace(',', '.').astype(float)
     analyse_stock = df.groupby('famille').agg({'Qté stock dispo': 'sum', 'Valeur Stock': 'sum'}).sort_values(by='Qté stock dispo', ascending=False).head(10)
     return compte_fournisseurs, prix_moyen_par_couleur, analyse_stock
+
+# Function to create regression plot
+def regression_plot(df, feature, target):
+    X = df[[feature]].values
+    y = df[target].values
+    
+    # Split data into train and test sets
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    
+    # Create and fit model
+    model = LinearRegression()
+    model.fit(X_train, y_train)
+    
+    # Predict
+    y_pred = model.predict(X_test)
+    
+    # Metrics
+    mse = mean_squared_error(y_test, y_pred)
+    r2 = r2_score(y_test, y_pred)
+    
+    # Plot
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=X_test.flatten(), y=y_test, mode='markers', name='Données Réelles'))
+    fig.add_trace(go.Scatter(x=X_test.flatten(), y=y_pred, mode='lines', name='Régression'))
+    
+    fig.update_layout(title=f'Regression Linéaire ({feature} vs {target})',
+                      xaxis_title=feature,
+                      yaxis_title=target,
+                      showlegend=True)
+    return fig, mse, r2
 
 # Function to create PDF report
 def creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filtered_df, selections):
@@ -75,7 +110,7 @@ def creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filter
 # Streamlit Application
 st.set_page_config(page_title="Application d'Analyse de Fichier", layout="wide")
 
-# Custom CSS for futuristic design
+# Custom CSS for modern design
 st.markdown("""
     <style>
         body {
@@ -172,7 +207,7 @@ else:
                 # Data analysis
                 compte_fournisseurs, prix_moyen_par_couleur, analyse_stock = analyser_donnees(df)
 
-                # Display analyses in columns with interactive charts
+                # Display analyses in columns
                 col1, col2, col3 = st.columns(3)
                 with col1:
                     st.subheader("Analyse des Fournisseurs")
@@ -181,7 +216,7 @@ else:
                     # Plotly chart for top suppliers
                     fig1 = px.bar(compte_fournisseurs, x=compte_fournisseurs.index, y=compte_fournisseurs.values,
                                   labels={'x': 'Fournisseur', 'y': 'Nombre de Produits'}, title="Top Fournisseurs")
-                    st.plotly_chart(fig1, use_container_width=True)
+                    st.plotly_chart(fig1)
 
                 with col2:
                     st.subheader("Prix Moyen par Couleur")
@@ -190,7 +225,7 @@ else:
                     # Plotly chart for average price by color
                     fig2 = px.bar(prix_moyen_par_couleur, x=prix_moyen_par_couleur.index, y=prix_moyen_par_couleur.values,
                                   labels={'x': 'Couleur', 'y': 'Prix Moyen'}, title="Prix Moyen par Couleur")
-                    st.plotly_chart(fig2, use_container_width=True)
+                    st.plotly_chart(fig2)
 
                 with col3:
                     st.subheader("Analyse des Stocks")
@@ -199,14 +234,28 @@ else:
                     # Plotly chart for stock analysis
                     fig3 = px.bar(analyse_stock, x=analyse_stock.index, y='Qté stock dispo',
                                   labels={'x': 'Famille', 'y': 'Qté Stock Disponible'}, title="Analyse des Stocks")
-                    st.plotly_chart(fig3, use_container_width=True)
+                    st.plotly_chart(fig3)
 
                 # Filter data for stock quantities from 1 to 5
                 filtered_df = df[df['Qté stock dispo'].isin([1, 2, 3, 4, 5])][['Magasin', 'fournisseur', 'barcode', 'couleur', 'Qté stock dispo']]
                 
                 # Display filtered results
                 with st.expander("Détails des Stocks avec Qté de 1 à 5"):
-                    st.dataframe(filtered_df)
+                    st.write(filtered_df)
+
+                # AI Regression and Prediction
+                st.subheader("Analyse de Régression")
+                feature = st.selectbox("Sélectionnez la variable pour la régression", ['Prix Achat', 'Qté stock dispo', 'Valeur Stock'])
+                target = st.selectbox("Sélectionnez la cible pour la régression", ['Prix Achat', 'Qté stock dispo', 'Valeur Stock'])
+                
+                if feature and target:
+                    if feature != target:
+                        fig_reg, mse, r2 = regression_plot(df, feature, target)
+                        st.plotly_chart(fig_reg)
+                        st.write(f"Erreur Quadratique Moyenne (MSE): {mse:.2f}")
+                        st.write(f"Score de Régression (R²): {r2:.2f}")
+                    else:
+                        st.error("La variable de régression et la cible ne doivent pas être identiques.")
 
                 # PDF Generation and Download
                 st.markdown("## Générer un Rapport PDF")
