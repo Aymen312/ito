@@ -74,59 +74,6 @@ def creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filter
 # Streamlit Application
 st.set_page_config(page_title="Application d'Analyse de Fichier", layout="wide")
 
-# Custom CSS for futuristic design
-st.markdown("""
-    <style>
-        body {
-            background: linear-gradient(135deg, #1E1E1E, #2D2D2D);
-            color: #F5F5F5;
-            font-family: 'Arial', sans-serif;
-        }
-        .stButton>button {
-            background-color: #007BFF;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            padding: 10px 20px;
-            font-size: 14px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-        .stButton>button:hover {
-            background-color: #0056b3;
-        }
-        .stTextInput>div>input {
-            border: 2px solid #007BFF;
-            border-radius: 5px;
-            padding: 10px;
-            background-color: #1E1E1E;
-            color: #F5F5F5;
-        }
-        .stTextInput>div>input:focus {
-            border-color: #0056b3;
-            outline: none;
-        }
-        .stMultiSelect>div>div {
-            border: 2px solid #007BFF;
-            border-radius: 5px;
-            background-color: #1E1E1E;
-            color: #F5F5F5;
-        }
-        .stMultiSelect>div>div>div>div {
-            color: #F5F5F5;
-        }
-        .stExpander>div>div {
-            background-color: #2D2D2D;
-            color: #F5F5F5;
-            border-radius: 5px;
-            padding: 10px;
-        }
-        .stExpander>div>div>div {
-            color: #F5F5F5;
-        }
-    </style>
-    """, unsafe_allow_html=True)
-
 st.title("Application d'Analyse de Fichier")
 
 # User authentication
@@ -140,7 +87,6 @@ if not st.session_state.authenticated:
     if st.button("Se connecter"):
         if authenticate(username, password):
             st.session_state.authenticated = True
-            st.experimental_rerun()
         else:
             st.error("Nom d'utilisateur ou mot de passe incorrect")
 else:
@@ -171,35 +117,13 @@ else:
                 # Data analysis
                 compte_fournisseurs, prix_moyen_par_couleur, analyse_stock = analyser_donnees(df)
 
-                # Display analyses in columns
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.subheader("Analyse des Fournisseurs")
-                    st.write(compte_fournisseurs)
-                with col2:
-                    st.subheader("Prix Moyen par Couleur")
-                    st.write(prix_moyen_par_couleur)
-                with col3:
-                    st.subheader("Analyse des Stocks")
-                    st.write(analyse_stock)
-
-                # Filter data for stock quantities from 1 to 5
-                filtered_df = df[df['Qté stock dispo'].isin([1, 2, 3, 4, 5])][['Magasin', 'fournisseur', 'barcode', 'couleur', 'Qté stock dispo']]
-                
-                # Display filtered results
-                with st.expander("Détails des Stocks avec Qté de 1 à 5"):
-                    st.write(filtered_df)
-
-                # PDF Generation and Download
-                st.markdown("## Générer un Rapport PDF")
-                
-                # Add checkboxes for PDF content selection
+                # Display analyses based on user selection
                 selections = st.multiselect("Sélectionnez les sections à inclure dans le rapport PDF:",
                                             ['Analyse des Fournisseurs', 'Prix Moyen par Couleur', 'Analyse des Stocks', 'Détails des Stocks avec Qté de 1 à 5'])
 
-                if st.button("Télécharger le rapport en PDF"):
+                if st.button("Générer et Télécharger le PDF"):
                     if selections:
-                        pdf_bytes = creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filtered_df, selections)
+                        pdf_bytes = creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, df, selections)
                         st.download_button(label="Télécharger le PDF", data=pdf_bytes, file_name="rapport_analyse.pdf", mime="application/pdf")
                     else:
                         st.error("Veuillez sélectionner au moins une section à inclure dans le rapport.")
@@ -207,4 +131,4 @@ else:
         except Exception as e:
             st.error(f"Une erreur s'est produite lors de l'analyse des données : {e}")
     else:
-        st.info("Veuillez télécharger un fichier à analyser.")
+        st.info("Veuillez télécharger un fichier à analyser.")
