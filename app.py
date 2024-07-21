@@ -19,7 +19,7 @@ def analyser_donnees(df):
     return compte_fournisseurs, prix_moyen_par_couleur, analyse_stock
 
 # Function to create PDF report
-def creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filtered_df):
+def creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filtered_df, selections):
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=letter)
     
@@ -28,28 +28,41 @@ def creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filter
     c.drawString(50, 750, "Rapport d'Analyse de Fichier")
     c.setFont("Helvetica", 12)
     
-    # Add fournisseur analysis
-    c.drawString(50, 720, "Analyse des Fournisseurs:")
-    y_position = 700
-    for idx, (fournisseur, count) in enumerate(compte_fournisseurs.items(), start=1):
-        c.drawString(70, y_position - idx * 20, f"{idx}. {fournisseur}: {count}")
+    y_position = 720
     
-    # Add average price by color
-    c.drawString(50, y_position - len(compte_fournisseurs) * 20 - 40, "Prix Moyen par Couleur:")
-    for idx, (couleur, prix) in enumerate(prix_moyen_par_couleur.items(), start=1):
-        c.drawString(70, y_position - len(compte_fournisseurs) * 20 - 40 - idx * 20, f"{idx}. {couleur}: {prix:.2f}")
+    if 'Analyse des Fournisseurs' in selections:
+        # Add fournisseur analysis
+        c.drawString(50, y_position, "Analyse des Fournisseurs:")
+        y_position -= 20
+        for idx, (fournisseur, count) in enumerate(compte_fournisseurs.items(), start=1):
+            c.drawString(70, y_position - idx * 20, f"{idx}. {fournisseur}: {count}")
+        y_position -= len(compte_fournisseurs) * 20 + 20
     
-    # Add stock analysis
-    c.drawString(50, y_position - len(compte_fournisseurs) * 20 - 40 - len(prix_moyen_par_couleur) * 20 - 60, "Analyse des Stocks:")
-    for idx, (famille, row) in enumerate(analyse_stock.iterrows(), start=1):
-        c.drawString(70, y_position - len(compte_fournisseurs) * 20 - 40 - len(prix_moyen_par_couleur) * 20 - 60 - idx * 20,
-                     f"{idx}. {famille}: Qté stock dispo = {row['Qté stock dispo']}, Valeur Stock = {row['Valeur Stock']:.2f}")
+    if 'Prix Moyen par Couleur' in selections:
+        # Add average price by color
+        c.drawString(50, y_position, "Prix Moyen par Couleur:")
+        y_position -= 20
+        for idx, (couleur, prix) in enumerate(prix_moyen_par_couleur.items(), start=1):
+            c.drawString(70, y_position - idx * 20, f"{idx}. {couleur}: {prix:.2f}")
+        y_position -= len(prix_moyen_par_couleur) * 20 + 20
     
-    # Add filtered stock details
-    c.drawString(50, y_position - len(compte_fournisseurs) * 20 - 40 - len(prix_moyen_par_couleur) * 20 - 60 - len(analyse_stock) * 20 - 80, "Détails des Stocks avec Qté de 1 à 5:")
-    for idx, (_, row) in enumerate(filtered_df.iterrows(), start=1):
-        c.drawString(70, y_position - len(compte_fournisseurs) * 20 - 40 - len(prix_moyen_par_couleur) * 20 - 60 - len(analyse_stock) * 20 - 80 - idx * 20,
-                     f"{row['Magasin']}, {row['fournisseur']}, {row['barcode']}, {row['couleur']}, Qté stock dispo = {row['Qté stock dispo']}")
+    if 'Analyse des Stocks' in selections:
+        # Add stock analysis
+        c.drawString(50, y_position, "Analyse des Stocks:")
+        y_position -= 20
+        for idx, (famille, row) in enumerate(analyse_stock.iterrows(), start=1):
+            c.drawString(70, y_position - idx * 20,
+                         f"{idx}. {famille}: Qté stock dispo = {row['Qté stock dispo']}, Valeur Stock = {row['Valeur Stock']:.2f}")
+        y_position -= len(analyse_stock) * 20 + 20
+    
+    if 'Détails des Stocks avec Qté de 1 à 5' in selections:
+        # Add filtered stock details
+        c.drawString(50, y_position, "Détails des Stocks avec Qté de 1 à 5:")
+        y_position -= 20
+        for idx, (_, row) in enumerate(filtered_df.iterrows(), start=1):
+            c.drawString(70, y_position - idx * 20,
+                         f"{row['Magasin']}, {row['fournisseur']}, {row['barcode']}, {row['couleur']}, Qté stock dispo = {row['Qté stock dispo']}")
+        y_position -= len(filtered_df) * 20 + 20
     
     # Save PDF to buffer
     c.save()
@@ -61,18 +74,55 @@ def creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filter
 # Streamlit Application
 st.set_page_config(page_title="Application d'Analyse de Fichier", layout="wide")
 
-# Custom CSS
+# Custom CSS for futuristic design
 st.markdown("""
     <style>
-        .main {
-            background-color: #f0f2f6;
+        body {
+            background: linear-gradient(135deg, #1E1E1E, #2D2D2D);
+            color: #F5F5F5;
+            font-family: 'Arial', sans-serif;
         }
         .stButton>button {
-            background-color: #101E50;
+            background-color: #007BFF;
             color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
         }
-        .stHeader {
-            color: #101E50;
+        .stButton>button:hover {
+            background-color: #0056b3;
+        }
+        .stTextInput>div>input {
+            border: 2px solid #007BFF;
+            border-radius: 5px;
+            padding: 10px;
+            background-color: #1E1E1E;
+            color: #F5F5F5;
+        }
+        .stTextInput>div>input:focus {
+            border-color: #0056b3;
+            outline: none;
+        }
+        .stMultiSelect>div>div {
+            border: 2px solid #007BFF;
+            border-radius: 5px;
+            background-color: #1E1E1E;
+            color: #F5F5F5;
+        }
+        .stMultiSelect>div>div>div>div {
+            color: #F5F5F5;
+        }
+        .stExpander>div>div {
+            background-color: #2D2D2D;
+            color: #F5F5F5;
+            border-radius: 5px;
+            padding: 10px;
+        }
+        .stExpander>div>div>div {
+            color: #F5F5F5;
         }
     </style>
     """, unsafe_allow_html=True)
@@ -142,9 +192,17 @@ else:
 
                 # PDF Generation and Download
                 st.markdown("## Générer un Rapport PDF")
+                
+                # Add checkboxes for PDF content selection
+                selections = st.multiselect("Sélectionnez les sections à inclure dans le rapport PDF:",
+                                            ['Analyse des Fournisseurs', 'Prix Moyen par Couleur', 'Analyse des Stocks', 'Détails des Stocks avec Qté de 1 à 5'])
+
                 if st.button("Télécharger le rapport en PDF"):
-                    pdf_bytes = creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filtered_df)
-                    st.download_button(label="Télécharger le PDF", data=pdf_bytes, file_name="rapport_analyse.pdf", mime="application/pdf")
+                    if selections:
+                        pdf_bytes = creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filtered_df, selections)
+                        st.download_button(label="Télécharger le PDF", data=pdf_bytes, file_name="rapport_analyse.pdf", mime="application/pdf")
+                    else:
+                        st.error("Veuillez sélectionner au moins une section à inclure dans le rapport.")
 
         except Exception as e:
             st.error(f"Une erreur s'est produite lors de l'analyse des données : {e}")
