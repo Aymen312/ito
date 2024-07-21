@@ -12,7 +12,11 @@ hide_streamlit_style = """
     <style>
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
-    .css-1lsmgbg.egzxvld1 {visibility: hidden;}
+    .viewerBadge_container__1QSob {visibility: hidden;}
+    .viewerBadge_link__1S137 {visibility: hidden;}
+    .css-1lsmgbg.egzxvld1 {visibility: hidden;}  /* For Streamlit version < 1.4.0 */
+    .css-1rs6os.edgvbvh3 {visibility: hidden;}  /* For Streamlit version >= 1.4.0 */
+    .css-1rn8c8m.egzxvld0 {visibility: hidden;}  /* Newer versions may need this */
     </style>
     """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
