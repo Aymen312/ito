@@ -1,3 +1,5 @@
+# app.py
+
 import streamlit as st
 import pandas as pd
 from reportlab.lib.pagesizes import letter
@@ -22,14 +24,14 @@ def analyser_donnees(df):
 def creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filtered_df, selections):
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=letter)
-    
+
     # Start writing PDF content
     c.setFont("Helvetica-Bold", 16)
     c.drawString(50, 750, "Rapport d'Analyse de Fichier")
     c.setFont("Helvetica", 12)
-    
+
     y_position = 720
-    
+
     if 'Analyse des Fournisseurs' in selections:
         # Add fournisseur analysis
         c.drawString(50, y_position, "Analyse des Fournisseurs:")
@@ -37,7 +39,7 @@ def creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filter
         for idx, (fournisseur, count) in enumerate(compte_fournisseurs.items(), start=1):
             c.drawString(70, y_position - idx * 20, f"{idx}. {fournisseur}: {count}")
         y_position -= len(compte_fournisseurs) * 20 + 20
-    
+
     if 'Prix Moyen par Couleur' in selections:
         # Add average price by color
         c.drawString(50, y_position, "Prix Moyen par Couleur:")
@@ -45,7 +47,7 @@ def creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filter
         for idx, (couleur, prix) in enumerate(prix_moyen_par_couleur.items(), start=1):
             c.drawString(70, y_position - idx * 20, f"{idx}. {couleur}: {prix:.2f}")
         y_position -= len(prix_moyen_par_couleur) * 20 + 20
-    
+
     if 'Analyse des Stocks' in selections:
         # Add stock analysis
         c.drawString(50, y_position, "Analyse des Stocks:")
@@ -54,7 +56,7 @@ def creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filter
             c.drawString(70, y_position - idx * 20,
                          f"{idx}. {famille}: Qté stock dispo = {row['Qté stock dispo']}, Valeur Stock = {row['Valeur Stock']:.2f}")
         y_position -= len(analyse_stock) * 20 + 20
-    
+
     if 'Détails des Stocks avec Qté de 1 à 5' in selections:
         # Add filtered stock details
         c.drawString(50, y_position, "Détails des Stocks avec Qté de 1 à 5:")
@@ -63,12 +65,12 @@ def creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filter
             c.drawString(70, y_position - idx * 20,
                          f"{row['Magasin']}, {row['fournisseur']}, {row['barcode']}, {row['couleur']}, Qté stock dispo = {row['Qté stock dispo']}")
         y_position -= len(filtered_df) * 20 + 20
-    
+
     # Save PDF to buffer
     c.save()
     pdf_bytes = buffer.getvalue()
     buffer.close()
-    
+
     return pdf_bytes
 
 # Streamlit Application
@@ -185,14 +187,14 @@ else:
 
                 # Filter data for stock quantities from 1 to 5
                 filtered_df = df[df['Qté stock dispo'].isin([1, 2, 3, 4, 5])][['Magasin', 'fournisseur', 'barcode', 'couleur', 'Qté stock dispo']]
-                
+
                 # Display filtered results
                 with st.expander("Détails des Stocks avec Qté de 1 à 5"):
                     st.write(filtered_df)
 
                 # PDF Generation and Download
                 st.markdown("## Générer un Rapport PDF")
-                
+
                 # Add checkboxes for PDF content selection
                 selections = st.multiselect("Sélectionnez les sections à inclure dans le rapport PDF:",
                                             ['Analyse des Fournisseurs', 'Prix Moyen par Couleur', 'Analyse des Stocks', 'Détails des Stocks avec Qté de 1 à 5'])
@@ -207,4 +209,4 @@ else:
         except Exception as e:
             st.error(f"Une erreur s'est produite lors de l'analyse des données : {e}")
     else:
-        st.info("Veuillez télécharger un fichier à analyser.")
+        st.info("Veuillez télécharger un fichier à analyser.")
