@@ -17,9 +17,9 @@ hide_streamlit_style = """
     """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
-# Authentication function (example)
+# Authentication function
 def authenticate(username, password):
-    return username == "ayada" and password == "123"
+    return username == st.secrets.credentials.username and password == st.secrets.credentials.password
 
 # Function to perform data analysis
 def analyze_data(df):
@@ -38,7 +38,7 @@ def create_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock):
     c.setFont("Helvetica-Bold", 16)
     c.drawString(50, 750, "Rapport d'Analyse de Fichier")
     c.setFont("Helvetica", 12)
-    
+
     # Write analysis sections
     y_position = 720
     for idx, (title, data) in enumerate(zip(["Analyse des Fournisseurs", "Prix Moyen par Couleur", "Analyse des Stocks"],
