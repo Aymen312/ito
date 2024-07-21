@@ -7,11 +7,12 @@ from io import BytesIO
 # Set page configuration to hide Streamlit menu and footer
 st.set_page_config(page_title="Application d'Analyse de Fichier", layout="wide")
 
-# Custom CSS to hide the Streamlit menu and footer
+# Custom CSS to hide the Streamlit menu, footer, and GitHub button
 hide_streamlit_style = """
     <style>
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
+    .css-1lsmgbg.egzxvld1 {visibility: hidden;}
     </style>
     """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
