@@ -82,7 +82,12 @@ else:
     uploaded_file = st.file_uploader("Téléchargez un fichier CSV ou Excel", type=['csv', 'xlsx'])
     if uploaded_file is not None:
         try:
-            df = pd.read_csv(uploaded_file)  # Adjust for different file types if necessary
+            # Try reading the CSV file with default encoding
+            try:
+                df = pd.read_csv(uploaded_file)
+            except UnicodeDecodeError:
+                # Try reading the CSV file with ISO-8859-1 encoding if UTF-8 fails
+                df = pd.read_csv(uploaded_file, encoding='ISO-8859-1')
 
             # Perform data analysis
             compte_fournisseurs, prix_moyen_par_couleur, analyse_stock = analyze_data(df)
