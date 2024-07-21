@@ -4,9 +4,21 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from io import BytesIO
 
+# Set page configuration to hide Streamlit menu and footer
+st.set_page_config(page_title="Application d'Analyse de Fichier", layout="wide")
+
+# Custom CSS to hide the Streamlit menu and footer
+hide_streamlit_style = """
+    <style>
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    </style>
+    """
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
 # Authentication function (example)
 def authenticate(username, password):
-    return username == "user" and password == "password"
+    return username == "ayada" and password == "123"
 
 # Function to perform data analysis
 def analyze_data(df):
