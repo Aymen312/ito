@@ -7,7 +7,7 @@ from io import BytesIO
 # Set page configuration to hide Streamlit menu and footer
 st.set_page_config(page_title="Application d'Analyse de Fichier", layout="wide")
 
-# Custom CSS to hide the Streamlit menu, footer, and GitHub button
+# Custom CSS to hide the Streamlit menu, footer, GitHub button, and "Manage app"
 hide_streamlit_style = """
     <style>
     #MainMenu {visibility: hidden;}
@@ -17,6 +17,7 @@ hide_streamlit_style = """
     .css-1lsmgbg.egzxvld1 {visibility: hidden;}  /* For Streamlit version < 1.4.0 */
     .css-1rs6os.edgvbvh3 {visibility: hidden;}  /* For Streamlit version >= 1.4.0 */
     .css-1rn8c8m.egzxvld0 {visibility: hidden;}  /* Newer versions may need this */
+    header {visibility: hidden;}
     </style>
     """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
