@@ -24,11 +24,7 @@ st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 # Authentication function
 def authenticate(username, password):
-    try:
-        return username == st.secrets["credentials"]["username"] and password == st.secrets["credentials"]["password"]
-    except AttributeError:
-        st.error("Credentials not found in secrets. Please add them to the secrets.toml file.")
-        return False
+    return username == "ayada" and password == "123"
 
 # Function to perform data analysis
 def analyze_data(df):
