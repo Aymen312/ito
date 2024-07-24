@@ -127,6 +127,9 @@ st.markdown("""
         .css-2trqyj a {
             display: none !important;
         }
+        .viewerBadge_container__1QSob {
+            display: none !important;
+        }
     </style>
     """, unsafe_allow_html=True)
 
@@ -198,7 +201,7 @@ else:
                 
                 # Add checkboxes for PDF content selection
                 selections = st.multiselect(
-                    "Sélectionnez les analyses à inclure dans le PDF",
+                    "Sélectionnez les sections à inclure dans le rapport PDF",
                     ['Analyse des Fournisseurs', 'Prix Moyen par Couleur', 'Analyse des Stocks', 'Détails des Stocks avec Qté de 1 à 5']
                 )
 
