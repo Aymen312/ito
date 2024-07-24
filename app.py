@@ -78,14 +78,14 @@ st.set_page_config(page_title="Application d'Analyse de Fichier", layout="wide")
 st.markdown("""
     <style>
         /* Hide GitHub icon */
-        .github-icon {  /* Replace with the actual class or ID */
-            display: none;
+        .stApp .github-icon {
+            display: none !important;
         }
     </style>
     <script>
         // Remove GitHub icon if CSS doesn't work
         document.addEventListener("DOMContentLoaded", function() {
-            var githubIcon = document.querySelector(".github-icon");  /* Replace with the actual class or ID */
+            var githubIcon = document.querySelector(".stApp .github-icon"); 
             if (githubIcon) {
                 githubIcon.style.display = 'none';
             }
