@@ -74,7 +74,7 @@ def creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filter
 # Streamlit Application
 st.set_page_config(page_title="Application d'Analyse de Fichier", layout="wide")
 
-# Custom CSS for futuristic design
+# Custom CSS for futuristic design and hiding the GitHub icon
 st.markdown("""
     <style>
         body {
@@ -123,6 +123,9 @@ st.markdown("""
         }
         .stExpander>div>div>div {
             color: #F5F5F5;
+        }
+        .css-2trqyj a {
+            display: none !important;
         }
     </style>
     """, unsafe_allow_html=True)
@@ -194,17 +197,14 @@ else:
                 st.markdown("## Générer un Rapport PDF")
                 
                 # Add checkboxes for PDF content selection
-                selections = st.multiselect("Sélectionnez les sections à inclure dans le rapport PDF:",
-                                            ['Analyse des Fournisseurs', 'Prix Moyen par Couleur', 'Analyse des Stocks', 'Détails des Stocks avec Qté de 1 à 5'])
+                selections = st.multiselect(
+                    "Sélectionnez les analyses à inclure dans le PDF",
+                    ['Analyse des Fournisseurs', 'Prix Moyen par Couleur', 'Analyse des Stocks', 'Détails des Stocks avec Qté de 1 à 5']
+                )
 
-                if st.button("Télécharger le rapport en PDF"):
-                    if selections:
-                        pdf_bytes = creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filtered_df, selections)
-                        st.download_button(label="Télécharger le PDF", data=pdf_bytes, file_name="rapport_analyse.pdf", mime="application/pdf")
-                    else:
-                        st.error("Veuillez sélectionner au moins une section à inclure dans le rapport.")
+                if st.button("Créer le rapport PDF"):
+                    pdf_bytes = creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filtered_df, selections)
+                    st.download_button(label="Télécharger le rapport PDF", data=pdf_bytes, file_name="rapport_analyse.pdf", mime="application/pdf")
 
         except Exception as e:
-            st.error(f"Une erreur s'est produite lors de l'analyse des données : {e}")
-    else:
-        st.info("Veuillez télécharger un fichier à analyser.")
+            st.error(f"Erreur lors du chargement ou de l'analyse du fichier: {e}")
