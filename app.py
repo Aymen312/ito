@@ -26,7 +26,7 @@ def analyser_donnees(df):
     analyse_stock = df.groupby('famille').agg({'Qté stock dispo': 'sum', 'Valeur Stock': 'sum'}).sort_values(by='Qté stock dispo', ascending=False).head(10)
     
     # Analyse des tailles de chaussures spécifiques
-    taille_specifique = ['10.0US', '9.5UK', '40']
+    taille_specifique = ['10.0US', ' 9.5UK', '44']
     analyse_tailles = df[df['taille'].isin(taille_specifique)][['Magasin', 'fournisseur', 'barcode', 'couleur', 'taille']]
     
     return compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, analyse_tailles
