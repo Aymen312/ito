@@ -16,7 +16,7 @@ def clean_numeric_columns(df):
     return df
 
 # Function to perform analyses
-def analyser_donnees(df):
+def analyser_donnees(df, taille_utilisateur=None):
     # Clean numeric columns
     df = clean_numeric_columns(df)
     
@@ -25,9 +25,11 @@ def analyser_donnees(df):
     prix_moyen_par_couleur = df.groupby('couleur')['Prix Achat'].mean().sort_values(ascending=False).head(10)
     analyse_stock = df.groupby('famille').agg({'Qté stock dispo': 'sum', 'Valeur Stock': 'sum'}).sort_values(by='Qté stock dispo', ascending=False).head(10)
     
-    # Analyse des tailles de chaussures spécifiques
-    taille_specifique = ['10.0US', ' 9.5UK', '44' , '9.5UK']
-    analyse_tailles = df[df['taille'].isin(taille_specifique)][['Magasin', 'fournisseur', 'barcode', 'couleur', 'taille' , 'designation' ]]
+    # Analyse des tailles de chaussures spécifiques pour l'utilisateur
+    if taille_utilisateur:
+        analyse_tailles = df[df['taille'] == taille_utilisateur][['Magasin', 'fournisseur', 'barcode', 'couleur', 'taille', 'designation']]
+    else:
+        analyse_tailles = pd.DataFrame(columns=['Magasin', 'fournisseur', 'barcode', 'couleur', 'taille', 'designation'])
     
     return compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, analyse_tailles
 
@@ -74,7 +76,7 @@ def creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, analys
         y_position -= 20
         for idx, (_, row) in enumerate(analyse_tailles.iterrows(), start=1):
             c.drawString(70, y_position - idx * 20,
-                         f"{row['Magasin']}, {row['fournisseur']}, {row['barcode']}, {row['couleur']}, Taille = {row['taille']}")
+                         f"{row['Magasin']}, {row['fournisseur']}, {row['barcode']}, {row['couleur']}, Taille = {row['taille']}, Désignation = {row['designation']}")
         y_position -= len(analyse_tailles) * 20 + 20
     
     if 'Détails des Stocks avec Qté de 1 à 5' in selections:
@@ -206,8 +208,11 @@ else:
                     df = None
 
             if df is not None:
-                # Data analysis
-                compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, analyse_tailles = analyser_donnees(df)
+                # Ask for user shoe size
+                taille_utilisateur = st.text_input("Entrez votre taille de chaussure (ex: 10.0US, 9.5UK, 40):")
+
+                # Data analysis with user shoe size
+                compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, analyse_tailles = analyser_donnees(df, taille_utilisateur=taille_utilisateur)
 
                 # Display analyses in columns
                 col1, col2, col3 = st.columns(3)
