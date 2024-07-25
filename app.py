@@ -15,17 +15,33 @@ def clean_numeric_columns(df):
         df[col] = df[col].astype(str).str.replace(',', '.').astype(float)
     return df
 
+# Function to convert shoe size to standard format
+def convert_shoe_size(size):
+    size = size.strip().upper()  # Remove spaces and convert to uppercase
+    if size.endswith("US"):
+        return float(size.replace("US", "").strip())
+    elif size.endswith("UK"):
+        return float(size.replace("UK", "").strip())
+    else:
+        try:
+            return float(size)  # Convert directly if it's already a number
+        except ValueError:
+            return None  # Return None if conversion fails
+
 # Function to perform analyses
 def analyser_donnees(df, taille_utilisateur=None):
     # Clean numeric columns
     df = clean_numeric_columns(df)
     
-    # Perform analyses
-    analyse_tailles = pd.DataFrame(columns=['Magasin', 'fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'Qté stock dispo', 'Valeur Stock'])
+    # Convert user shoe size
+    taille_utilisateur_converted = convert_shoe_size(taille_utilisateur)
     
-    # Analyse des tailles de chaussures spécifiques pour l'utilisateur
-    if taille_utilisateur:
-        analyse_tailles = df[df['taille'] == taille_utilisateur][['Magasin', 'fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'Qté stock dispo', 'Valeur Stock']]
+    # Filter DataFrame based on converted shoe size
+    if taille_utilisateur_converted is not None:
+        df = df[df['taille'].apply(convert_shoe_size) == taille_utilisateur_converted]
+    
+    # Select relevant columns for analysis
+    analyse_tailles = df[['Magasin', 'fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'Qté stock dispo', 'Valeur Stock']]
     
     return analyse_tailles
 
