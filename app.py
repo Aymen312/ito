@@ -206,4 +206,7 @@ else:
                 if st.button("Télécharger le rapport en PDF"):
                     if selections:
                         pdf_bytes = creer_pdf(analyse_tailles, selections)
-                       st.download_button(label="Télécharger le PDF", data=pdf_bytes, file_name="rapport_analyse.pdf")
+                        st.download_button(label="Télécharger le PDF", data=pdf_bytes, file_name="rapport_analyse.pdf")
+
+        except Exception as e:
+            st.error(f"Une erreur s'est produite : {e}")
