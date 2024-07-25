@@ -20,6 +20,11 @@ def analyser_donnees(df, taille_utilisateur=None):
     # Clean numeric columns
     df = clean_numeric_columns(df)
     
+    # Normalize shoe size input
+    if taille_utilisateur:
+        taille_utilisateur = taille_utilisateur.strip()  # Remove leading and trailing whitespaces
+        taille_utilisateur = taille_utilisateur.replace(" ", "")  # Remove spaces inside the size
+    
     # Perform analyses
     analyse_tailles = pd.DataFrame(columns=['Magasin', 'fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'Qté stock dispo', 'Valeur Stock'])
     
