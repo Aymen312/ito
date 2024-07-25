@@ -21,20 +21,16 @@ def analyser_donnees(df, taille_utilisateur=None):
     df = clean_numeric_columns(df)
     
     # Perform analyses
-    compte_fournisseurs = df['fournisseur'].value_counts().head(10)
-    prix_moyen_par_couleur = df.groupby('couleur')['Prix Achat'].mean().sort_values(ascending=False).head(10)
-    analyse_stock = df.groupby('famille').agg({'Qté stock dispo': 'sum', 'Valeur Stock': 'sum'}).sort_values(by='Qté stock dispo', ascending=False).head(10)
+    analyse_tailles = pd.DataFrame(columns=['Magasin', 'fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'Qté stock dispo', 'Valeur Stock'])
     
     # Analyse des tailles de chaussures spécifiques pour l'utilisateur
     if taille_utilisateur:
         analyse_tailles = df[df['taille'] == taille_utilisateur][['Magasin', 'fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'Qté stock dispo', 'Valeur Stock']]
-    else:
-        analyse_tailles = pd.DataFrame(columns=['Magasin', 'fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'Qté stock dispo', 'Valeur Stock'])
     
-    return compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, analyse_tailles
+    return analyse_tailles
 
 # Function to create PDF report
-def creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, analyse_tailles, filtered_df, selections):
+def creer_pdf(analyse_tailles, selections):
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=letter)
     
@@ -45,31 +41,6 @@ def creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, analys
     
     y_position = 720
     
-    if 'Analyse des Fournisseurs' in selections:
-        # Add fournisseur analysis
-        c.drawString(50, y_position, "Analyse des Fournisseurs:")
-        y_position -= 20
-        for idx, (fournisseur, count) in enumerate(compte_fournisseurs.items(), start=1):
-            c.drawString(70, y_position - idx * 20, f"{idx}. {fournisseur}: {count}")
-        y_position -= len(compte_fournisseurs) * 20 + 20
-    
-    if 'Prix Moyen par Couleur' in selections:
-        # Add average price by color
-        c.drawString(50, y_position, "Prix Moyen par Couleur:")
-        y_position -= 20
-        for idx, (couleur, prix) in enumerate(prix_moyen_par_couleur.items(), start=1):
-            c.drawString(70, y_position - idx * 20, f"{idx}. {couleur}: {prix:.2f}")
-        y_position -= len(prix_moyen_par_couleur) * 20 + 20
-    
-    if 'Analyse des Stocks' in selections:
-        # Add stock analysis
-        c.drawString(50, y_position, "Analyse des Stocks:")
-        y_position -= 20
-        for idx, (famille, row) in enumerate(analyse_stock.iterrows(), start=1):
-            c.drawString(70, y_position - idx * 20,
-                         f"{idx}. {famille}: Qté stock dispo = {row['Qté stock dispo']}, Valeur Stock = {row['Valeur Stock']:.2f}")
-        y_position -= len(analyse_stock) * 20 + 20
-    
     if 'Analyse des Tailles de Chaussures' in selections:
         # Add shoe size analysis
         c.drawString(50, y_position, "Analyse des Tailles de Chaussures:")
@@ -78,15 +49,6 @@ def creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, analys
             c.drawString(70, y_position - idx * 20,
                          f"{row['Magasin']}, {row['fournisseur']}, {row['barcode']}, {row['couleur']}, Taille = {row['taille']}, Désignation = {row['designation']}, Qté stock dispo = {row['Qté stock dispo']}, Valeur Stock = {row['Valeur Stock']:.2f}")
         y_position -= len(analyse_tailles) * 20 + 20
-    
-    if 'Détails des Stocks avec Qté de 1 à 5' in selections:
-        # Add filtered stock details
-        c.drawString(50, y_position, "Détails des Stocks avec Qté de 1 à 5:")
-        y_position -= 20
-        for idx, (_, row) in enumerate(filtered_df.iterrows(), start=1):
-            c.drawString(70, y_position - idx * 20,
-                         f"{row['Magasin']}, {row['fournisseur']}, {row['barcode']}, {row['couleur']}, Qté stock dispo = {row['Qté stock dispo']}")
-        y_position -= len(filtered_df) * 20 + 20
     
     # Save PDF to buffer
     c.save()
@@ -212,41 +174,22 @@ else:
                 taille_utilisateur = st.text_input("Entrez votre taille de chaussure (ex: 10.0US, 9.5UK, 40):")
 
                 # Data analysis with user shoe size
-                compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, analyse_tailles = analyser_donnees(df, taille_utilisateur=taille_utilisateur)
-
-                # Display analyses in columns
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.subheader("Analyse des Fournisseurs")
-                    st.write(compte_fournisseurs)
-                with col2:
-                    st.subheader("Prix Moyen par Couleur")
-                    st.write(prix_moyen_par_couleur)
-                with col3:
-                    st.subheader("Analyse des Stocks")
-                    st.write(analyse_stock)
+                analyse_tailles = analyser_donnees(df, taille_utilisateur=taille_utilisateur)
 
                 # Display shoe size analysis
                 st.subheader("Analyse des Tailles de Chaussures")
                 st.write(analyse_tailles)
-
-                # Filter data for stock quantities from 1 to 5
-                filtered_df = df[df['Qté stock dispo'].isin([1, 2, 3, 4, 5])][['Magasin', 'fournisseur', 'barcode', 'couleur', 'Qté stock dispo']]
-
-                # Display filtered results
-                with st.expander("Détails des Stocks avec Qté de 1 à 5"):
-                    st.write(filtered_df)
 
                 # PDF Generation and Download
                 st.markdown("## Générer un Rapport PDF")
 
                 # Add checkboxes for PDF content selection
                 selections = st.multiselect("Sélectionnez les sections à inclure dans le rapport PDF:",
-                                            ['Analyse des Fournisseurs', 'Prix Moyen par Couleur', 'Analyse des Stocks', 'Analyse des Tailles de Chaussures', 'Détails des Stocks avec Qté de 1 à 5'])
+                                            ['Analyse des Tailles de Chaussures'])
 
                 if st.button("Télécharger le rapport en PDF"):
                     if selections:
-                        pdf_bytes = creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, analyse_tailles, filtered_df, selections)
+                        pdf_bytes = creer_pdf(analyse_tailles, selections)
                         st.download_button(label="Télécharger le PDF", data=pdf_bytes, file_name="rapport_analyse.pdf", mime="application/pdf")
                     else:
                         st.error("Veuillez sélectionner au moins une section à inclure dans le rapport.")
