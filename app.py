@@ -26,8 +26,8 @@ def analyser_donnees(df):
     analyse_stock = df.groupby('famille').agg({'Qté stock dispo': 'sum', 'Valeur Stock': 'sum'}).sort_values(by='Qté stock dispo', ascending=False).head(10)
     
     # Analyse des tailles de chaussures spécifiques
-    taille_specifique = ['US 10', 'UK 9.5', 'EU 40']
-    analyse_tailles = df[df['taille'].isin(taille_specifique)].groupby('taille').size()
+    taille_specifique = ['10.0US', '9.5UK', '40']
+    analyse_tailles = df[df['taille'].isin(taille_specifique)][['Magasin', 'fournisseur', 'barcode', 'couleur', 'taille']]
     
     return compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, analyse_tailles
 
@@ -72,8 +72,9 @@ def creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, analys
         # Add shoe size analysis
         c.drawString(50, y_position, "Analyse des Tailles de Chaussures:")
         y_position -= 20
-        for idx, (taille, count) in enumerate(analyse_tailles.items(), start=1):
-            c.drawString(70, y_position - idx * 20, f"{idx}. {taille}: {count}")
+        for idx, (_, row) in enumerate(analyse_tailles.iterrows(), start=1):
+            c.drawString(70, y_position - idx * 20,
+                         f"{row['Magasin']}, {row['fournisseur']}, {row['barcode']}, {row['couleur']}, Taille = {row['taille']}")
         y_position -= len(analyse_tailles) * 20 + 20
     
     if 'Détails des Stocks avec Qté de 1 à 5' in selections:
@@ -201,13 +202,10 @@ else:
                 elif extension_fichier == 'xlsx':
                     df = pd.read_excel(fichier_telecharge)
                 else:
-                    st.error("Veuillez télécharger un fichier CSV ou Excel valide.")
-                    st.stop()
+                    st.error("Format de fichier non supporté")
+                    df = None
 
-                # Show a summary of the data
-                st.subheader("Résumé des Données")
-                st.write(df.describe())
-
+            if df is not None:
                 # Data analysis
                 compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, analyse_tailles = analyser_donnees(df)
 
@@ -223,7 +221,7 @@ else:
                     st.subheader("Analyse des Stocks")
                     st.write(analyse_stock)
 
-                # Analyse des tailles de chaussures
+                # Display shoe size analysis
                 st.subheader("Analyse des Tailles de Chaussures")
                 st.write(analyse_tailles)
 
@@ -249,7 +247,6 @@ else:
                         st.error("Veuillez sélectionner au moins une section à inclure dans le rapport.")
 
         except Exception as e:
-            st.error(f"Une erreur s'est produite lors du chargement du fichier : {e}")
-
+            st.error(f"Une erreur s'est produite lors de l'analyse des données : {e}")
     else:
         st.info("Veuillez télécharger un fichier à analyser.")
