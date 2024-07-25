@@ -8,24 +8,22 @@ from io import BytesIO
 def authenticate(username, password):
     return username == "ayada" and password == "123"
 
+# Function to clean numeric columns
+def clean_numeric_columns(df):
+    numeric_columns = ['Prix Achat', 'Qté stock dispo', 'Valeur Stock']
+    for col in numeric_columns:
+        df[col] = df[col].astype(str).str.replace(',', '.').astype(float)
+    return df
+
 # Function to perform analyses
 def analyser_donnees(df):
-    # Nettoyage et conversion des données
-    df['Prix Achat'] = df['Prix Achat'].astype(str).str.replace(',', '.').astype(float)
-    df['Qté stock dispo'] = df['Qté stock dispo'].fillna(0).astype(int)
-    df['Valeur Stock'] = df['Valeur Stock'].astype(str).str.replace(',', '.').astype(float)
+    # Clean numeric columns
+    df = clean_numeric_columns(df)
     
-    # Analyse des fournisseurs
+    # Perform analyses
     compte_fournisseurs = df['fournisseur'].value_counts().head(10)
-    
-    # Prix moyen par couleur
     prix_moyen_par_couleur = df.groupby('couleur')['Prix Achat'].mean().sort_values(ascending=False).head(10)
-    
-    # Analyse des stocks par famille
-    analyse_stock = df.groupby('famille').agg({
-        'Qté stock dispo': 'sum',
-        'Valeur Stock': 'sum'
-    }).sort_values(by='Qté stock dispo', ascending=False).head(10)
+    analyse_stock = df.groupby('famille').agg({'Qté stock dispo': 'sum', 'Valeur Stock': 'sum'}).sort_values(by='Qté stock dispo', ascending=False).head(10)
     
     return compte_fournisseurs, prix_moyen_par_couleur, analyse_stock
 
@@ -186,6 +184,7 @@ else:
         try:
             with st.spinner("Chargement des données..."):
                 if extension_fichier == 'csv':
+                    # Read CSV with proper encoding and separator
                     df = pd.read_csv(fichier_telecharge, encoding='ISO-8859-1', sep=';')
                 elif extension_fichier == 'xlsx':
                     df = pd.read_excel(fichier_telecharge)
