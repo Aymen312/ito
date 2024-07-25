@@ -27,7 +27,7 @@ def analyser_donnees(df):
     
     # Analyse des tailles de chaussures spécifiques
     taille_specifique = ['10.0US', ' 9.5UK', '44']
-    analyse_tailles = df[df['taille'].isin(taille_specifique)][['Magasin', 'fournisseur', 'barcode', 'couleur', 'taille']]
+    analyse_tailles = df[df['taille'].isin(taille_specifique)][['Magasin', 'fournisseur', 'barcode', 'couleur', 'taille' , 'designation' ]]
     
     return compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, analyse_tailles
 
