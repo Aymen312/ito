@@ -15,33 +15,43 @@ def clean_numeric_columns(df):
         df[col] = df[col].astype(str).str.replace(',', '.').astype(float)
     return df
 
-# Function to convert shoe size to standard format
-def convert_shoe_size(size):
+# Function to convert shoe size to EU size
+def convert_to_eu_size(size):
     try:
-        size = str(size).strip().upper()  # Ensure size is a string, remove spaces and convert to uppercase
+        size = str(size).strip().upper()
         if size.endswith("US"):
-            return f"{float(size.replace('US', '').strip())}US"
+            us_size = float(size.replace("US", "").strip())
+            return us_size + 33  # Example conversion
         elif size.endswith("UK"):
-            return f"{float(size.replace('UK', '').strip())}UK"
+            uk_size = float(size.replace("UK", "").strip())
+            return uk_size + 34  # Example conversion
         else:
-            return f"{float(size)}"
+            return float(size)  # Assuming it's already in EU size
     except ValueError:
-        return None  # Return None if conversion fails
+        return None
+
+# Function to convert the entire dataframe's shoe sizes to EU sizes
+def convert_dataframe_to_eu(df):
+    df['taille_eu'] = df['taille'].apply(convert_to_eu_size)
+    return df
 
 # Function to perform analyses
 def analyser_donnees(df, taille_utilisateur=None):
     # Clean numeric columns
     df = clean_numeric_columns(df)
     
-    # Convert user shoe size
-    taille_utilisateur_converted = convert_shoe_size(taille_utilisateur)
+    # Convert shoe sizes to EU sizes
+    df = convert_dataframe_to_eu(df)
     
-    # Filter DataFrame based on exact shoe size match
+    # Convert user shoe size to EU size
+    taille_utilisateur_converted = convert_to_eu_size(taille_utilisateur)
+    
+    # Filter DataFrame based on converted shoe size
     if taille_utilisateur_converted is not None:
-        df = df[df['taille'].apply(convert_shoe_size) == taille_utilisateur_converted]
+        df = df[df['taille_eu'] == taille_utilisateur_converted]
     
     # Select relevant columns for analysis
-    analyse_tailles = df[['Magasin', 'fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'Qté stock dispo', 'Valeur Stock']]
+    analyse_tailles = df[['Magasin', 'fournisseur', 'barcode', 'couleur', 'taille_eu', 'designation', 'Qté stock dispo', 'Valeur Stock']]
     
     return analyse_tailles
 
@@ -63,7 +73,7 @@ def creer_pdf(analyse_tailles, selections):
         y_position -= 20
         for idx, (_, row) in enumerate(analyse_tailles.iterrows(), start=1):
             c.drawString(70, y_position - idx * 20,
-                         f"{row['Magasin']}, {row['fournisseur']}, {row['barcode']}, {row['couleur']}, Taille = {row['taille']}, Désignation = {row['designation']}, Qté stock dispo = {row['Qté stock dispo']}, Valeur Stock = {row['Valeur Stock']:.2f}")
+                         f"{row['Magasin']}, {row['fournisseur']}, {row['barcode']}, {row['couleur']}, Taille EU = {row['taille_eu']}, Désignation = {row['designation']}, Qté stock dispo = {row['Qté stock dispo']}, Valeur Stock = {row['Valeur Stock']:.2f}")
         y_position -= len(analyse_tailles) * 20 + 20
     
     # Save PDF to buffer
