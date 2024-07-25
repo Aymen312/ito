@@ -4,10 +4,6 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from io import BytesIO
 
-# Authentication function
-def authenticate(username, password):
-    return username == "ayada" and password == "123"
-
 # Function to clean numeric columns
 def clean_numeric_columns(df):
     numeric_columns = ['Prix Achat', 'Qté stock dispo', 'Valeur Stock']
@@ -160,63 +156,47 @@ st.markdown("""
 
 st.title("Application d'Analyse de Fichier")
 
-# User authentication
-if 'authenticated' not in st.session_state:
-    st.session_state.authenticated = False
+st.sidebar.markdown("### Menu")
+st.sidebar.info("Téléchargez un fichier CSV ou Excel pour commencer l'analyse.")
 
-if not st.session_state.authenticated:
-    st.header("Veuillez vous authentifier")
-    username = st.text_input("Nom d'utilisateur")
-    password = st.text_input("Mot de passe", type="password")
-    if st.button("Se connecter"):
-        if authenticate(username, password):
-            st.session_state.authenticated = True
-            st.experimental_rerun()
-        else:
-            st.error("Nom d'utilisateur ou mot de passe incorrect")
-else:
-    st.sidebar.button("Se déconnecter", on_click=lambda: st.session_state.update(authenticated=False))
-    st.sidebar.markdown("### Menu")
-    st.sidebar.info("Téléchargez un fichier CSV ou Excel pour commencer l'analyse.")
+# File upload
+fichier_telecharge = st.file_uploader("Téléchargez un fichier CSV ou Excel", type=['csv', 'xlsx'])
 
-    # File upload
-    fichier_telecharge = st.file_uploader("Téléchargez un fichier CSV ou Excel", type=['csv', 'xlsx'])
+if fichier_telecharge is not None:
+    extension_fichier = fichier_telecharge.name.split('.')[-1]
+    try:
+        with st.spinner("Chargement des données..."):
+            if extension_fichier == 'csv':
+                # Read CSV with proper encoding and separator
+                df = pd.read_csv(fichier_telecharge, encoding='ISO-8859-1', sep=';')
+            elif extension_fichier == 'xlsx':
+                df = pd.read_excel(fichier_telecharge)
+            else:
+                st.error("Format de fichier non supporté")
+                df = None
 
-    if fichier_telecharge is not None:
-        extension_fichier = fichier_telecharge.name.split('.')[-1]
-        try:
-            with st.spinner("Chargement des données..."):
-                if extension_fichier == 'csv':
-                    # Read CSV with proper encoding and separator
-                    df = pd.read_csv(fichier_telecharge, encoding='ISO-8859-1', sep=';')
-                elif extension_fichier == 'xlsx':
-                    df = pd.read_excel(fichier_telecharge)
-                else:
-                    st.error("Format de fichier non supporté")
-                    df = None
+        if df is not None:
+            # Ask for user shoe size
+            taille_utilisateur = st.text_input("Entrez votre taille de chaussure (ex: 10.0US, 9.5UK, 40):")
 
-            if df is not None:
-                # Ask for user shoe size
-                taille_utilisateur = st.text_input("Entrez votre taille de chaussure (ex: 10.0US, 9.5UK, 40):")
+            # Data analysis with user shoe size
+            analyse_tailles = analyser_donnees(df, taille_utilisateur=taille_utilisateur)
 
-                # Data analysis with user shoe size
-                analyse_tailles = analyser_donnees(df, taille_utilisateur=taille_utilisateur)
+            # Display shoe size analysis
+            st.subheader("Analyse des Tailles de Chaussures")
+            st.write(analyse_tailles)
 
-                # Display shoe size analysis
-                st.subheader("Analyse des Tailles de Chaussures")
-                st.write(analyse_tailles)
+            # PDF Generation and Download
+            st.markdown("## Générer un Rapport PDF")
 
-                # PDF Generation and Download
-                st.markdown("## Générer un Rapport PDF")
+            # Add checkboxes for PDF content selection
+            selections = st.multiselect("Sélectionnez les sections à inclure dans le rapport PDF:",
+                                        ['Analyse des Tailles de Chaussures'])
 
-                # Add checkboxes for PDF content selection
-                selections = st.multiselect("Sélectionnez les sections à inclure dans le rapport PDF:",
-                                            ['Analyse des Tailles de Chaussures'])
+            if st.button("Télécharger le rapport en PDF"):
+                if selections:
+                    pdf_bytes = creer_pdf(analyse_tailles, selections)
+                    st.download_button(label="Télécharger le PDF", data=pdf_bytes, file_name="rapport_analyse.pdf")
 
-                if st.button("Télécharger le rapport en PDF"):
-                    if selections:
-                        pdf_bytes = creer_pdf(analyse_tailles, selections)
-                        st.download_button(label="Télécharger le PDF", data=pdf_bytes, file_name="rapport_analyse.pdf")
-
-        except Exception as e:
-            st.error(f"Une erreur s'est produite : {e}")
+    except Exception as e:
+        st.error(f"Une erreur s'est produite : {e}")
