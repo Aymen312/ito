@@ -25,10 +25,14 @@ def analyser_donnees(df):
     prix_moyen_par_couleur = df.groupby('couleur')['Prix Achat'].mean().sort_values(ascending=False).head(10)
     analyse_stock = df.groupby('famille').agg({'Qté stock dispo': 'sum', 'Valeur Stock': 'sum'}).sort_values(by='Qté stock dispo', ascending=False).head(10)
     
-    return compte_fournisseurs, prix_moyen_par_couleur, analyse_stock
+    # Analyse des tailles de chaussures spécifiques
+    taille_specifique = ['US 10', 'UK 9.5', 'EU 40']
+    analyse_tailles = df[df['taille'].isin(taille_specifique)].groupby('taille').size()
+    
+    return compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, analyse_tailles
 
 # Function to create PDF report
-def creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filtered_df, selections):
+def creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, analyse_tailles, filtered_df, selections):
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=letter)
     
@@ -63,6 +67,14 @@ def creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filter
             c.drawString(70, y_position - idx * 20,
                          f"{idx}. {famille}: Qté stock dispo = {row['Qté stock dispo']}, Valeur Stock = {row['Valeur Stock']:.2f}")
         y_position -= len(analyse_stock) * 20 + 20
+    
+    if 'Analyse des Tailles de Chaussures' in selections:
+        # Add shoe size analysis
+        c.drawString(50, y_position, "Analyse des Tailles de Chaussures:")
+        y_position -= 20
+        for idx, (taille, count) in enumerate(analyse_tailles.items(), start=1):
+            c.drawString(70, y_position - idx * 20, f"{idx}. {taille}: {count}")
+        y_position -= len(analyse_tailles) * 20 + 20
     
     if 'Détails des Stocks avec Qté de 1 à 5' in selections:
         # Add filtered stock details
@@ -189,16 +201,15 @@ else:
                 elif extension_fichier == 'xlsx':
                     df = pd.read_excel(fichier_telecharge)
                 else:
-                    st.error("Format de fichier non supporté")
-                    df = None
+                    st.error("Veuillez télécharger un fichier CSV ou Excel valide.")
+                    st.stop()
 
-            if df is not None:
                 # Show a summary of the data
                 st.subheader("Résumé des Données")
                 st.write(df.describe())
 
                 # Data analysis
-                compte_fournisseurs, prix_moyen_par_couleur, analyse_stock = analyser_donnees(df)
+                compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, analyse_tailles = analyser_donnees(df)
 
                 # Display analyses in columns
                 col1, col2, col3 = st.columns(3)
@@ -212,28 +223,33 @@ else:
                     st.subheader("Analyse des Stocks")
                     st.write(analyse_stock)
 
+                # Analyse des tailles de chaussures
+                st.subheader("Analyse des Tailles de Chaussures")
+                st.write(analyse_tailles)
+
                 # Filter data for stock quantities from 1 to 5
                 filtered_df = df[df['Qté stock dispo'].isin([1, 2, 3, 4, 5])][['Magasin', 'fournisseur', 'barcode', 'couleur', 'Qté stock dispo']]
-                
+
                 # Display filtered results
                 with st.expander("Détails des Stocks avec Qté de 1 à 5"):
                     st.write(filtered_df)
 
                 # PDF Generation and Download
                 st.markdown("## Générer un Rapport PDF")
-                
+
                 # Add checkboxes for PDF content selection
                 selections = st.multiselect("Sélectionnez les sections à inclure dans le rapport PDF:",
-                                            ['Analyse des Fournisseurs', 'Prix Moyen par Couleur', 'Analyse des Stocks', 'Détails des Stocks avec Qté de 1 à 5'])
+                                            ['Analyse des Fournisseurs', 'Prix Moyen par Couleur', 'Analyse des Stocks', 'Analyse des Tailles de Chaussures', 'Détails des Stocks avec Qté de 1 à 5'])
 
                 if st.button("Télécharger le rapport en PDF"):
                     if selections:
-                        pdf_bytes = creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, filtered_df, selections)
+                        pdf_bytes = creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, analyse_tailles, filtered_df, selections)
                         st.download_button(label="Télécharger le PDF", data=pdf_bytes, file_name="rapport_analyse.pdf", mime="application/pdf")
                     else:
                         st.error("Veuillez sélectionner au moins une section à inclure dans le rapport.")
 
         except Exception as e:
-            st.error(f"Une erreur s'est produite lors de l'analyse des données : {e}")
+            st.error(f"Une erreur s'est produite lors du chargement du fichier : {e}")
+
     else:
         st.info("Veuillez télécharger un fichier à analyser.")
