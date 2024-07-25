@@ -20,11 +20,11 @@ def convert_shoe_size(size):
     try:
         size = str(size).strip().upper()  # Ensure size is a string, remove spaces and convert to uppercase
         if size.endswith("US"):
-            return float(size.replace("US", "").strip())
+            return f"{float(size.replace('US', '').strip())}US"
         elif size.endswith("UK"):
-            return float(size.replace("UK", "").strip())
+            return f"{float(size.replace('UK', '').strip())}UK"
         else:
-            return float(size)  # Convert directly if it's already a number
+            return f"{float(size)}"
     except ValueError:
         return None  # Return None if conversion fails
 
@@ -36,7 +36,7 @@ def analyser_donnees(df, taille_utilisateur=None):
     # Convert user shoe size
     taille_utilisateur_converted = convert_shoe_size(taille_utilisateur)
     
-    # Filter DataFrame based on converted shoe size
+    # Filter DataFrame based on exact shoe size match
     if taille_utilisateur_converted is not None:
         df = df[df['taille'].apply(convert_shoe_size) == taille_utilisateur_converted]
     
