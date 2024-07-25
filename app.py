@@ -27,9 +27,9 @@ def analyser_donnees(df, taille_utilisateur=None):
     
     # Analyse des tailles de chaussures spécifiques pour l'utilisateur
     if taille_utilisateur:
-        analyse_tailles = df[df['taille'] == taille_utilisateur][['Magasin', 'fournisseur', 'barcode', 'couleur', 'taille', 'designation']]
+        analyse_tailles = df[df['taille'] == taille_utilisateur][['Magasin', 'fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'Qté stock dispo', 'Valeur Stock']]
     else:
-        analyse_tailles = pd.DataFrame(columns=['Magasin', 'fournisseur', 'barcode', 'couleur', 'taille', 'designation'])
+        analyse_tailles = pd.DataFrame(columns=['Magasin', 'fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'Qté stock dispo', 'Valeur Stock'])
     
     return compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, analyse_tailles
 
@@ -76,7 +76,7 @@ def creer_pdf(compte_fournisseurs, prix_moyen_par_couleur, analyse_stock, analys
         y_position -= 20
         for idx, (_, row) in enumerate(analyse_tailles.iterrows(), start=1):
             c.drawString(70, y_position - idx * 20,
-                         f"{row['Magasin']}, {row['fournisseur']}, {row['barcode']}, {row['couleur']}, Taille = {row['taille']}, Désignation = {row['designation']}")
+                         f"{row['Magasin']}, {row['fournisseur']}, {row['barcode']}, {row['couleur']}, Taille = {row['taille']}, Désignation = {row['designation']}, Qté stock dispo = {row['Qté stock dispo']}, Valeur Stock = {row['Valeur Stock']:.2f}")
         y_position -= len(analyse_tailles) * 20 + 20
     
     if 'Détails des Stocks avec Qté de 1 à 5' in selections:
