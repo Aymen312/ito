@@ -17,16 +17,16 @@ def clean_numeric_columns(df):
 
 # Function to convert shoe size to standard format
 def convert_shoe_size(size):
-    size = size.strip().upper()  # Remove spaces and convert to uppercase
-    if size.endswith("US"):
-        return float(size.replace("US", "").strip())
-    elif size.endswith("UK"):
-        return float(size.replace("UK", "").strip())
-    else:
-        try:
+    try:
+        size = str(size).strip().upper()  # Ensure size is a string, remove spaces and convert to uppercase
+        if size.endswith("US"):
+            return float(size.replace("US", "").strip())
+        elif size.endswith("UK"):
+            return float(size.replace("UK", "").strip())
+        else:
             return float(size)  # Convert directly if it's already a number
-        except ValueError:
-            return None  # Return None if conversion fails
+    except ValueError:
+        return None  # Return None if conversion fails
 
 # Function to perform analyses
 def analyser_donnees(df, taille_utilisateur=None):
@@ -206,11 +206,4 @@ else:
                 if st.button("Télécharger le rapport en PDF"):
                     if selections:
                         pdf_bytes = creer_pdf(analyse_tailles, selections)
-                        st.download_button(label="Télécharger le PDF", data=pdf_bytes, file_name="rapport_analyse.pdf", mime="application/pdf")
-                    else:
-                        st.error("Veuillez sélectionner au moins une section à inclure dans le rapport.")
-
-        except Exception as e:
-            st.error(f"Une erreur s'est produite lors de l'analyse des données : {e}")
-    else:
-        st.info("Veuillez télécharger un fichier à analyser.")
+                        st.download_button(label="Télécharger le PDF", data=pdf_bytes, file_name="rapport_analyse
