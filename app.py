@@ -31,6 +31,10 @@ def convert_dataframe_to_eu(df):
     df['taille_eu'] = df['taille'].apply(convert_to_eu_size)
     return df
 
+# Function to filter women's shoes
+def filter_womens_shoes(df):
+    return df[df['designation'].str.endswith('W', na=False)]
+
 # Function to perform analyses
 def analyser_donnees(df, taille_utilisateur=None):
     # Clean numeric columns
@@ -46,13 +50,17 @@ def analyser_donnees(df, taille_utilisateur=None):
     if taille_utilisateur_converted is not None:
         df = df[df['taille_eu'] == taille_utilisateur_converted]
     
+    # Filter for women's shoes
+    df_women = filter_womens_shoes(df)
+    
     # Select relevant columns for analysis
     analyse_tailles = df[['Magasin', 'fournisseur', 'barcode', 'couleur', 'taille_eu', 'designation', 'Qté stock dispo', 'Valeur Stock']]
+    analyse_tailles_femmes = df_women[['Magasin', 'fournisseur', 'barcode', 'couleur', 'taille_eu', 'designation', 'Qté stock dispo', 'Valeur Stock']]
     
-    return analyse_tailles
+    return analyse_tailles, analyse_tailles_femmes
 
 # Function to create PDF report
-def creer_pdf(analyse_tailles, selections):
+def creer_pdf(analyse_tailles, analyse_tailles_femmes, selections):
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=letter)
     
@@ -71,6 +79,15 @@ def creer_pdf(analyse_tailles, selections):
             c.drawString(70, y_position - idx * 20,
                          f"{row['Magasin']}, {row['fournisseur']}, {row['barcode']}, {row['couleur']}, Taille EU = {row['taille_eu']}, Désignation = {row['designation']}, Qté stock dispo = {row['Qté stock dispo']}, Valeur Stock = {row['Valeur Stock']:.2f}")
         y_position -= len(analyse_tailles) * 20 + 20
+    
+    if 'Analyse des Chaussures pour Femmes' in selections:
+        # Add women's shoes analysis
+        c.drawString(50, y_position, "Analyse des Chaussures pour Femmes:")
+        y_position -= 20
+        for idx, (_, row) in enumerate(analyse_tailles_femmes.iterrows(), start=1):
+            c.drawString(70, y_position - idx * 20,
+                         f"{row['Magasin']}, {row['fournisseur']}, {row['barcode']}, {row['couleur']}, Taille EU = {row['taille_eu']}, Désignation = {row['designation']}, Qté stock dispo = {row['Qté stock dispo']}, Valeur Stock = {row['Valeur Stock']:.2f}")
+        y_position -= len(analyse_tailles_femmes) * 20 + 20
     
     # Save PDF to buffer
     c.save()
@@ -180,22 +197,26 @@ if fichier_telecharge is not None:
             taille_utilisateur = st.text_input("Entrez votre taille de chaussure (ex: 10.0US, 9.5UK, 40):")
 
             # Data analysis with user shoe size
-            analyse_tailles = analyser_donnees(df, taille_utilisateur=taille_utilisateur)
+            analyse_tailles, analyse_tailles_femmes = analyser_donnees(df, taille_utilisateur=taille_utilisateur)
 
             # Display shoe size analysis
             st.subheader("Analyse des Tailles de Chaussures")
             st.write(analyse_tailles)
+            
+            # Display women's shoe analysis
+            st.subheader("Analyse des Chaussures pour Femmes")
+            st.write(analyse_tailles_femmes)
 
             # PDF Generation and Download
             st.markdown("## Générer un Rapport PDF")
 
             # Add checkboxes for PDF content selection
             selections = st.multiselect("Sélectionnez les sections à inclure dans le rapport PDF:",
-                                        ['Analyse des Tailles de Chaussures'])
+                                        ['Analyse des Tailles de Chaussures', 'Analyse des Chaussures pour Femmes'])
 
             if st.button("Télécharger le rapport en PDF"):
                 if selections:
-                    pdf_bytes = creer_pdf(analyse_tailles, selections)
+                    pdf_bytes = creer_pdf(analyse_tailles, analyse_tailles_femmes, selections)
                     st.download_button(label="Télécharger le PDF", data=pdf_bytes, file_name="rapport_analyse.pdf")
 
     except Exception as e:
