@@ -35,8 +35,12 @@ def convert_dataframe_to_eu(df):
 def filter_womens_shoes(df):
     return df[df['designation'].str.endswith('W', na=False)]
 
+# Function to filter by supplier name
+def filter_by_supplier(df, supplier_name):
+    return df[df['fournisseur'].str.contains(supplier_name, case=False, na=False)]
+
 # Function to perform analyses
-def analyser_donnees(df, taille_utilisateur=None):
+def analyser_donnees(df, taille_utilisateur=None, supplier_name=None):
     # Clean numeric columns
     df = clean_numeric_columns(df)
     
@@ -55,6 +59,10 @@ def analyser_donnees(df, taille_utilisateur=None):
     # Filter DataFrame based on converted shoe size
     if taille_utilisateur_converted is not None:
         df = df[df['taille_eu'] == taille_utilisateur_converted]
+    
+    # Filter DataFrame based on supplier name
+    if supplier_name:
+        df = filter_by_supplier(df, supplier_name)
     
     # Select relevant columns for analysis
     analyse_tailles = df[['Magasin', 'fournisseur', 'barcode', 'couleur', 'taille_eu', 'designation', 'Qté stock dispo', 'Valeur Stock']]
@@ -198,29 +206,9 @@ if fichier_telecharge is not None:
         if df is not None:
             # Ask for user shoe size
             taille_utilisateur = st.text_input("Entrez votre taille de chaussure (ex: 10.0US, 9.5UK, 40):")
-
-            # Data analysis with user shoe size
-            analyse_tailles, analyse_tailles_femmes = analyser_donnees(df, taille_utilisateur=taille_utilisateur)
-
-            # Display shoe size analysis
-            st.subheader("Analyse des Tailles de Chaussures")
-            st.write(analyse_tailles)
             
-            # Display women's shoe analysis
-            st.subheader("Analyse des Chaussures pour Femmes")
-            st.write(analyse_tailles_femmes)
+            # Ask for supplier name
+            supplier_name = st.text_input("Entrez le nom du fournisseur pour afficher ses informations:")
 
-            # PDF Generation and Download
-            st.markdown("## Générer un Rapport PDF")
-
-            # Add checkboxes for PDF content selection
-            selections = st.multiselect("Sélectionnez les sections à inclure dans le rapport PDF:",
-                                        ['Analyse des Tailles de Chaussures', 'Analyse des Chaussures pour Femmes'])
-
-            if st.button("Télécharger le rapport en PDF"):
-                if selections:
-                    pdf_bytes = creer_pdf(analyse_tailles, analyse_tailles_femmes, selections)
-                    st.download_button(label="Télécharger le PDF", data=pdf_bytes, file_name="rapport_analyse.pdf")
-
-    except Exception as e:
-        st.error(f"Une erreur s'est produite : {e}")
+            # Data analysis with user shoe size and supplier name
+            analyse
