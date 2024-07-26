@@ -223,3 +223,6 @@ if fichier_telecharge is not None:
                         st.write(df_fournisseur)
                     except Exception as e:
                         st.error(f"Une erreur est survenue : {e}")
+
+    except Exception as e:
+        st.error(f"Une erreur est survenue : {e}")
