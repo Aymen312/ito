@@ -221,7 +221,7 @@ if fichier_telecharge is not None:
             st.subheader("Analyse des Chaussures pour Femmes")
             st.write(analyse_tailles_femmes)
 
-            # Display supplier information
+            # Display supplier information only if a supplier name is entered
             if supplier_name:
                 st.subheader(f"Informations pour le fournisseur: {supplier_name}")
                 st.write(analyse_tailles)
