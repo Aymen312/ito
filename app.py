@@ -81,25 +81,6 @@ def creer_pdf(df_filtered, df_women_filtered, taille_utilisateur):
 # Streamlit Application
 st.set_page_config(page_title="Application d'Analyse de Taille de Chaussure", layout="wide")
 
-# Custom CSS and JavaScript to hide GitHub icon
-st.markdown("""
-    <style>
-        /* Hide GitHub icon */
-        .stApp .github-icon {
-            display: none !important;
-        }
-    </style>
-    <script>
-        // Remove GitHub icon if CSS doesn't work
-        document.addEventListener("DOMContentLoaded", function() {
-            var githubIcon = document.querySelector(".stApp .github-icon"); 
-            if (githubIcon) {
-                githubIcon.style.display = 'none';
-            }
-        });
-    </script>
-""", unsafe_allow_html=True)
-
 # Custom CSS for futuristic design
 st.markdown("""
     <style>
