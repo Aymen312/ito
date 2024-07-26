@@ -39,14 +39,14 @@ def convert_dataframe_to_eu(df):
 
 # Function to filter women's shoes
 def filter_womens_shoes(df):
-    return df[df['designation'].str.contains('WOMEN', na=False, case=False)]
+    return df[df['designation'].str.contains('WOMAN', na=False, case=False) | df['designation'].str.contains('W', na=False, case=False)]
 
 # Function to filter by shoe size and display corresponding data
 def display_shoe_size_info(df, taille_utilisateur):
     taille_utilisateur = taille_utilisateur.strip().upper()  # Convert user input size to uppercase
     df_filtered = df[df['taille'].str.upper() == taille_utilisateur] if taille_utilisateur else pd.DataFrame()
     df_women_filtered = filter_womens_shoes(df_filtered) if not df_filtered.empty else pd.DataFrame()
-    df_filtered = df_filtered[~df_filtered['designation'].str.contains('WOMEN', na=False, case=False)]  # Exclude women's shoes
+    df_filtered = df_filtered[~(df_filtered['designation'].str.contains('WOMAN', na=False, case=False) | df_filtered['designation'].str.contains('W', na=False, case=False))]  # Exclude women's shoes
     return df_filtered, df_women_filtered
 
 # Function to filter by supplier and display corresponding data
