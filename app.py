@@ -14,7 +14,7 @@ def clean_numeric_columns(df):
 # Function to strip leading and trailing spaces from sizes
 def clean_size_column(df):
     if 'taille' in df.columns:
-        df['taille'] = df['taille'].astype(str).str.strip()
+        df['taille'] = df['taille'].astype(str).str.strip().str.lower()
     return df
 
 # Function to convert shoe size to EU size (for display purposes only)
@@ -43,7 +43,7 @@ def filter_womens_shoes(df):
 
 # Function to filter by shoe size and display corresponding data
 def display_shoe_size_info(df, taille_utilisateur):
-    taille_utilisateur = taille_utilisateur.strip()  # Clean user input size
+    taille_utilisateur = taille_utilisateur.strip().lower()  # Clean and convert user input size to lowercase
     df_filtered = df[df['taille'] == taille_utilisateur] if taille_utilisateur else pd.DataFrame()
     df_women_filtered = filter_womens_shoes(df_filtered) if not df_filtered.empty else pd.DataFrame()
     return df_filtered, df_women_filtered
@@ -172,7 +172,7 @@ if fichier_telecharge is not None:
             
             if taille_utilisateur:
                 try:
-                    taille_utilisateur = str(taille_utilisateur).strip()  # Clean user input size
+                    taille_utilisateur = str(taille_utilisateur).strip().lower()  # Clean and convert user input size to lowercase
                     
                     # Convert sizes to EU sizes for display purposes only
                     df = convert_dataframe_to_eu(df)
