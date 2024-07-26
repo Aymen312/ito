@@ -39,13 +39,14 @@ def convert_dataframe_to_eu(df):
 
 # Function to filter women's shoes
 def filter_womens_shoes(df):
-    return df[df['designation'].str.endswith('W', na=False)]
+    return df[df['designation'].str.contains('WOMEN', na=False, case=False)]
 
 # Function to filter by shoe size and display corresponding data
 def display_shoe_size_info(df, taille_utilisateur):
     taille_utilisateur = taille_utilisateur.strip().upper()  # Convert user input size to uppercase
     df_filtered = df[df['taille'].str.upper() == taille_utilisateur] if taille_utilisateur else pd.DataFrame()
     df_women_filtered = filter_womens_shoes(df_filtered) if not df_filtered.empty else pd.DataFrame()
+    df_filtered = df_filtered[~df_filtered['designation'].str.contains('WOMEN', na=False, case=False)]  # Exclude women's shoes
     return df_filtered, df_women_filtered
 
 # Function to filter by supplier and display corresponding data
@@ -206,24 +207,19 @@ if fichier_telecharge is not None:
                             pdf_bytes = creer_pdf(df_filtered, df_women_filtered, taille_utilisateur)
                             st.download_button(label="Télécharger le PDF", data=pdf_bytes, file_name="rapport_analyse_taille.pdf")
                     except ValueError:
-                        st.error("Veuillez entrer une taille valide.")
+                        st.error("La taille de chaussure entrée est invalide. Veuillez entrer un nombre ou une taille au format attendu.")
             
             with tab2:
                 # Ask for supplier name
-                fournisseur = st.text_input("Entrez le nom du fournisseur :")
+                fournisseur_utilisateur = st.text_input("Entrez le nom du fournisseur :")
                 
-                if fournisseur:
+                if fournisseur_utilisateur:
                     try:
-                        fournisseur = str(fournisseur).strip().upper()  # Convert user input supplier to uppercase
-                        
-                        # Filter DataFrame based on user input
-                        df_filtered = display_supplier_info(df, fournisseur)
+                        fournisseur_utilisateur = str(fournisseur_utilisateur).strip().upper()  # Convert user input supplier to uppercase
+                        df_fournisseur = display_supplier_info(df, fournisseur_utilisateur)
                         
                         # Display filtered information
-                        st.subheader(f"Information pour le Fournisseur {fournisseur}")
-                        st.write(df_filtered)
-                    except ValueError:
-                        st.error("Veuillez entrer un nom de fournisseur valide.")
-
-    except Exception as e:
-        st.error(f"Une erreur s'est produite : {e}")
+                        st.subheader(f"Information pour le Fournisseur {fournisseur_utilisateur}")
+                        st.write(df_fournisseur)
+                    except Exception as e:
+                        st.error(f"Une erreur est survenue : {e}")
