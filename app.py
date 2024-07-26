@@ -29,69 +29,54 @@ def convert_to_eu_size(size):
 # Function to convert the entire dataframe's shoe sizes to EU sizes
 def convert_dataframe_to_eu(df):
     df['taille_eu'] = df['taille'].apply(convert_to_eu_size)
-    df['taille'] = df['taille'].astype(str)  # Ensure 'taille' is string for comparisons
     return df
 
 # Function to filter women's shoes
 def filter_womens_shoes(df):
     return df[df['designation'].str.endswith('W', na=False)]
 
-# Function to filter by supplier name
-def filter_by_supplier(df, supplier_name):
-    return df[df['fournisseur'].str.contains(supplier_name, case=False, na=False)]
-
-# Function to perform analyses
-def analyser_donnees(df, taille_utilisateur=None, supplier_name=None):
-    df = clean_numeric_columns(df)
-    df = convert_dataframe_to_eu(df)
-    
-    st.write("Tailles après conversion:", df[['taille', 'taille_eu']].drop_duplicates())  # Debugging line
-
-    df_women = filter_womens_shoes(df)
-    df = df[~df.index.isin(df_women.index)]
-    
+# Function to filter by shoe size and display corresponding data
+def display_shoe_size_info(df, taille_utilisateur):
     taille_utilisateur_converted = convert_to_eu_size(taille_utilisateur)
     
     if taille_utilisateur_converted is not None:
-        df = df[df['taille_eu'] == taille_utilisateur_converted]
+        df_filtered = df[df['taille_eu'] == taille_utilisateur_converted]
+        df_women_filtered = filter_womens_shoes(df[df['taille_eu'] == taille_utilisateur_converted])
+    else:
+        df_filtered = pd.DataFrame()
+        df_women_filtered = pd.DataFrame()
     
-    if supplier_name:
-        df = filter_by_supplier(df, supplier_name)
-    
-    analyse_tailles = df[['Magasin', 'fournisseur', 'barcode', 'couleur', 'taille_eu', 'designation', 'Qté stock dispo', 'Valeur Stock']]
-    analyse_tailles_femmes = df_women[['Magasin', 'fournisseur', 'barcode', 'couleur', 'taille_eu', 'designation', 'Qté stock dispo', 'Valeur Stock']]
-    
-    return analyse_tailles, analyse_tailles_femmes
+    return df_filtered, df_women_filtered
 
 # Function to create PDF report
-def creer_pdf(analyse_tailles, analyse_tailles_femmes, selections):
+def creer_pdf(df_filtered, df_women_filtered, taille_utilisateur):
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=letter)
     
     # Start writing PDF content
     c.setFont("Helvetica-Bold", 16)
-    c.drawString(50, 750, "Rapport d'Analyse de Fichier")
+    c.drawString(50, 750, "Rapport d'Analyse de Taille de Chaussure")
     c.setFont("Helvetica", 12)
     
     y_position = 720
     
-    if 'Analyse des Tailles de Chaussures' in selections:
+    if not df_filtered.empty:
         # Add shoe size analysis
-        c.drawString(50, y_position, "Analyse des Tailles de Chaussures:")
+        c.drawString(50, y_position, f"Analyse pour la Taille {taille_utilisateur}:")
         y_position -= 20
-        for idx, (_, row) in enumerate(analyse_tailles.iterrows(), start=1):
+        for idx, (_, row) in enumerate(df_filtered.iterrows(), start=1):
             c.drawString(70, y_position - idx * 20,
                          f"{row['Magasin']}, {row['fournisseur']}, {row['barcode']}, {row['couleur']}, Taille EU = {row['taille_eu']}, Désignation = {row['designation']}, Qté stock dispo = {row['Qté stock dispo']}, Valeur Stock = {row['Valeur Stock']:.2f}")
-        y_position -= len(analyse_tailles) * 20 + 20
+        y_position -= len(df_filtered) * 20 + 20
     
-    if 'Analyse des Chaussures pour Femmes' in selections:
+    if not df_women_filtered.empty:
         # Add women's shoes analysis
-        c.drawString(50, y_position, "Analyse des Chaussures pour Femmes:")
+        c.drawString(50, y_position, f"Chaussures pour Femmes à Taille {taille_utilisateur}:")
         y_position -= 20
-        for idx, (_, row) in enumerate(analyse_tailles_femmes.iterrows(), start=1):
+        for idx, (_, row) in enumerate(df_women_filtered.iterrows(), start=1):
             c.drawString(70, y_position - idx * 20,
                          f"{row['Magasin']}, {row['fournisseur']}, {row['barcode']}, {row['couleur']}, Taille EU = {row['taille_eu']}, Désignation = {row['designation']}, Qté stock dispo = {row['Qté stock dispo']}, Valeur Stock = {row['Valeur Stock']:.2f}")
-        y_position -= len(analyse_tailles_femmes) * 20 + 20
+        y_position -= len(df_women_filtered) * 20 + 20
     
     # Save PDF to buffer
     c.save()
@@ -101,7 +86,7 @@ def creer_pdf(analyse_tailles, analyse_tailles_femmes, selections):
     return pdf_bytes
 
 # Streamlit Application
-st.set_page_config(page_title="Application d'Analyse de Fichier", layout="wide")
+st.set_page_config(page_title="Application d'Analyse de Taille de Chaussure", layout="wide")
 
 # Custom CSS and JavaScript to hide GitHub icon
 st.markdown("""
@@ -175,7 +160,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-st.title("Application d'Analyse de Fichier")
+st.title("Application d'Analyse de Taille de Chaussure")
 
 st.sidebar.markdown("### Menu")
 st.sidebar.info("Téléchargez un fichier CSV ou Excel pour commencer l'analyse.")
@@ -197,39 +182,32 @@ if fichier_telecharge is not None:
                 df = None
 
         if df is not None:
+            # Clean and convert data
+            df = clean_numeric_columns(df)
+            df = convert_dataframe_to_eu(df)
+            
             # Ask for user shoe size
             taille_utilisateur = st.text_input("Entrez votre taille de chaussure (ex: 10.0US, 9.5UK, 40):")
             
-            # Ask for supplier name
-            supplier_name = st.text_input("Entrez le nom du fournisseur pour afficher ses informations:")
+            if taille_utilisateur:
+                # Filter DataFrame based on user input
+                df_filtered, df_women_filtered = display_shoe_size_info(df, taille_utilisateur)
+                
+                # Display filtered information
+                st.subheader(f"Information pour la Taille {taille_utilisateur}")
+                st.write(df_filtered)
+                
+                # Display women's shoe information if available
+                if not df_women_filtered.empty:
+                    st.subheader(f"Chaussures pour Femmes à Taille {taille_utilisateur}")
+                    st.write(df_women_filtered)
+                
+                # PDF Generation and Download
+                st.markdown("## Générer un Rapport PDF")
 
-            # Data analysis with user shoe size and supplier name
-            analyse_tailles, analyse_tailles_femmes = analyser_donnees(df, taille_utilisateur=taille_utilisateur, supplier_name=supplier_name)
-
-            # Display shoe size analysis
-            st.subheader("Analyse des Tailles de Chaussures")
-            st.write(analyse_tailles)
-
-            # Display women's shoes analysis
-            st.subheader("Analyse des Chaussures pour Femmes")
-            st.write(analyse_tailles_femmes)
-
-            # Display supplier information
-            if supplier_name:
-                st.subheader(f"Informations pour le fournisseur: {supplier_name}")
-                st.write(analyse_tailles)
-
-            # PDF Generation and Download
-            st.markdown("## Générer un Rapport PDF")
-
-            # Add checkboxes for PDF content selection
-            selections = st.multiselect("Sélectionnez les sections à inclure dans le rapport PDF:",
-                                        ['Analyse des Tailles de Chaussures', 'Analyse des Chaussures pour Femmes'])
-
-            if st.button("Télécharger le rapport en PDF"):
-                if selections:
-                    pdf_bytes = creer_pdf(analyse_tailles, analyse_tailles_femmes, selections)
-                    st.download_button(label="Télécharger le PDF", data=pdf_bytes, file_name="rapport_analyse.pdf")
+                if st.button("Télécharger le rapport en PDF"):
+                    pdf_bytes = creer_pdf(df_filtered, df_women_filtered, taille_utilisateur)
+                    st.download_button(label="Télécharger le PDF", data=pdf_bytes, file_name="rapport_analyse_taille.pdf")
 
     except Exception as e:
         st.error(f"Une erreur s'est produite : {e}")
