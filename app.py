@@ -11,10 +11,24 @@ def clean_numeric_columns(df):
         df[col] = df[col].astype(str).str.replace(',', '.').astype(float)
     return df
 
+# Function to convert shoe size to EU size
+def convert_to_eu_size(size):
+    try:
+        size = str(size).strip().upper()
+        if size.endswith("US"):
+            us_size = float(size.replace("US", "").strip())
+            return us_size + 33  # Example conversion
+        elif size.endswith("UK"):
+            uk_size = float(size.replace("UK", "").strip())
+            return uk_size + 34  # Example conversion
+        else:
+            return float(size)  # Assuming it's already in EU size
+    except ValueError:
+        return None
+
 # Function to convert the entire dataframe's shoe sizes to EU sizes
 def convert_dataframe_to_eu(df):
-    # Assuming sizes are already in EU format, if not adjust accordingly
-    df['taille_eu'] = df['taille'].apply(lambda x: x if pd.notnull(x) else None)
+    df['taille_eu'] = df['taille'].apply(convert_to_eu_size)
     return df
 
 # Function to filter women's shoes
@@ -169,9 +183,9 @@ if fichier_telecharge is not None:
             taille_utilisateur = st.text_input("Entrez votre taille de chaussure en EU (ex: 40, 41, 42):")
             
             if taille_utilisateur:
-                # Filter DataFrame based on user input
                 try:
                     taille_utilisateur = float(taille_utilisateur)
+                    # Filter DataFrame based on user input
                     df_filtered, df_women_filtered = display_shoe_size_info(df, taille_utilisateur)
                     
                     # Display filtered information
