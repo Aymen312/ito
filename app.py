@@ -48,6 +48,12 @@ def display_shoe_size_info(df, taille_utilisateur):
     df_women_filtered = filter_womens_shoes(df_filtered) if not df_filtered.empty else pd.DataFrame()
     return df_filtered, df_women_filtered
 
+# Function to filter by supplier and display corresponding data
+def display_supplier_info(df, fournisseur):
+    fournisseur = fournisseur.strip().upper()  # Convert user input supplier to uppercase
+    df_filtered = df[df['fournisseur'].str.upper() == fournisseur] if fournisseur else pd.DataFrame()
+    return df_filtered
+
 # Function to create PDF report
 def creer_pdf(df_filtered, df_women_filtered, taille_utilisateur):
     buffer = BytesIO()
@@ -167,36 +173,57 @@ if fichier_telecharge is not None:
             df = clean_numeric_columns(df)
             df = clean_size_column(df)  # Clean size column
             
-            # Ask for user shoe size
-            taille_utilisateur = st.text_input("Entrez votre taille de chaussure (ex: 40, 41, 42):")
+            # Tab selection
+            tab1, tab2 = st.tabs(["Analyse de Taille de Chaussure", "Analyse par Fournisseur"])
             
-            if taille_utilisateur:
-                try:
-                    taille_utilisateur = str(taille_utilisateur).strip().upper()  # Convert user input size to uppercase
-                    
-                    # Convert sizes to EU sizes for display purposes only
-                    df = convert_dataframe_to_eu(df)
-                    
-                    # Filter DataFrame based on user input
-                    df_filtered, df_women_filtered = display_shoe_size_info(df, taille_utilisateur)
-                    
-                    # Display filtered information
-                    st.subheader(f"Information pour la Taille {taille_utilisateur}")
-                    st.write(df_filtered)
-                    
-                    # Display women's shoe information if available
-                    if not df_women_filtered.empty:
-                        st.subheader(f"Chaussures pour Femmes à Taille {taille_utilisateur}")
-                        st.write(df_women_filtered)
-                    
-                    # PDF Generation and Download
-                    st.markdown("## Générer un Rapport PDF")
+            with tab1:
+                # Ask for user shoe size
+                taille_utilisateur = st.text_input("Entrez votre taille de chaussure (ex: 40, 41, 42):")
+                
+                if taille_utilisateur:
+                    try:
+                        taille_utilisateur = str(taille_utilisateur).strip().upper()  # Convert user input size to uppercase
+                        
+                        # Convert sizes to EU sizes for display purposes only
+                        df = convert_dataframe_to_eu(df)
+                        
+                        # Filter DataFrame based on user input
+                        df_filtered, df_women_filtered = display_shoe_size_info(df, taille_utilisateur)
+                        
+                        # Display filtered information
+                        st.subheader(f"Information pour la Taille {taille_utilisateur}")
+                        st.write(df_filtered)
+                        
+                        # Display women's shoe information if available
+                        if not df_women_filtered.empty:
+                            st.subheader(f"Chaussures pour Femmes à Taille {taille_utilisateur}")
+                            st.write(df_women_filtered)
+                        
+                        # PDF Generation and Download
+                        st.markdown("## Générer un Rapport PDF")
 
-                    if st.button("Télécharger le rapport en PDF"):
-                        pdf_bytes = creer_pdf(df_filtered, df_women_filtered, taille_utilisateur)
-                        st.download_button(label="Télécharger le PDF", data=pdf_bytes, file_name="rapport_analyse_taille.pdf")
-                except ValueError:
-                    st.error("Veuillez entrer une taille valide.")
+                        if st.button("Télécharger le rapport en PDF"):
+                            pdf_bytes = creer_pdf(df_filtered, df_women_filtered, taille_utilisateur)
+                            st.download_button(label="Télécharger le PDF", data=pdf_bytes, file_name="rapport_analyse_taille.pdf")
+                    except ValueError:
+                        st.error("Veuillez entrer une taille valide.")
+            
+            with tab2:
+                # Ask for supplier name
+                fournisseur = st.text_input("Entrez le nom du fournisseur :")
+                
+                if fournisseur:
+                    try:
+                        fournisseur = str(fournisseur).strip().upper()  # Convert user input supplier to uppercase
+                        
+                        # Filter DataFrame based on user input
+                        df_filtered = display_supplier_info(df, fournisseur)
+                        
+                        # Display filtered information
+                        st.subheader(f"Information pour le Fournisseur {fournisseur}")
+                        st.write(df_filtered)
+                    except ValueError:
+                        st.error("Veuillez entrer un nom de fournisseur valide.")
 
     except Exception as e:
         st.error(f"Une erreur s'est produite : {e}")
