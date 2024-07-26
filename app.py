@@ -29,6 +29,7 @@ def convert_to_eu_size(size):
 # Function to convert the entire dataframe's shoe sizes to EU sizes
 def convert_dataframe_to_eu(df):
     df['taille_eu'] = df['taille'].apply(convert_to_eu_size)
+    df['taille'] = df['taille'].astype(str)  # Ensure 'taille' is string for comparisons
     return df
 
 # Function to filter women's shoes
@@ -41,30 +42,22 @@ def filter_by_supplier(df, supplier_name):
 
 # Function to perform analyses
 def analyser_donnees(df, taille_utilisateur=None, supplier_name=None):
-    # Clean numeric columns
     df = clean_numeric_columns(df)
-    
-    # Convert shoe sizes to EU sizes
     df = convert_dataframe_to_eu(df)
     
-    # Filter for women's shoes
+    st.write("Tailles après conversion:", df[['taille', 'taille_eu']].drop_duplicates())  # Debugging line
+
     df_women = filter_womens_shoes(df)
-    
-    # Exclude women's shoes from the main analysis
     df = df[~df.index.isin(df_women.index)]
     
-    # Convert user shoe size to EU size
     taille_utilisateur_converted = convert_to_eu_size(taille_utilisateur)
     
-    # Filter DataFrame based on converted shoe size
     if taille_utilisateur_converted is not None:
         df = df[df['taille_eu'] == taille_utilisateur_converted]
     
-    # Filter DataFrame based on supplier name
     if supplier_name:
         df = filter_by_supplier(df, supplier_name)
     
-    # Select relevant columns for analysis
     analyse_tailles = df[['Magasin', 'fournisseur', 'barcode', 'couleur', 'taille_eu', 'designation', 'Qté stock dispo', 'Valeur Stock']]
     analyse_tailles_femmes = df_women[['Magasin', 'fournisseur', 'barcode', 'couleur', 'taille_eu', 'designation', 'Qté stock dispo', 'Valeur Stock']]
     
@@ -239,4 +232,4 @@ if fichier_telecharge is not None:
                     st.download_button(label="Télécharger le PDF", data=pdf_bytes, file_name="rapport_analyse.pdf")
 
     except Exception as e:
-        st.error(f"Une erreur s'est produite : {e}") 
+        st.error(f"Une erreur s'est produite : {e}")
