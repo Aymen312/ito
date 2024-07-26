@@ -221,7 +221,7 @@ if fichier_telecharge is not None:
             st.subheader("Analyse des Chaussures pour Femmes")
             st.write(analyse_tailles_femmes)
 
-            # Display supplier information only if a supplier name is entered
+            # Display supplier information
             if supplier_name:
                 st.subheader(f"Informations pour le fournisseur: {supplier_name}")
                 st.write(analyse_tailles)
@@ -239,4 +239,4 @@ if fichier_telecharge is not None:
                     st.download_button(label="Télécharger le PDF", data=pdf_bytes, file_name="rapport_analyse.pdf")
 
     except Exception as e:
-        st.error(f"Une erreur s'est produite : {e}")
+        st.error(f"Une erreur s'est produite : {e}") 
