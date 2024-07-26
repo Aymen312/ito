@@ -43,15 +43,18 @@ def analyser_donnees(df, taille_utilisateur=None):
     # Convert shoe sizes to EU sizes
     df = convert_dataframe_to_eu(df)
     
+    # Filter for women's shoes
+    df_women = filter_womens_shoes(df)
+    
+    # Exclude women's shoes from the main analysis
+    df = df[~df.index.isin(df_women.index)]
+    
     # Convert user shoe size to EU size
     taille_utilisateur_converted = convert_to_eu_size(taille_utilisateur)
     
     # Filter DataFrame based on converted shoe size
     if taille_utilisateur_converted is not None:
         df = df[df['taille_eu'] == taille_utilisateur_converted]
-    
-    # Filter for women's shoes
-    df_women = filter_womens_shoes(df)
     
     # Select relevant columns for analysis
     analyse_tailles = df[['Magasin', 'fournisseur', 'barcode', 'couleur', 'taille_eu', 'designation', 'Qté stock dispo', 'Valeur Stock']]
