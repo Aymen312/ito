@@ -21,29 +21,20 @@ def clean_size_column(df):
 def convert_to_eu_size(size):
     try:
         size = str(size).strip().upper()
-        
-        # Conversion factors
-        us_to_eu = 33
-        uk_to_eu = 34
-        
         if size.endswith("US"):
-            # Handle sizes with decimals
             us_size = float(size.replace("US", "").strip())
-            return us_size + us_to_eu
+            return us_size + 33  # Example conversion
         elif size.endswith("UK"):
             uk_size = float(size.replace("UK", "").strip())
-            return uk_size + uk_to_eu
-        elif size.endswith("EU"):
-            # Directly use EU sizes
-            return float(size.replace("EU", "").strip())
+            return uk_size + 34  # Example conversion
         else:
-            # Handle other formats or unknown sizes
-            return float(size)
+            return float(size)  # Assuming it's already in EU size
     except ValueError:
         return None
 
 # Function to convert the entire dataframe's shoe sizes to EU sizes for display
 def convert_dataframe_to_eu(df):
+    df['taille_originale'] = df['taille']
     df['taille_eu'] = df['taille'].apply(convert_to_eu_size)
     return df
 
@@ -82,8 +73,9 @@ def creer_pdf(df_filtered, df_women_filtered, taille_utilisateur):
         c.drawString(50, y_position, f"Analyse pour la Taille {taille_utilisateur}:")
         y_position -= 20
         for idx, (_, row) in enumerate(df_filtered.iterrows(), start=1):
+            taille = f"{row['taille']} ({row['taille_originale']})" if row['taille_originale'] else row['taille']
             c.drawString(70, y_position - idx * 20,
-                         f"{row['Magasin']}, {row['fournisseur']}, {row['barcode']}, {row['couleur']}, Taille = {row['taille']}, Désignation = {row['designation']}, Qté stock dispo = {row['Qté stock dispo']}, Valeur Stock = {row['Valeur Stock']:.2f}")
+                         f"{row['Magasin']}, {row['fournisseur']}, {row['barcode']}, {row['couleur']}, Taille = {taille}, Désignation = {row['designation']}, Qté stock dispo = {row['Qté stock dispo']}, Valeur Stock = {row['Valeur Stock']:.2f}")
         y_position -= len(df_filtered) * 20 + 20
     
     if not df_women_filtered.empty:
@@ -91,8 +83,9 @@ def creer_pdf(df_filtered, df_women_filtered, taille_utilisateur):
         c.drawString(50, y_position, f"Chaussures pour Femmes à Taille {taille_utilisateur}:")
         y_position -= 20
         for idx, (_, row) in enumerate(df_women_filtered.iterrows(), start=1):
+            taille = f"{row['taille']} ({row['taille_originale']})" if row['taille_originale'] else row['taille']
             c.drawString(70, y_position - idx * 20,
-                         f"{row['Magasin']}, {row['fournisseur']}, {row['barcode']}, {row['couleur']}, Taille = {row['taille']}, Désignation = {row['designation']}, Qté stock dispo = {row['Qté stock dispo']}, Valeur Stock = {row['Valeur Stock']:.2f}")
+                         f"{row['Magasin']}, {row['fournisseur']}, {row['barcode']}, {row['couleur']}, Taille = {taille}, Désignation = {row['designation']}, Qté stock dispo = {row['Qté stock dispo']}, Valeur Stock = {row['Valeur Stock']:.2f}")
         y_position -= len(df_women_filtered) * 20 + 20
     
     # Save PDF to buffer
@@ -184,6 +177,9 @@ if fichier_telecharge is not None:
             df = clean_numeric_columns(df)
             df = clean_size_column(df)  # Clean size column
             
+            # Convert sizes to EU sizes for display purposes only
+            df = convert_dataframe_to_eu(df)
+            
             # Tab selection
             tab1, tab2 = st.tabs(["Analyse de Taille de Chaussure", "Analyse par Fournisseur"])
             
@@ -194,9 +190,6 @@ if fichier_telecharge is not None:
                 if taille_utilisateur:
                     try:
                         taille_utilisateur = str(taille_utilisateur).strip().upper()  # Convert user input size to uppercase
-                        
-                        # Convert sizes to EU sizes for display purposes only
-                        df = convert_dataframe_to_eu(df)
                         
                         # Filter DataFrame based on user input
                         df_filtered, df_women_filtered = display_shoe_size_info(df, taille_utilisateur)
