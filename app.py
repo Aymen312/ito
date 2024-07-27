@@ -21,14 +21,24 @@ def clean_size_column(df):
 def convert_to_eu_size(size):
     try:
         size = str(size).strip().upper()
+        
+        # Conversion factors
+        us_to_eu = 33
+        uk_to_eu = 34
+        
         if size.endswith("US"):
+            # Handle sizes with decimals
             us_size = float(size.replace("US", "").strip())
-            return us_size + 33  # Example conversion
+            return us_size + us_to_eu
         elif size.endswith("UK"):
             uk_size = float(size.replace("UK", "").strip())
-            return uk_size + 34  # Example conversion
+            return uk_size + uk_to_eu
+        elif size.endswith("EU"):
+            # Directly use EU sizes
+            return float(size.replace("EU", "").strip())
         else:
-            return float(size)  # Assuming it's already in EU size
+            # Handle other formats or unknown sizes
+            return float(size)
     except ValueError:
         return None
 
