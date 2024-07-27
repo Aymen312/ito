@@ -39,18 +39,21 @@ def convert_dataframe_to_eu(df):
 
 # Function to filter women's shoes
 def filter_womens_shoes(df):
-    return df[df['designation'].str.contains('WOMEN|W', case=False, na=False)]
+    return df[df['designation'].str.contains('WOMAN', na=False, case=False) | df['designation'].str.contains('W', na=False, case=False)]
 
 # Function to filter by shoe size and display corresponding data
 def display_shoe_size_info(df, taille_utilisateur):
-    taille_utilisateur = taille_utilisateur.strip().upper()  # Clean user input size
+    taille_utilisateur = taille_utilisateur.strip().upper()  # Convert user input size to uppercase
     df_filtered = df[df['taille'].str.upper() == taille_utilisateur] if taille_utilisateur else pd.DataFrame()
     df_women_filtered = filter_womens_shoes(df_filtered) if not df_filtered.empty else pd.DataFrame()
+    df_filtered = df_filtered[~(df_filtered['designation'].str.contains('WOMAN', na=False, case=False) | df_filtered['designation'].str.contains('W', na=False, case=False))]  # Exclude women's shoes
     return df_filtered, df_women_filtered
 
-# Function to filter supplier information
-def display_supplier_info(df, fournisseur_utilisateur):
-    return df[df['fournisseur'].str.upper() == fournisseur_utilisateur]
+# Function to filter by supplier and display corresponding data
+def display_supplier_info(df, fournisseur):
+    fournisseur = fournisseur.strip().upper()  # Convert user input supplier to uppercase
+    df_filtered = df[df['fournisseur'].str.upper() == fournisseur] if fournisseur else pd.DataFrame()
+    return df_filtered
 
 # Function to create PDF report
 def creer_pdf(df_filtered, df_women_filtered, taille_utilisateur):
@@ -92,7 +95,7 @@ def creer_pdf(df_filtered, df_women_filtered, taille_utilisateur):
 # Streamlit Application
 st.set_page_config(page_title="Application d'Analyse de Taille de Chaussure", layout="wide")
 
-# Custom CSS for improved design
+# Custom CSS for futuristic design
 st.markdown("""
     <style>
         body {
@@ -142,18 +145,11 @@ st.markdown("""
         .stExpander>div>div>div {
             color: #F5F5F5;
         }
-        .stMarkdown>div {
-            background-color: #1E1E1E;
-            color: #F5F5F5;
-            padding: 15px;
-            border-radius: 5px;
-        }
     </style>
     """, unsafe_allow_html=True)
 
 st.title("Application d'Analyse de Taille de Chaussure")
 
-# Sidebar with navigation
 st.sidebar.markdown("### Menu")
 st.sidebar.info("Téléchargez un fichier CSV ou Excel pour commencer l'analyse.")
 
@@ -178,22 +174,16 @@ if fichier_telecharge is not None:
             df = clean_numeric_columns(df)
             df = clean_size_column(df)  # Clean size column
             
-            # Tabs for different functionalities
-            tabs = st.tabs(["Analyse de Taille", "Information Fournisseur"])
-
-            with tabs[0]:
-                st.subheader("Analyse des Tailles")
-                st.markdown("""
-                    Entrez votre taille de chaussure pour voir les informations correspondantes.
-                    Veuillez entrer la taille au format attendu (ex: 40, 41, 42).
-                """)
-                
+            # Tab selection
+            tab1, tab2 = st.tabs(["Analyse de Taille de Chaussure", "Analyse par Fournisseur"])
+            
+            with tab1:
                 # Ask for user shoe size
                 taille_utilisateur = st.text_input("Entrez votre taille de chaussure (ex: 40, 41, 42):")
                 
                 if taille_utilisateur:
                     try:
-                        taille_utilisateur = str(taille_utilisateur).strip().upper()  # Clean user input size
+                        taille_utilisateur = str(taille_utilisateur).strip().upper()  # Convert user input size to uppercase
                         
                         # Convert sizes to EU sizes for display purposes only
                         df = convert_dataframe_to_eu(df)
@@ -219,13 +209,7 @@ if fichier_telecharge is not None:
                     except ValueError:
                         st.error("La taille de chaussure entrée est invalide. Veuillez entrer un nombre ou une taille au format attendu.")
             
-            with tabs[1]:
-                st.subheader("Informations Fournisseur")
-                st.markdown("""
-                    Entrez le nom du fournisseur pour voir les informations correspondantes.
-                    Vous pouvez utiliser le nom du fournisseur en majuscule ou minuscule.
-                """)
-                
+            with tab2:
                 # Ask for supplier name
                 fournisseur_utilisateur = st.text_input("Entrez le nom du fournisseur :")
                 
