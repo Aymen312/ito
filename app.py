@@ -95,6 +95,10 @@ def creer_pdf(df_filtered, df_women_filtered, taille_utilisateur):
     
     return pdf_bytes
 
+# Function to filter negative stock
+def filter_negative_stock(df):
+    return df[df['Qté stock dispo'] < 0]
+
 # Streamlit Application
 st.set_page_config(page_title="Application d'Analyse de Taille de Chaussure", layout="wide")
 
@@ -181,7 +185,7 @@ if fichier_telecharge is not None:
             df = convert_dataframe_to_eu(df)
             
             # Tab selection
-            tab1, tab2 = st.tabs(["Analyse de Taille de Chaussure", "Analyse par Fournisseur"])
+            tab1, tab2, tab3 = st.tabs(["Analyse de Taille de Chaussure", "Analyse par Fournisseur", "Stock Négatif"])
             
             with tab1:
                 # Ask for user shoe size
@@ -195,37 +199,54 @@ if fichier_telecharge is not None:
                         df_filtered, df_women_filtered = display_shoe_size_info(df, taille_utilisateur)
                         
                         # Display filtered information
-                        st.subheader(f"Information pour la Taille {taille_utilisateur}")
-                        st.write(df_filtered)
+                        st.subheader("Chaussures Disponibles")
+                        if not df_filtered.empty:
+                            st.dataframe(df_filtered)
+                        else:
+                            st.write("Aucune chaussure disponible pour la taille spécifiée.")
                         
-                        # Display women's shoe information if available
+                        st.subheader("Chaussures pour Femmes Disponibles")
                         if not df_women_filtered.empty:
-                            st.subheader(f"Chaussures pour Femmes à Taille {taille_utilisateur}")
-                            st.write(df_women_filtered)
+                            st.dataframe(df_women_filtered)
+                        else:
+                            st.write("Aucune chaussure pour femmes disponible pour la taille spécifiée.")
                         
-                        # PDF Generation and Download
-                        st.markdown("## Générer un Rapport PDF")
-
-                        if st.button("Télécharger le rapport en PDF"):
+                        # Create PDF report
+                        if st.button("Créer un rapport PDF"):
                             pdf_bytes = creer_pdf(df_filtered, df_women_filtered, taille_utilisateur)
-                            st.download_button(label="Télécharger le PDF", data=pdf_bytes, file_name="rapport_analyse_taille.pdf")
-                    except ValueError:
-                        st.error("La taille de chaussure entrée est invalide. Veuillez entrer un nombre ou une taille au format attendu.")
+                            st.download_button(label="Télécharger le PDF", data=pdf_bytes, file_name=f"rapport_taille_{taille_utilisateur}.pdf", mime="application/pdf")
+                    except Exception as e:
+                        st.error(f"Erreur lors de l'analyse de la taille de chaussure: {e}")
             
             with tab2:
                 # Ask for supplier name
-                fournisseur_utilisateur = st.text_input("Entrez le nom du fournisseur :")
+                fournisseur = st.text_input("Entrez le nom du fournisseur:")
                 
-                if fournisseur_utilisateur:
+                if fournisseur:
                     try:
-                        fournisseur_utilisateur = str(fournisseur_utilisateur).strip().upper()  # Convert user input supplier to uppercase
-                        df_fournisseur = display_supplier_info(df, fournisseur_utilisateur)
+                        fournisseur = str(fournisseur).strip().upper()  # Convert user input supplier to uppercase
+                        
+                        # Filter DataFrame based on user input
+                        df_filtered = display_supplier_info(df, fournisseur)
                         
                         # Display filtered information
-                        st.subheader(f"Information pour le Fournisseur {fournisseur_utilisateur}")
-                        st.write(df_fournisseur)
+                        st.subheader("Informations du Fournisseur")
+                        if not df_filtered.empty:
+                            st.dataframe(df_filtered)
+                        else:
+                            st.write("Aucune information disponible pour le fournisseur spécifié.")
                     except Exception as e:
-                        st.error(f"Une erreur est survenue : {e}")
+                        st.error(f"Erreur lors de l'analyse du fournisseur: {e}")
+            
+            with tab3:
+                # Display negative stock
+                st.subheader("Stock Négatif et Valeur Correspondante")
+                df_negative_stock = filter_negative_stock(df)
+                
+                if not df_negative_stock.empty:
+                    st.dataframe(df_negative_stock)
+                else:
+                    st.write("Aucun stock négatif trouvé.")
 
     except Exception as e:
-        st.error(f"Une erreur est survenue : {e}")
+        st.error(f"Erreur lors du chargement du fichier: {e}")
