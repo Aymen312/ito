@@ -4,6 +4,94 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from io import BytesIO
 
+# Function to clean numeric columns
+def clean_numeric_columns(df):
+    numeric_columns = ['Prix Achat', 'Qté stock dispo', 'Valeur Stock']
+    for col in numeric_columns:
+        df[col] = df[col].astype(str).str.replace(',', '.').astype(float)
+    return df
+
+# Function to strip leading and trailing spaces from sizes
+def clean_size_column(df):
+    if 'taille' in df.columns:
+        df['taille'] = df['taille'].astype(str).str.strip()
+    return df
+
+# Function to convert shoe size to EU size (for display purposes only)
+def convert_to_eu_size(size):
+    try:
+        size = str(size).strip().upper()
+        if size.endswith("US"):
+            us_size = float(size.replace("US", "").strip())
+            return us_size + 33  # Example conversion
+        elif size.endswith("UK"):
+            uk_size = float(size.replace("UK", "").strip())
+            return uk_size + 34  # Example conversion
+        else:
+            return float(size)  # Assuming it's already in EU size
+    except ValueError:
+        return None
+
+# Function to convert the entire dataframe's shoe sizes to EU sizes for display
+def convert_dataframe_to_eu(df):
+    df['taille_eu'] = df['taille'].apply(convert_to_eu_size)
+    return df
+
+# Function to filter women's shoes
+def filter_womens_shoes(df):
+    return df[df['designation'].str.contains('WOMEN|W', case=False, na=False)]
+
+# Function to filter by shoe size and display corresponding data
+def display_shoe_size_info(df, taille_utilisateur):
+    taille_utilisateur = taille_utilisateur.strip().upper()  # Clean user input size
+    df_filtered = df[df['taille'].str.upper() == taille_utilisateur] if taille_utilisateur else pd.DataFrame()
+    df_women_filtered = filter_womens_shoes(df_filtered) if not df_filtered.empty else pd.DataFrame()
+    return df_filtered, df_women_filtered
+
+# Function to filter supplier information
+def display_supplier_info(df, fournisseur_utilisateur):
+    return df[df['fournisseur'].str.upper() == fournisseur_utilisateur]
+
+# Function to create PDF report
+def creer_pdf(df_filtered, df_women_filtered, taille_utilisateur):
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=letter)
+    
+    # Start writing PDF content
+    c.setFont("Helvetica-Bold", 16)
+    c.drawString(50, 750, "Rapport d'Analyse de Taille de Chaussure")
+    c.setFont("Helvetica", 12)
+    
+    y_position = 720
+    
+    if not df_filtered.empty:
+        # Add shoe size analysis
+        c.drawString(50, y_position, f"Analyse pour la Taille {taille_utilisateur}:")
+        y_position -= 20
+        for idx, (_, row) in enumerate(df_filtered.iterrows(), start=1):
+            c.drawString(70, y_position - idx * 20,
+                         f"{row['Magasin']}, {row['fournisseur']}, {row['barcode']}, {row['couleur']}, Taille = {row['taille']}, Désignation = {row['designation']}, Qté stock dispo = {row['Qté stock dispo']}, Valeur Stock = {row['Valeur Stock']:.2f}")
+        y_position -= len(df_filtered) * 20 + 20
+    
+    if not df_women_filtered.empty:
+        # Add women's shoes analysis
+        c.drawString(50, y_position, f"Chaussures pour Femmes à Taille {taille_utilisateur}:")
+        y_position -= 20
+        for idx, (_, row) in enumerate(df_women_filtered.iterrows(), start=1):
+            c.drawString(70, y_position - idx * 20,
+                         f"{row['Magasin']}, {row['fournisseur']}, {row['barcode']}, {row['couleur']}, Taille = {row['taille']}, Désignation = {row['designation']}, Qté stock dispo = {row['Qté stock dispo']}, Valeur Stock = {row['Valeur Stock']:.2f}")
+        y_position -= len(df_women_filtered) * 20 + 20
+    
+    # Save PDF to buffer
+    c.save()
+    pdf_bytes = buffer.getvalue()
+    buffer.close()
+    
+    return pdf_bytes
+
+# Streamlit Application
+st.set_page_config(page_title="Application d'Analyse de Taille de Chaussure", layout="wide")
+
 # Custom CSS for improved design
 st.markdown("""
     <style>
@@ -62,11 +150,6 @@ st.markdown("""
         }
     </style>
     """, unsafe_allow_html=True)
-
-# Functions and other code remain unchanged
-
-# Streamlit Application
-st.set_page_config(page_title="Application d'Analyse de Taille de Chaussure", layout="wide")
 
 st.title("Application d'Analyse de Taille de Chaussure")
 
