@@ -4,98 +4,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from io import BytesIO
 
-# Function to clean numeric columns
-def clean_numeric_columns(df):
-    numeric_columns = ['Prix Achat', 'Qté stock dispo', 'Valeur Stock']
-    for col in numeric_columns:
-        df[col] = df[col].astype(str).str.replace(',', '.').astype(float)
-    return df
-
-# Function to strip leading and trailing spaces from sizes
-def clean_size_column(df):
-    if 'taille' in df.columns:
-        df['taille'] = df['taille'].astype(str).str.strip()
-    return df
-
-# Function to convert shoe size to EU size (for display purposes only)
-def convert_to_eu_size(size):
-    try:
-        size = str(size).strip().upper()
-        if size.endswith("US"):
-            us_size = float(size.replace("US", "").strip())
-            return us_size + 33  # Example conversion
-        elif size.endswith("UK"):
-            uk_size = float(size.replace("UK", "").strip())
-            return uk_size + 34  # Example conversion
-        else:
-            return float(size)  # Assuming it's already in EU size
-    except ValueError:
-        return None
-
-# Function to convert the entire dataframe's shoe sizes to EU sizes for display
-def convert_dataframe_to_eu(df):
-    df['taille_eu'] = df['taille'].apply(convert_to_eu_size)
-    return df
-
-# Function to filter women's shoes
-def filter_womens_shoes(df):
-    return df[df['designation'].str.contains('WOMAN', na=False, case=False) | df['designation'].str.contains('W', na=False, case=False)]
-
-# Function to filter by shoe size and display corresponding data
-def display_shoe_size_info(df, taille_utilisateur):
-    taille_utilisateur = taille_utilisateur.strip().upper()  # Convert user input size to uppercase
-    df_filtered = df[df['taille'].str.upper() == taille_utilisateur] if taille_utilisateur else pd.DataFrame()
-    df_women_filtered = filter_womens_shoes(df_filtered) if not df_filtered.empty else pd.DataFrame()
-    df_filtered = df_filtered[~(df_filtered['designation'].str.contains('WOMAN', na=False, case=False) | df_filtered['designation'].str.contains('W', na=False, case=False))]  # Exclude women's shoes
-    return df_filtered, df_women_filtered
-
-# Function to filter by supplier and display corresponding data
-def display_supplier_info(df, fournisseur):
-    fournisseur = fournisseur.strip().upper()  # Convert user input supplier to uppercase
-    df_filtered = df[df['fournisseur'].str.upper() == fournisseur] if fournisseur else pd.DataFrame()
-    return df_filtered
-
-# Function to create PDF report
-def creer_pdf(df_filtered, df_women_filtered, taille_utilisateur):
-    buffer = BytesIO()
-    c = canvas.Canvas(buffer, pagesize=letter)
-    
-    # Start writing PDF content
-    c.setFont("Helvetica-Bold", 16)
-    c.drawString(50, 750, "Rapport d'Analyse de Taille de Chaussure")
-    c.setFont("Helvetica", 12)
-    
-    y_position = 720
-    
-    if not df_filtered.empty:
-        # Add shoe size analysis
-        c.drawString(50, y_position, f"Analyse pour la Taille {taille_utilisateur}:")
-        y_position -= 20
-        for idx, (_, row) in enumerate(df_filtered.iterrows(), start=1):
-            c.drawString(70, y_position - idx * 20,
-                         f"{row['Magasin']}, {row['fournisseur']}, {row['barcode']}, {row['couleur']}, Taille = {row['taille']}, Désignation = {row['designation']}, Qté stock dispo = {row['Qté stock dispo']}, Valeur Stock = {row['Valeur Stock']:.2f}")
-        y_position -= len(df_filtered) * 20 + 20
-    
-    if not df_women_filtered.empty:
-        # Add women's shoes analysis
-        c.drawString(50, y_position, f"Chaussures pour Femmes à Taille {taille_utilisateur}:")
-        y_position -= 20
-        for idx, (_, row) in enumerate(df_women_filtered.iterrows(), start=1):
-            c.drawString(70, y_position - idx * 20,
-                         f"{row['Magasin']}, {row['fournisseur']}, {row['barcode']}, {row['couleur']}, Taille = {row['taille']}, Désignation = {row['designation']}, Qté stock dispo = {row['Qté stock dispo']}, Valeur Stock = {row['Valeur Stock']:.2f}")
-        y_position -= len(df_women_filtered) * 20 + 20
-    
-    # Save PDF to buffer
-    c.save()
-    pdf_bytes = buffer.getvalue()
-    buffer.close()
-    
-    return pdf_bytes
-
-# Streamlit Application
-st.set_page_config(page_title="Application d'Analyse de Taille de Chaussure", layout="wide")
-
-# Custom CSS for futuristic design
+# Custom CSS for improved design
 st.markdown("""
     <style>
         body {
@@ -145,11 +54,23 @@ st.markdown("""
         .stExpander>div>div>div {
             color: #F5F5F5;
         }
+        .stMarkdown>div {
+            background-color: #1E1E1E;
+            color: #F5F5F5;
+            padding: 15px;
+            border-radius: 5px;
+        }
     </style>
     """, unsafe_allow_html=True)
 
+# Functions and other code remain unchanged
+
+# Streamlit Application
+st.set_page_config(page_title="Application d'Analyse de Taille de Chaussure", layout="wide")
+
 st.title("Application d'Analyse de Taille de Chaussure")
 
+# Sidebar with navigation
 st.sidebar.markdown("### Menu")
 st.sidebar.info("Téléchargez un fichier CSV ou Excel pour commencer l'analyse.")
 
@@ -174,16 +95,22 @@ if fichier_telecharge is not None:
             df = clean_numeric_columns(df)
             df = clean_size_column(df)  # Clean size column
             
-            # Tab selection
-            tab1, tab2 = st.tabs(["Analyse de Taille de Chaussure", "Analyse par Fournisseur"])
-            
-            with tab1:
+            # Tabs for different functionalities
+            tabs = st.tabs(["Analyse de Taille", "Information Fournisseur"])
+
+            with tabs[0]:
+                st.subheader("Analyse des Tailles")
+                st.markdown("""
+                    Entrez votre taille de chaussure pour voir les informations correspondantes.
+                    Veuillez entrer la taille au format attendu (ex: 40, 41, 42).
+                """)
+                
                 # Ask for user shoe size
                 taille_utilisateur = st.text_input("Entrez votre taille de chaussure (ex: 40, 41, 42):")
                 
                 if taille_utilisateur:
                     try:
-                        taille_utilisateur = str(taille_utilisateur).strip().upper()  # Convert user input size to uppercase
+                        taille_utilisateur = str(taille_utilisateur).strip().upper()  # Clean user input size
                         
                         # Convert sizes to EU sizes for display purposes only
                         df = convert_dataframe_to_eu(df)
@@ -209,7 +136,13 @@ if fichier_telecharge is not None:
                     except ValueError:
                         st.error("La taille de chaussure entrée est invalide. Veuillez entrer un nombre ou une taille au format attendu.")
             
-            with tab2:
+            with tabs[1]:
+                st.subheader("Informations Fournisseur")
+                st.markdown("""
+                    Entrez le nom du fournisseur pour voir les informations correspondantes.
+                    Vous pouvez utiliser le nom du fournisseur en majuscule ou minuscule.
+                """)
+                
                 # Ask for supplier name
                 fournisseur_utilisateur = st.text_input("Entrez le nom du fournisseur :")
                 
