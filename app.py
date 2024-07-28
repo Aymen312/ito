@@ -103,9 +103,9 @@ st.set_page_config(page_title="Application d'Analyse de Chaussures", layout="wid
 st.markdown("""
     <style>
         body {
-            background: linear-gradient(135deg, #1E1E1E, #2D2D2D);
-            color: #F5F5F5;
-            font-family: 'Arial', sans-serif;
+            background-color: #f0f2f6;
+            color: #1e2022;
+            font-family: 'Helvetica', sans-serif;
         }
         .stButton>button {
             background-color: #007BFF;
@@ -124,8 +124,8 @@ st.markdown("""
             border: 2px solid #007BFF;
             border-radius: 5px;
             padding: 10px;
-            background-color: #1E1E1E;
-            color: #F5F5F5;
+            background-color: #ffffff;
+            color: #1e2022;
         }
         .stTextInput>div>input:focus {
             border-color: #0056b3;
@@ -134,20 +134,23 @@ st.markdown("""
         .stMultiSelect>div>div {
             border: 2px solid #007BFF;
             border-radius: 5px;
-            background-color: #1E1E1E;
-            color: #F5F5F5;
+            background-color: #ffffff;
+            color: #1e2022;
         }
         .stMultiSelect>div>div>div>div {
-            color: #F5F5F5;
+            color: #1e2022;
         }
         .stExpander>div>div {
-            background-color: #2D2D2D;
-            color: #F5F5F5;
+            background-color: #ffffff;
+            color: #1e2022;
             border-radius: 5px;
             padding: 10px;
         }
         .stExpander>div>div>div {
-            color: #F5F5F5;
+            color: #1e2022;
+        }
+        .stDataFrame>div>div>div>div>div>div>div>div {
+            background-color: #ffffff !important;
         }
     </style>
     """, unsafe_allow_html=True)
