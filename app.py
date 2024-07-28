@@ -9,10 +9,13 @@ def clean_numeric_columns(df):
         df[col] = df[col].astype(str).str.replace(',', '.').astype(float)
     return df
 
-# Function to strip leading and trailing spaces from sizes
+# Function to clean size column and keep only numeric values
 def clean_size_column(df):
     if 'taille' in df.columns:
-        df['taille'] = df['taille'].astype(str).str.strip()
+        # Keep only numeric values in the 'taille' column and convert them to float
+        df['taille'] = pd.to_numeric(df['taille'], errors='coerce')  # Convert to numeric, set errors to NaN
+        df = df.dropna(subset=['taille'])  # Drop rows where 'taille' could not be converted
+        df['taille'] = df['taille'].astype(int)  # Convert to integer
     return df
 
 # Function to filter by supplier and display corresponding data
@@ -205,30 +208,6 @@ if fichier_telecharge is not None:
                             st.dataframe(df_femme_filtered)
                         else:
                             st.write("Aucune information disponible pour la désignation spécifiée pour les femmes.")
-                        
-                        # Ask for size system
-                        size_system = st.selectbox("Sélectionnez le système de taille", ["EU", "US", "UK"])
-                        
-                        # Define sizes based on system
-                        sizes_eu = [35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46]
-                        sizes_us = [5, 6, 7, 8, 9, 10, 11, 12]
-                        sizes_uk = [4, 5, 6, 7, 8, 9, 10, 11, 12]
-                        
-                        sizes = []
-                        if size_system == "EU":
-                            sizes = sizes_eu
-                        elif size_system == "US":
-                            sizes = sizes_us
-                        elif size_system == "UK":
-                            sizes = sizes_uk
-                        
-                        if sizes:
-                            # Filter sizes
-                            df_filtered_sizes = df[df['taille'].astype(str).str.strip().astype(float).isin(sizes)]
-                            if not df_filtered_sizes.empty:
-                                st.dataframe(df_filtered_sizes)
-                            else:
-                                st.write("Aucune information disponible pour les tailles spécifiées.")
                     except Exception as e:
                         st.error(f"Erreur lors de l'analyse de la désignation: {e}")
             
