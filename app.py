@@ -39,6 +39,7 @@ def display_anita_sizes(df):
     tailles = [f"{num}{letter}" for num in [85, 90, 95, 100, 105, 110] for letter in 'ABCDEF']
     df_anita_sizes = df_anita[df_anita['taille'].isin(tailles)]
     df_anita_sizes = df_anita_sizes.groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
+    df_anita_sizes = df_anita_sizes.replace(0, "Nul")
     return df_anita_sizes
 
 # Streamlit Application
@@ -212,13 +213,15 @@ if fichier_telecharge is not None:
                         st.subheader(f"Quantité de Stock par Taille ({size_system}) pour Hommes")
                         homme_stock_by_size = df_homme_filtered[df_homme_filtered['taille'].isin(tailles)]
                         homme_stock_by_size = homme_stock_by_size.groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
-                        homme_stock_by_size = homme_stock_by_size[homme_stock_by_size != 0].map('{:,.2f}'.format).replace('.00', '', regex=False)
+                        homme_stock_by_size = homme_stock_by_size.map('{:,.2f}'.format).replace('.00', '', regex=False)
+                        homme_stock_by_size = homme_stock_by_size.replace("0", "Nul")
                         st.table(homme_stock_by_size)
                         
                         st.subheader(f"Quantité de Stock par Taille ({size_system}) pour Femmes")
                         femme_stock_by_size = df_femme_filtered[df_femme_filtered['taille'].isin(tailles)]
                         femme_stock_by_size = femme_stock_by_size.groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
-                        femme_stock_by_size = femme_stock_by_size[femme_stock_by_size != 0].map('{:,.2f}'.format).replace('.00', '', regex=False)
+                        femme_stock_by_size = femme_stock_by_size.map('{:,.2f}'.format).replace('.00', '', regex=False)
+                        femme_stock_by_size = femme_stock_by_size.replace("0", "Nul")
                         st.table(femme_stock_by_size)
                     except Exception as e:
                         st.error(f"Erreur lors de l'analyse de la désignation: {e}")
