@@ -17,39 +17,6 @@ def clean_size_column(df):
         df['taille'] = df['taille'].astype(str).str.strip()
     return df
 
-# Function to convert shoe size to EU size (for display purposes only)
-def convert_to_eu_size(size):
-    try:
-        size = str(size).strip().upper()
-        if size.endswith("US"):
-            us_size = float(size.replace("US", "").strip())
-            return us_size + 33  # Example conversion
-        elif size.endswith("UK"):
-            uk_size = float(size.replace("UK", "").strip())
-            return uk_size + 34  # Example conversion
-        else:
-            return float(size)  # Assuming it's already in EU size
-    except ValueError:
-        return None
-
-# Function to convert the entire dataframe's shoe sizes to EU sizes for display
-def convert_dataframe_to_eu(df):
-    df['taille_originale'] = df['taille']
-    df['taille_eu'] = df['taille'].apply(convert_to_eu_size)
-    return df
-
-# Function to filter women's shoes
-def filter_womens_shoes(df):
-    return df[df['designation'].str.contains('WOMAN', na=False, case=False) | df['designation'].str.contains('W', na=False, case=False)]
-
-# Function to filter by shoe size and display corresponding data
-def display_shoe_size_info(df, taille_utilisateur):
-    taille_utilisateur = taille_utilisateur.strip().upper()  # Convert user input size to uppercase
-    df_filtered = df[df['taille'].str.upper() == taille_utilisateur] if taille_utilisateur else pd.DataFrame()
-    df_women_filtered = filter_womens_shoes(df_filtered) if not df_filtered.empty else pd.DataFrame()
-    df_filtered = df_filtered[~(df_filtered['designation'].str.contains('WOMAN', na=False, case=False) | df_filtered['designation'].str.contains('W', na=False, case=False))]  # Exclude women's shoes
-    return df_filtered, df_women_filtered
-
 # Function to filter by supplier and display corresponding data
 def display_supplier_info(df, fournisseur):
     fournisseur = fournisseur.strip().upper()  # Convert user input supplier to uppercase
@@ -62,51 +29,12 @@ def display_designation_info(df, designation):
     df_filtered = df[df['designation'].str.upper().str.contains(designation)] if designation else pd.DataFrame()
     return df_filtered
 
-# Function to create PDF report
-def creer_pdf(df_filtered, df_women_filtered, taille_utilisateur):
-    buffer = BytesIO()
-    c = canvas.Canvas(buffer, pagesize=letter)
-    
-    # Start writing PDF content
-    c.setFont("Helvetica-Bold", 16)
-    c.drawString(50, 750, "Rapport d'Analyse de Taille de Chaussure")
-    c.setFont("Helvetica", 12)
-    
-    y_position = 720
-    
-    if not df_filtered.empty:
-        # Add shoe size analysis
-        c.drawString(50, y_position, f"Analyse pour la Taille {taille_utilisateur}:")
-        y_position -= 20
-        for idx, (_, row) in enumerate(df_filtered.iterrows(), start=1):
-            taille = f"{row['taille']} ({row['taille_originale']})" if row['taille_originale'] else row['taille']
-            c.drawString(70, y_position - idx * 20,
-                         f"{row['Magasin']}, {row['fournisseur']}, {row['barcode']}, {row['couleur']}, Taille = {taille}, Désignation = {row['designation']}, Qté stock dispo = {row['Qté stock dispo']}, Valeur Stock = {row['Valeur Stock']:.2f}")
-        y_position -= len(df_filtered) * 20 + 20
-    
-    if not df_women_filtered.empty:
-        # Add women's shoes analysis
-        c.drawString(50, y_position, f"Chaussures pour Femmes à Taille {taille_utilisateur}:")
-        y_position -= 20
-        for idx, (_, row) in enumerate(df_women_filtered.iterrows(), start=1):
-            taille = f"{row['taille']} ({row['taille_originale']})" if row['taille_originale'] else row['taille']
-            c.drawString(70, y_position - idx * 20,
-                         f"{row['Magasin']}, {row['fournisseur']}, {row['barcode']}, {row['couleur']}, Taille = {taille}, Désignation = {row['designation']}, Qté stock dispo = {row['Qté stock dispo']}, Valeur Stock = {row['Valeur Stock']:.2f}")
-        y_position -= len(df_women_filtered) * 20 + 20
-    
-    # Save PDF to buffer
-    c.save()
-    pdf_bytes = buffer.getvalue()
-    buffer.close()
-    
-    return pdf_bytes
-
 # Function to filter negative stock
 def filter_negative_stock(df):
     return df[df['Qté stock dispo'] < 0]
 
 # Streamlit Application
-st.set_page_config(page_title="Application d'Analyse de Taille de Chaussure", layout="wide")
+st.set_page_config(page_title="Application d'Analyse de Chaussure", layout="wide")
 
 # Custom CSS for futuristic design
 st.markdown("""
@@ -161,7 +89,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-st.title("Application d'Analyse de Taille de Chaussure")
+st.title("Application d'Analyse de Chaussure")
 
 st.sidebar.markdown("### Menu")
 st.sidebar.info("Téléchargez un fichier CSV ou Excel pour commencer l'analyse.")
@@ -187,42 +115,8 @@ if fichier_telecharge is not None:
             df = clean_numeric_columns(df)
             df = clean_size_column(df)  # Clean size column
             
-            # Convert sizes to EU sizes for display purposes only
-            df = convert_dataframe_to_eu(df)
-            
             # Tab selection
-            tab1, tab2, tab3, tab4 = st.tabs(["Analyse de Taille de Chaussure", "Analyse par Fournisseur", "Analyse par Désignation", "Stock Négatif"])
-            
-            with tab1:
-                # Ask for user shoe size
-                taille_utilisateur = st.text_input("Entrez votre taille de chaussure (ex: 40, 41, 42):")
-                
-                if taille_utilisateur:
-                    try:
-                        taille_utilisateur = str(taille_utilisateur).strip().upper()  # Convert user input size to uppercase
-                        
-                        # Filter DataFrame based on user input
-                        df_filtered, df_women_filtered = display_shoe_size_info(df, taille_utilisateur)
-                        
-                        # Display filtered information
-                        st.subheader("Chaussures Disponibles")
-                        if not df_filtered.empty:
-                            st.dataframe(df_filtered)
-                        else:
-                            st.write("Aucune chaussure disponible pour la taille spécifiée.")
-                        
-                        st.subheader("Chaussures pour Femmes Disponibles")
-                        if not df_women_filtered.empty:
-                            st.dataframe(df_women_filtered)
-                        else:
-                            st.write("Aucune chaussure pour femmes disponible pour la taille spécifiée.")
-                        
-                        # Create PDF report
-                        if st.button("Créer un rapport PDF"):
-                            pdf_bytes = creer_pdf(df_filtered, df_women_filtered, taille_utilisateur)
-                            st.download_button(label="Télécharger le PDF", data=pdf_bytes, file_name=f"rapport_taille_{taille_utilisateur}.pdf", mime="application/pdf")
-                    except Exception as e:
-                        st.error(f"Erreur lors de l'analyse de la taille de chaussure: {e}")
+            tab2, tab3, tab4 = st.tabs(["Analyse par Fournisseur", "Analyse par Désignation", "Stock Négatif"])
             
             with tab2:
                 # Ask for supplier name
