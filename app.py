@@ -178,8 +178,8 @@ if fichier_telecharge is not None:
                         size_system = st.selectbox("Sélectionnez le système de taille", ["US", "UK"])
                         
                         # Define size ranges for US and UK
-                        tailles_us = [5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10, 10.5]
-                        tailles_uk = [4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5]
+                        tailles_us = ['5.5US', '6US', '6.5US', '7US', '7.5US', '8US', '8.5US', '9US', '9.5US', '10US', '10.5US']
+                        tailles_uk = ['4.5UK', '5UK', '5.5UK', '6UK', '6.5UK', '7UK', '7.5UK', '8UK', '8.5UK', '9UK', '9.5UK']
                         
                         if size_system == "US":
                             tailles = tailles_us
@@ -188,11 +188,11 @@ if fichier_telecharge is not None:
                         
                         # Show quantity of stock for each size
                         st.subheader(f"Quantité de Stock par Taille ({size_system}) pour Hommes")
-                        homme_stock_by_size = df_homme_filtered.groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
+                        homme_stock_by_size = df_homme_filtered[df_homme_filtered['taille'].isin(tailles)].groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
                         st.table(homme_stock_by_size)
                         
                         st.subheader(f"Quantité de Stock par Taille ({size_system}) pour Femmes")
-                        femme_stock_by_size = df_femme_filtered.groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
+                        femme_stock_by_size = df_femme_filtered[df_femme_filtered['taille'].isin(tailles)].groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
                         st.table(femme_stock_by_size)
                     except Exception as e:
                         st.error(f"Erreur lors de l'analyse de la désignation: {e}")
