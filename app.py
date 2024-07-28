@@ -33,6 +33,14 @@ def display_designation_info(df, designation):
 def filter_negative_stock(df):
     return df[df['Qté stock dispo'] < 0]
 
+# Function to filter by supplier "ANITA" and display quantities available for each size
+def display_anita_sizes(df):
+    df_anita = df[df['fournisseur'].str.upper() == "ANITA"]
+    tailles = [f"{num}{letter}" for num in [85, 90, 95, 100, 105, 110] for letter in 'ABCDEF']
+    df_anita_sizes = df_anita[df_anita['taille'].isin(tailles)]
+    df_anita_sizes = df_anita_sizes.groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
+    return df_anita_sizes
+
 # Streamlit Application
 st.set_page_config(page_title="Application d'Analyse TDR", layout="wide")
 
@@ -120,7 +128,18 @@ if fichier_telecharge is not None:
             df_femme = df[df['rayon'].str.upper() == 'FEMME']
             
             # Tab selection
-            tab2, tab3, tab4 = st.tabs(["Analyse par Fournisseur", "Analyse par Désignation", "Stock Négatif"])
+            tab1, tab2, tab3, tab4 = st.tabs(["Analyse ANITA", "Analyse par Fournisseur", "Analyse par Désignation", "Stock Négatif"])
+            
+            with tab1:
+                st.subheader("Quantités Disponibles pour chaque Taille - Fournisseur ANITA")
+                try:
+                    df_anita_sizes = display_anita_sizes(df)
+                    if not df_anita_sizes.empty:
+                        st.table(df_anita_sizes)
+                    else:
+                        st.write("Aucune information disponible pour le fournisseur ANITA.")
+                except Exception as e:
+                    st.error(f"Erreur lors de l'analyse des tailles pour ANITA: {e}")
             
             with tab2:
                 # Ask for supplier name
