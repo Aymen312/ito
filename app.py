@@ -137,9 +137,6 @@ if fichier_telecharge is not None:
             df = clean_numeric_columns(df)
             df = clean_size_column(df)  # Clean size column
 
-            # Drop rows with any NaN values in important columns to avoid errors
-            df.dropna(subset=['fournisseur', 'taille', 'Qté stock dispo', 'couleur', 'designation'], inplace=True)
-
             # Separate data by gender
             df_homme = df[df['rayon'].str.upper() == 'HOMME']
             df_femme = df[df['rayon'].str.upper() == 'FEMME']
@@ -224,21 +221,17 @@ if fichier_telecharge is not None:
                     st.error(f"Erreur lors de l'analyse des stocks négatifs: {e}")
             
             with tab5:
-                st.subheader("Quantités Disponibles par Niveau - Fournisseur SIDAS")
+                st.subheader("Quantités Disponibles par Niveau SIDAS")
                 try:
-                    sidas_levels = display_sidas_levels(df)
-                    if sidas_levels:
-                        for level, data in sidas_levels.items():
-                            st.markdown(f"#### {level}")
-                            if not data.empty:
-                                st.dataframe(data)
-                            else:
-                                st.write(f"Aucune information disponible pour le niveau {level}.")
-                    else:
-                        st.write("Aucune information disponible pour le fournisseur SIDAS.")
+                    sidas_levels_data = display_sidas_levels(df)
+                    for level, data in sidas_levels_data.items():
+                        st.markdown(f"### Niveau {level}")
+                        st.table(data)
                 except Exception as e:
                     st.error(f"Erreur lors de l'analyse des niveaux SIDAS: {e}")
+    
     except Exception as e:
-        st.error(f"Erreur lors du chargement du fichier: {e}")
+        st.error(f"Erreur lors du traitement du fichier: {e}")
+
 else:
     st.info("Veuillez télécharger un fichier pour commencer l'analyse.")
