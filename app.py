@@ -42,7 +42,10 @@ def display_anita_sizes(df):
 
 # Function to filter by SIDAS levels and display quantities available for each size
 def display_sidas_levels(df):
-    df_sidas = df[df['fournisseur'].str.upper().str.contains("SIDAS")]
+    # Drop rows where 'couleur' or 'taille' are NaN
+    df_sidas = df[df['fournisseur'].str.upper().str.contains("SIDAS", na=False)]
+    df_sidas = df_sidas.dropna(subset=['couleur', 'taille'])
+    
     levels = ['LOW', 'MID', 'HIGH']
     sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL']
     results = {}
