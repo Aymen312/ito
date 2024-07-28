@@ -180,7 +180,7 @@ if fichier_telecharge is not None:
                         # Define size ranges for US, UK, and EU
                         tailles_us = ['5.5US', '6.0US', '6.5US', '7.0US', '7.5US', '8.0US', '8.5US', '9.0US', '9.5US', '10.0US','10.5US','11.0US','11.5US','12.0US','12.5US','13.0US','13.5US','14.0US']
                         tailles_uk = ['4.5UK', '5.0UK', '5.5UK', '6.0UK', '6.5UK', '7.0UK', '7.5UK', '8.0UK', '8.5UK', '9.0UK', '9.5UK', '10.0UK','10.5UK','11.0UK','11.5UK','12.0UK','12.5UK','13.0UK']
-                        tailles_eu = [f'{i}EU' if i % 1 == 0 else f'{i:.1f}EU' for i in [j/2 for j in range(60, 97)]]  # Generates sizes from 30 to 48, including half sizes
+                        tailles_eu = [str(size) for size in list(range(30, 51)) + [f'{i}.5' for i in range(30, 50)]]
                         
                         if size_system == "US":
                             tailles = tailles_us
