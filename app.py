@@ -185,62 +185,65 @@ if fichier_telecharge is not None:
                     except Exception as e:
                         st.error(f"Erreur lors de l'analyse du fournisseur: {e}")
             
-            with tab3:
-                # Ask for designation
-                designation = st.text_input("Entrez la désignation (ex: Sneakers, Running):")
-                
-                if designation:
-                    try:
-                        designation = str(designation).strip().upper()  # Convert user input designation to uppercase
-                        
-                        # Filter DataFrame based on user input
-                        df_homme_filtered = display_designation_info(df_homme, designation)
-                        df_femme_filtered = display_designation_info(df_femme, designation)
-                        
-                        # Display filtered information
-                        st.subheader("Informations par Désignation pour Hommes")
-                        if not df_homme_filtered.empty:
-                            st.dataframe(df_homme_filtered)
-                        else:
-                            st.write("Aucune information disponible pour la désignation spécifiée pour les hommes.")
-                        
-                        st.subheader("Informations par Désignation pour Femmes")
-                        if not df_femme_filtered.empty:
-                            st.dataframe(df_femme_filtered)
-                        else:
-                            st.write("Aucune information disponible pour la désignation spécifiée pour les femmes.")
-                        
-                        # Ask for size system
-                        size_system = st.selectbox("Sélectionnez le système de taille", ["EU", "US", "UK"])
-                        
-                        # Define sizes based on system
-                        tailles_us = ['4.5US', '5.0US', '5.5US', '6.0US', '6.5US', '7.0US', '7.5US', '8.0US', '8.5US', '9.0US', '9.5US', '10.0US','10.5US','11.0US','11.5US','12.0US','12.5US','13.0US','13.5US','14.0US']
-                        tailles_uk = ['4.5UK', '5.0UK', '5.5UK', '6.0UK', '6.5UK', '7.0UK', '7.5UK', '8.0UK', '8.5UK', '9.0UK', '9.5UK', '10.0UK','10.5UK','11.0UK','11.5UK','12.0UK','12.5UK','13.0UK']
-                        tailles_eu = [str(size) for size in list(range(30, 51)) + [f'{i}.5' for i in range(30, 50)]]
-                        
-                        if size_system == "US":
-                            tailles = tailles_us
-                        elif size_system == "UK":
-                            tailles = tailles_uk
-                        else:
-                            tailles = tailles_eu
-                        
-                        # Show quantity of stock for each size, excluding zero values
-                        st.subheader(f"Quantité de Stock par Taille ({size_system}) pour Hommes")
-                        homme_stock_by_size = df_homme_filtered[df_homme_filtered['taille'].isin(tailles)]
-                        homme_stock_by_size = homme_stock_by_size.groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
-                        homme_stock_by_size = homme_stock_by_size.map('{:,.2f}'.format).replace('.00', '', regex=False)
-                        homme_stock_by_size = homme_stock_by_size.replace("0", "Nul")
-                        st.table(homme_stock_by_size)
-                        
-                        st.subheader(f"Quantité de Stock par Taille ({size_system}) pour Femmes")
-                        femme_stock_by_size = df_femme_filtered[df_femme_filtered['taille'].isin(tailles)]
-                        femme_stock_by_size = femme_stock_by_size.groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
-                        femme_stock_by_size = femme_stock_by_size.map('{:,.2f}'.format).replace('.00', '', regex=False)
-                        femme_stock_by_size = femme_stock_by_size.replace("0", "Nul")
-                        st.table(femme_stock_by_size)
-                    except Exception as e:
-                        st.error(f"Erreur lors de l'analyse de la désignation: {e}")
+         with tab3:
+    # Ask for designation
+    designation = st.text_input("Entrez la désignation (ex: Sneakers, Running):")
+    
+    if designation:
+        try:
+            designation = str(designation).strip().upper()  # Convert user input designation to uppercase
+            
+            # Filter DataFrame based on user input
+            df_homme_filtered = display_designation_info(df_homme, designation)
+            df_femme_filtered = display_designation_info(df_femme, designation)
+            
+            # Display filtered information
+            st.subheader("Informations par Désignation pour Hommes")
+            if not df_homme_filtered.empty:
+                df_homme_filtered = df_homme_filtered.fillna("Nul")
+                st.dataframe(df_homme_filtered)
+            else:
+                st.write("Aucune information disponible pour la désignation spécifiée pour les hommes.")
+            
+            st.subheader("Informations par Désignation pour Femmes")
+            if not df_femme_filtered.empty:
+                df_femme_filtered = df_femme_filtered.fillna("Nul")
+                st.dataframe(df_femme_filtered)
+            else:
+                st.write("Aucune information disponible pour la désignation spécifiée pour les femmes.")
+            
+            # Ask for size system
+            size_system = st.selectbox("Sélectionnez le système de taille", ["EU", "US", "UK"])
+            
+            # Define sizes based on system
+            tailles_us = ['4.5US', '5.0US', '5.5US', '6.0US', '6.5US', '7.0US', '7.5US', '8.0US', '8.5US', '9.0US', '9.5US', '10.0US','10.5US','11.0US','11.5US','12.0US','12.5US','13.0US','13.5US','14.0US']
+            tailles_uk = ['4.5UK', '5.0UK', '5.5UK', '6.0UK', '6.5UK', '7.0UK', '7.5UK', '8.0UK', '8.5UK', '9.0UK', '9.5UK', '10.0UK','10.5UK','11.0UK','11.5UK','12.0UK','12.5UK','13.0UK']
+            tailles_eu = [str(size) for size in list(range(30, 51)) + [f'{i}.5' for i in range(30, 50)]]
+            
+            if size_system == "US":
+                tailles = tailles_us
+            elif size_system == "UK":
+                tailles = tailles_uk
+            else:
+                tailles = tailles_eu
+            
+            # Show quantity of stock for each size, excluding zero values
+            st.subheader(f"Quantité de Stock par Taille ({size_system}) pour Hommes")
+            homme_stock_by_size = df_homme_filtered[df_homme_filtered['taille'].isin(tailles)]
+            homme_stock_by_size = homme_stock_by_size.groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
+            homme_stock_by_size = homme_stock_by_size.map('{:,.2f}'.format).replace('.00', '', regex=False)
+            homme_stock_by_size = homme_stock_by_size.replace("0", "Nul")
+            st.table(homme_stock_by_size)
+            
+            st.subheader(f"Quantité de Stock par Taille ({size_system}) pour Femmes")
+            femme_stock_by_size = df_femme_filtered[df_femme_filtered['taille'].isin(tailles)]
+            femme_stock_by_size = femme_stock_by_size.groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
+            femme_stock_by_size = femme_stock_by_size.map('{:,.2f}'.format).replace('.00', '', regex=False)
+            femme_stock_by_size = femme_stock_by_size.replace("0", "Nul")
+            st.table(femme_stock_by_size)
+        except Exception as e:
+            st.error(f"Erreur lors de l'analyse de la désignation: {e}")
+
             
             with tab4:
                 # Display negative stock for both men and women combined
