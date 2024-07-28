@@ -186,13 +186,17 @@ if fichier_telecharge is not None:
                         else:
                             tailles = tailles_uk
                         
-                        # Show quantity of stock for each size
+                        # Show quantity of stock for each size, excluding zero values
                         st.subheader(f"Quantité de Stock par Taille ({size_system}) pour Hommes")
-                        homme_stock_by_size = df_homme_filtered[df_homme_filtered['taille'].isin(tailles)].groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
+                        homme_stock_by_size = df_homme_filtered[df_homme_filtered['taille'].isin(tailles)]
+                        homme_stock_by_size = homme_stock_by_size.groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
+                        homme_stock_by_size = homme_stock_by_size[homme_stock_by_size != 0]
                         st.table(homme_stock_by_size)
                         
                         st.subheader(f"Quantité de Stock par Taille ({size_system}) pour Femmes")
-                        femme_stock_by_size = df_femme_filtered[df_femme_filtered['taille'].isin(tailles)].groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
+                        femme_stock_by_size = df_femme_filtered[df_femme_filtered['taille'].isin(tailles)]
+                        femme_stock_by_size = femme_stock_by_size.groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
+                        femme_stock_by_size = femme_stock_by_size[femme_stock_by_size != 0]
                         st.table(femme_stock_by_size)
                     except Exception as e:
                         st.error(f"Erreur lors de l'analyse de la désignation: {e}")
