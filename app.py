@@ -174,14 +174,24 @@ if fichier_telecharge is not None:
                         else:
                             st.write("Aucune information disponible pour la désignation spécifiée pour les femmes.")
                         
-                        # Show quantity of stock for each size
-                        tailles = [5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10, 10.5]
+                        # Ask for size system
+                        size_system = st.selectbox("Sélectionnez le système de taille", ["US", "UK"])
                         
-                        st.subheader("Quantité de Stock par Taille pour Hommes")
+                        # Define size ranges for US and UK
+                        tailles_us = [5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10, 10.5]
+                        tailles_uk = [4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5]
+                        
+                        if size_system == "US":
+                            tailles = tailles_us
+                        else:
+                            tailles = tailles_uk
+                        
+                        # Show quantity of stock for each size
+                        st.subheader(f"Quantité de Stock par Taille ({size_system}) pour Hommes")
                         homme_stock_by_size = df_homme_filtered.groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
                         st.table(homme_stock_by_size)
                         
-                        st.subheader("Quantité de Stock par Taille pour Femmes")
+                        st.subheader(f"Quantité de Stock par Taille ({size_system}) pour Femmes")
                         femme_stock_by_size = df_femme_filtered.groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
                         st.table(femme_stock_by_size)
                     except Exception as e:
