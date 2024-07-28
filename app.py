@@ -21,24 +21,17 @@ def clean_size_column(df):
 def display_supplier_info(df, fournisseur):
     fournisseur = fournisseur.strip().upper()  # Convert user input supplier to uppercase
     df_filtered = df[df['fournisseur'].str.upper() == fournisseur] if fournisseur else pd.DataFrame()
-    df_homme = df_filtered[df_filtered['rayon'].str.upper().str.contains('HOMME', na=False)]
-    df_femme = df_filtered[df_filtered['rayon'].str.upper().str.contains('FEMME', na=False)]
-    return df_homme, df_femme
+    return df_filtered
 
 # Function to filter by designation and display corresponding data
 def display_designation_info(df, designation):
     designation = designation.strip().upper()  # Convert user input designation to uppercase
     df_filtered = df[df['designation'].str.upper().str.contains(designation)] if designation else pd.DataFrame()
-    df_homme = df_filtered[df_filtered['rayon'].str.upper().str.contains('HOMME', na=False)]
-    df_femme = df_filtered[df_filtered['rayon'].str.upper().str.contains('FEMME', na=False)]
-    return df_homme, df_femme
+    return df_filtered
 
 # Function to filter negative stock
 def filter_negative_stock(df):
-    df_filtered = df[df['Qté stock dispo'] < 0]
-    df_homme = df_filtered[df_filtered['rayon'].str.upper().str.contains('HOMME', na=False)]
-    df_femme = df_filtered[df_filtered['rayon'].str.upper().str.contains('FEMME', na=False)]
-    return df_homme, df_femme
+    return df[df['Qté stock dispo'] < 0]
 
 # Streamlit Application
 st.set_page_config(page_title="Application d'Analyse TDR", layout="wide")
@@ -96,7 +89,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-st.title("Application d'Analyse de Chaussure")
+st.title("Application d'Analyse TDR")
 
 st.sidebar.markdown("### Menu")
 st.sidebar.info("Téléchargez un fichier CSV ou Excel pour commencer l'analyse.")
@@ -121,6 +114,10 @@ if fichier_telecharge is not None:
             # Clean data
             df = clean_numeric_columns(df)
             df = clean_size_column(df)  # Clean size column
+
+            # Separate data by gender
+            df_homme = df[df['rayon'].str.upper() == 'HOMME']
+            df_femme = df[df['rayon'].str.upper() == 'FEMME']
             
             # Tab selection
             tab2, tab3, tab4 = st.tabs(["Analyse par Fournisseur", "Analyse par Désignation", "Stock Négatif"])
@@ -134,18 +131,19 @@ if fichier_telecharge is not None:
                         fournisseur = str(fournisseur).strip().upper()  # Convert user input supplier to uppercase
                         
                         # Filter DataFrame based on user input
-                        df_homme, df_femme = display_supplier_info(df, fournisseur)
+                        df_homme_filtered = display_supplier_info(df_homme, fournisseur)
+                        df_femme_filtered = display_supplier_info(df_femme, fournisseur)
                         
                         # Display filtered information
-                        st.subheader("Informations du Fournisseur - Hommes")
-                        if not df_homme.empty:
-                            st.dataframe(df_homme)
+                        st.subheader("Informations du Fournisseur pour Hommes")
+                        if not df_homme_filtered.empty:
+                            st.dataframe(df_homme_filtered)
                         else:
                             st.write("Aucune information disponible pour le fournisseur spécifié pour les hommes.")
                         
-                        st.subheader("Informations du Fournisseur - Femmes")
-                        if not df_femme.empty:
-                            st.dataframe(df_femme)
+                        st.subheader("Informations du Fournisseur pour Femmes")
+                        if not df_femme_filtered.empty:
+                            st.dataframe(df_femme_filtered)
                         else:
                             st.write("Aucune information disponible pour le fournisseur spécifié pour les femmes.")
                     except Exception as e:
@@ -160,18 +158,19 @@ if fichier_telecharge is not None:
                         designation = str(designation).strip().upper()  # Convert user input designation to uppercase
                         
                         # Filter DataFrame based on user input
-                        df_homme, df_femme = display_designation_info(df, designation)
+                        df_homme_filtered = display_designation_info(df_homme, designation)
+                        df_femme_filtered = display_designation_info(df_femme, designation)
                         
                         # Display filtered information
-                        st.subheader("Informations par Désignation - Hommes")
-                        if not df_homme.empty:
-                            st.dataframe(df_homme)
+                        st.subheader("Informations par Désignation pour Hommes")
+                        if not df_homme_filtered.empty:
+                            st.dataframe(df_homme_filtered)
                         else:
                             st.write("Aucune information disponible pour la désignation spécifiée pour les hommes.")
                         
-                        st.subheader("Informations par Désignation - Femmes")
-                        if not df_femme.empty:
-                            st.dataframe(df_femme)
+                        st.subheader("Informations par Désignation pour Femmes")
+                        if not df_femme_filtered.empty:
+                            st.dataframe(df_femme_filtered)
                         else:
                             st.write("Aucune information disponible pour la désignation spécifiée pour les femmes.")
                     except Exception as e:
@@ -179,17 +178,19 @@ if fichier_telecharge is not None:
             
             with tab4:
                 # Display negative stock
-                st.subheader("Stock Négatif et Valeur Correspondante - Hommes")
-                df_homme, df_femme = filter_negative_stock(df)
+                st.subheader("Stock Négatif et Valeur Correspondante pour Hommes")
+                df_homme_negative_stock = filter_negative_stock(df_homme)
                 
-                if not df_homme.empty:
-                    st.dataframe(df_homme)
+                if not df_homme_negative_stock.empty:
+                    st.dataframe(df_homme_negative_stock)
                 else:
                     st.write("Aucun stock négatif trouvé pour les hommes.")
                 
-                st.subheader("Stock Négatif et Valeur Correspondante - Femmes")
-                if not df_femme.empty:
-                    st.dataframe(df_femme)
+                st.subheader("Stock Négatif et Valeur Correspondante pour Femmes")
+                df_femme_negative_stock = filter_negative_stock(df_femme)
+                
+                if not df_femme_negative_stock.empty:
+                    st.dataframe(df_femme_negative_stock)
                 else:
                     st.write("Aucun stock négatif trouvé pour les femmes.")
 
