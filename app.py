@@ -1,7 +1,5 @@
 import streamlit as st
 import pandas as pd
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
 from io import BytesIO
 
 # Function to clean numeric columns
@@ -44,10 +42,10 @@ def display_anita_sizes(df):
 
 # Function to filter by SIDAS levels and display quantities available for each size
 def display_sidas_levels(df, level):
-    level = level.strip().upper()  # Convert user input level to uppercase
-    df_filtered = df[df['fournisseur'].str.upper() == level] if level else pd.DataFrame()
+    df_sidas = df[df['fournisseur'].str.upper().str.contains("SIDAS")]
+    df_sidas_level = df_sidas[df_sidas['fournisseur'].str.upper().str.contains(level)]
     sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL']
-    df_sizes = df_filtered[df_filtered['taille'].isin(sizes)]
+    df_sizes = df_sidas_level[df_sidas_level['taille'].isin(sizes)]
     df_sizes = df_sizes.groupby(['taille', 'designation'])['Qté stock dispo'].sum().unstack(fill_value=0)
     df_sizes = df_sizes.replace(0, "Nul")
     return df_sizes
