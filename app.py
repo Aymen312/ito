@@ -56,6 +56,11 @@ def display_supplier_info(df, fournisseur):
     df_filtered = df[df['fournisseur'].str.upper() == fournisseur] if fournisseur else pd.DataFrame()
     return df_filtered
 
+# Function to filter by shoe designation
+def filter_by_designation(df, keyword):
+    keyword = keyword.strip().lower()  # Convert keyword to lowercase for case insensitive search
+    return df[df['designation'].str.lower().str.contains(keyword, na=False)]
+
 # Function to create PDF report
 def creer_pdf(df_filtered, df_women_filtered, taille_utilisateur):
     buffer = BytesIO()
@@ -191,6 +196,9 @@ if fichier_telecharge is not None:
                 # Ask for user shoe size
                 taille_utilisateur = st.text_input("Entrez votre taille de chaussure (ex: 40, 41, 42):")
                 
+                # Ask for shoe designation keyword
+                keyword_designation = st.text_input("Entrez un mot-clé de désignation de chaussure (optionnel):")
+                
                 if taille_utilisateur:
                     try:
                         taille_utilisateur = str(taille_utilisateur).strip().upper()  # Convert user input size to uppercase
@@ -198,18 +206,23 @@ if fichier_telecharge is not None:
                         # Filter DataFrame based on user input
                         df_filtered, df_women_filtered = display_shoe_size_info(df, taille_utilisateur)
                         
+                        # Filter by shoe designation if keyword provided
+                        if keyword_designation:
+                            df_filtered = filter_by_designation(df_filtered, keyword_designation)
+                            df_women_filtered = filter_by_designation(df_women_filtered, keyword_designation)
+                        
                         # Display filtered information
                         st.subheader("Chaussures Disponibles")
                         if not df_filtered.empty:
                             st.dataframe(df_filtered)
                         else:
-                            st.write("Aucune chaussure disponible pour la taille spécifiée.")
+                            st.write("Aucune chaussure disponible pour la taille spécifiée et le mot-clé de désignation.")
                         
                         st.subheader("Chaussures pour Femmes Disponibles")
                         if not df_women_filtered.empty:
                             st.dataframe(df_women_filtered)
                         else:
-                            st.write("Aucune chaussure pour femmes disponible pour la taille spécifiée.")
+                            st.write("Aucune chaussure pour femmes disponible pour la taille spécifiée et le mot-clé de désignation.")
                         
                         # Create PDF report
                         if st.button("Créer un rapport PDF"):
