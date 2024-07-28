@@ -42,8 +42,8 @@ def display_anita_sizes(df):
     df_anita_sizes = df_anita_sizes.replace(0, "Nul")
     return df_anita_sizes
 
-# Function to filter by SIDA levels and display quantities available for each size
-def display_sida_levels(df, level):
+# Function to filter by SIDAS levels and display quantities available for each size
+def display_sidas_levels(df, level):
     level = level.strip().upper()  # Convert user input level to uppercase
     df_filtered = df[df['fournisseur'].str.upper() == level] if level else pd.DataFrame()
     sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL']
@@ -139,7 +139,7 @@ if fichier_telecharge is not None:
             df_femme = df[df['rayon'].str.upper() == 'FEMME']
             
             # Tab selection
-            tab1, tab2, tab3, tab4, tab5 = st.tabs(["Analyse ANITA", "Analyse par Fournisseur", "Analyse par Désignation", "Stock Négatif", "Analyse SIDA"])
+            tab1, tab2, tab3, tab4, tab5 = st.tabs(["Analyse ANITA", "Analyse par Fournisseur", "Analyse par Désignation", "Stock Négatif", "Analyse SIDAS"])
             
             with tab1:
                 st.subheader("Quantités Disponibles pour chaque Taille - Fournisseur ANITA")
@@ -247,19 +247,19 @@ if fichier_telecharge is not None:
                     st.write("Aucun stock négatif trouvé.")
             
             with tab5:
-                # Analyse SIDA Levels
-                st.subheader("Analyse des Cases SIDA par Niveaux (LOW, MID, HIGH)")
-                sida_level = st.selectbox("Sélectionnez le niveau SIDA", ["LOW", "MID", "HIGH"])
+                # Analyse SIDAS Levels
+                st.subheader("Analyse des Cases SIDAS par Niveaux (LOW, MID, HIGH)")
+                sidas_level = st.selectbox("Sélectionnez le niveau SIDAS", ["LOW", "MID", "HIGH"])
                 
-                if sida_level:
+                if sidas_level:
                     try:
-                        df_sida_sizes = display_sida_levels(df, sida_level)
-                        if not df_sida_sizes.empty:
-                            st.table(df_sida_sizes)
+                        df_sidas_sizes = display_sidas_levels(df, sidas_level)
+                        if not df_sidas_sizes.empty:
+                            st.table(df_sidas_sizes)
                         else:
-                            st.write(f"Aucune information disponible pour le niveau {sida_level}.")
+                            st.write(f"Aucune information disponible pour le niveau {sidas_level}.")
                     except Exception as e:
-                        st.error(f"Erreur lors de l'analyse des niveaux SIDA: {e}")
+                        st.error(f"Erreur lors de l'analyse des niveaux SIDAS: {e}")
     
     except Exception as e:
         st.error(f"Erreur lors du chargement du fichier: {e}")
