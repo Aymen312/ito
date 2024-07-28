@@ -1,5 +1,7 @@
 import streamlit as st
 import pandas as pd
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
 from io import BytesIO
 
 # Function to clean numeric columns
@@ -30,37 +32,6 @@ def display_designation_info(df, designation):
 # Function to filter negative stock
 def filter_negative_stock(df):
     return df[df['Qté stock dispo'] < 0]
-
-# Function to filter by supplier "ANITA" and display quantities available for each size
-def display_anita_sizes(df):
-    df_anita = df[df['fournisseur'].str.upper() == "ANITA"]
-    tailles = [f"{num}{letter}" for num in [85, 90, 95, 100, 105, 110] for letter in 'ABCDEF']
-    df_anita_sizes = df_anita[df_anita['taille'].isin(tailles)]
-    df_anita_sizes = df_anita_sizes.groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
-    df_anita_sizes = df_anita_sizes.replace(0, "Nul")
-    return df_anita_sizes
-
-# Function to filter by SIDAS levels and display quantities available for each size
-def display_sidas_levels(df):
-    # Ensure 'couleur' column is treated as string and fill NaN values with an empty string
-    df['couleur'] = df['couleur'].fillna('').astype(str).str.upper()
-    
-    df_sidas = df[df['fournisseur'].str.upper().str.contains("SIDAS", na=False)]
-    
-    levels = ['LOW', 'MID', 'HIGH']
-    sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL']
-    results = {}
-    
-    for level in levels:
-        # Ensure 'couleur' column is treated as string and handle NaN values
-        df_sidas_level = df_sidas[df_sidas['couleur'] == level]
-        df_sizes = df_sidas_level[df_sidas_level['taille'].isin(sizes)]
-        df_sizes_grouped = df_sizes.groupby(['taille', 'designation'])['Qté stock dispo'].sum().unstack(fill_value=0)
-        df_sizes_grouped = df_sizes_grouped.replace(0, "Nul")
-        df_sizes_with_designation = df_sizes_grouped.stack().reset_index().rename(columns={0: 'Qté stock dispo'})
-        results[level] = df_sizes_with_designation
-    
-    return results
 
 # Streamlit Application
 st.set_page_config(page_title="Application d'Analyse TDR", layout="wide")
@@ -149,18 +120,7 @@ if fichier_telecharge is not None:
             df_femme = df[df['rayon'].str.upper() == 'FEMME']
             
             # Tab selection
-            tab1, tab2, tab3, tab4, tab5 = st.tabs(["Analyse ANITA", "Analyse par Fournisseur", "Analyse par Désignation", "Stock Négatif", "Analyse SIDAS"])
-            
-            with tab1:
-                st.subheader("Quantités Disponibles pour chaque Taille - Fournisseur ANITA")
-                try:
-                    df_anita_sizes = display_anita_sizes(df)
-                    if not df_anita_sizes.empty:
-                        st.table(df_anita_sizes)
-                    else:
-                        st.write("Aucune information disponible pour le fournisseur ANITA.")
-                except Exception as e:
-                    st.error(f"Erreur lors de l'analyse des tailles pour ANITA: {e}")
+            tab2, tab3, tab4 = st.tabs(["Analyse par Fournisseur", "Analyse par Désignation", "Stock Négatif"])
             
             with tab2:
                 # Ask for supplier name
@@ -215,31 +175,24 @@ if fichier_telecharge is not None:
                             st.write("Aucune information disponible pour la désignation spécifiée pour les femmes.")
                     except Exception as e:
                         st.error(f"Erreur lors de l'analyse de la désignation: {e}")
-
+            
             with tab4:
-                st.subheader("Stock Négatif")
-                try:
-                    df_negative_stock = filter_negative_stock(df)
-                    if not df_negative_stock.empty:
-                        st.dataframe(df_negative_stock)
-                    else:
-                        st.write("Aucun stock négatif trouvé.")
-                except Exception as e:
-                    st.error(f"Erreur lors de l'analyse du stock négatif: {e}")
-
-            with tab5:
-                st.subheader("Quantités Disponibles par Niveau SIDAS")
-                try:
-                    sidas_results = display_sidas_levels(df)
-                    if sidas_results:
-                        for level, data in sidas_results.items():
-                            st.write(f"### Niveau SIDAS: {level}")
-                            st.table(data)
-                    else:
-                        st.write("Aucune information disponible pour les niveaux SIDAS.")
-                except Exception as e:
-                    st.error(f"Erreur lors de l'analyse des niveaux SIDAS: {e}")
+                # Display negative stock
+                st.subheader("Stock Négatif et Valeur Correspondante pour Hommes")
+                df_homme_negative_stock = filter_negative_stock(df_homme)
+                
+                if not df_homme_negative_stock.empty:
+                    st.dataframe(df_homme_negative_stock)
+                else:
+                    st.write("Aucun stock négatif trouvé pour les hommes.")
+                
+                st.subheader("Stock Négatif et Valeur Correspondante pour Femmes")
+                df_femme_negative_stock = filter_negative_stock(df_femme)
+                
+                if not df_femme_negative_stock.empty:
+                    st.dataframe(df_femme_negative_stock)
+                else:
+                    st.write("Aucun stock négatif trouvé pour les femmes.")
 
     except Exception as e:
-        st.error(f"Erreur lors du chargement du fichier: {e}")
-
+        st.error(f"Erreur lors du chargement du fichier: {e}")
