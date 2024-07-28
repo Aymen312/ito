@@ -24,25 +24,16 @@ def display_supplier_info(df, fournisseur):
 # Function to filter by designation and display corresponding data
 def display_designation_info(df, designation):
     designation = designation.strip().upper()  # Convert user input designation to uppercase
-    df_filtered = df[df['designation'].str.upper().str.contains(designation, na=False)] if designation else pd.DataFrame()
+    df_filtered = df[df['designation'].str.upper().str.contains(designation)] if designation else pd.DataFrame()
     return df_filtered
 
 # Function to filter negative stock
 def filter_negative_stock(df):
     return df[df['Qté stock dispo'] < 0]
 
-# Function to filter by supplier "ANITA" and display quantities available for each size
-def display_anita_sizes(df):
-    df_anita = df[df['fournisseur'].str.upper() == "ANITA"]
-    tailles = [f"{num}{letter}" for num in [85, 90, 95, 100, 105, 110] for letter in 'ABCDEF']
-    df_anita_sizes = df_anita[df_anita['taille'].isin(tailles)]
-    df_anita_sizes = df_anita_sizes.groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
-    df_anita_sizes = df_anita_sizes.replace(0, "Nul")
-    return df_anita_sizes
-
 # Function to filter by SIDAS levels and display quantities available for each size
 def display_sidas_levels(df):
-    df_sidas = df[df['fournisseur'].str.upper().str.contains("SIDAS", na=False)]
+    df_sidas = df[df['fournisseur'].str.upper().str.contains("SIDAS")]
     levels = ['LOW', 'MID', 'HIGH']
     sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL']
     results = {}
@@ -54,6 +45,13 @@ def display_sidas_levels(df):
         df_sizes_with_designation = df_sizes_grouped.stack().reset_index().rename(columns={0: 'Qté stock dispo'})
         results[level] = df_sizes_with_designation
     return results
+
+# Function to convert DataFrame to Excel
+def to_excel(df):
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Sheet1')
+    return output.getvalue()
 
 # Streamlit Application
 st.set_page_config(page_title="Application d'Analyse TDR", layout="wide")
@@ -147,6 +145,7 @@ if fichier_telecharge is not None:
             with tab1:
                 st.subheader("Quantités Disponibles pour chaque Taille - Fournisseur ANITA")
                 try:
+                    # Assuming you have a function display_anita_sizes for this analysis
                     df_anita_sizes = display_anita_sizes(df)
                     if not df_anita_sizes.empty:
                         st.table(df_anita_sizes)
@@ -210,11 +209,12 @@ if fichier_telecharge is not None:
                         # Ask for size system
                         size_system = st.selectbox("Sélectionnez le système de taille", ["EU", "US", "UK"])
                         
-                        # Define sizes based on selected size system
+                        # Define sizes based on system
                         sizes_eu = [35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46]
-                        sizes_us = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
-                        sizes_uk = [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+                        sizes_us = [5, 6, 7, 8, 9, 10, 11, 12]
+                        sizes_uk = [4, 5, 6, 7, 8, 9, 10, 11, 12]
                         
+                        sizes = []
                         if size_system == "EU":
                             sizes = sizes_eu
                         elif size_system == "US":
@@ -222,7 +222,13 @@ if fichier_telecharge is not None:
                         elif size_system == "UK":
                             sizes = sizes_uk
                         
-                        st.write(f"Tailles disponibles pour le système de taille {size_system}: {', '.join(map(str, sizes))}")
+                        if sizes:
+                            # Filter sizes
+                            df_filtered_sizes = df[df['taille'].astype(str).str.strip().astype(float).isin(sizes)]
+                            if not df_filtered_sizes.empty:
+                                st.dataframe(df_filtered_sizes)
+                            else:
+                                st.write("Aucune information disponible pour les tailles spécifiées.")
                     except Exception as e:
                         st.error(f"Erreur lors de l'analyse de la désignation: {e}")
             
@@ -232,40 +238,36 @@ if fichier_telecharge is not None:
                     df_negative_stock = filter_negative_stock(df)
                     if not df_negative_stock.empty:
                         st.dataframe(df_negative_stock)
+                        st.download_button(
+                            label="Télécharger les données de stock négatif",
+                            data=to_excel(df_negative_stock),
+                            file_name="stock_negatif.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        )
                     else:
                         st.write("Aucun stock négatif trouvé.")
                 except Exception as e:
                     st.error(f"Erreur lors de l'analyse du stock négatif: {e}")
             
             with tab5:
-                st.subheader("Analyse des Niveaux SIDAS")
+                st.subheader("Analyse SIDAS")
                 try:
-                    df_sidas_levels = display_sidas_levels(df)
-                    if df_sidas_levels:
-                        for level, data in df_sidas_levels.items():
-                            st.write(f"Niveau: {level}")
-                            st.dataframe(data)
-                    else:
-                        st.write("Aucune information disponible pour les niveaux SIDAS.")
+                    results = display_sidas_levels(df)
+                    for level, df_level in results.items():
+                        st.write(f"### Niveau SIDAS: {level}")
+                        if not df_level.empty:
+                            st.dataframe(df_level)
+                        else:
+                            st.write(f"Aucune information disponible pour le niveau SIDAS {level}.")
                 except Exception as e:
-                    st.error(f"Erreur lors de l'analyse des niveaux SIDAS: {e}")
-
-            # Button to export data to Excel
-            def to_excel(df):
-                output = BytesIO()
-                writer = pd.ExcelWriter(output, engine='xlsxwriter')
-                df.to_excel(writer, index=False, sheet_name='Sheet1')
-                writer.save()
-                processed_data = output.getvalue()
-                return processed_data
-
-            df_xlsx = to_excel(df)
-            st.download_button(label='Télécharger les données en format Excel',
-                               data=df_xlsx,
-                               file_name='data_analyse.xlsx')
-        else:
-            st.error("Erreur lors du chargement des données. Veuillez vérifier le fichier et réessayer.")
+                    st.error(f"Erreur lors de l'analyse SIDAS: {e}")
+    
     except Exception as e:
         st.error(f"Erreur lors de l'analyse du fichier: {e}")
-else:
-    st.info("Veuillez télécharger un fichier CSV ou Excel pour commencer l'analyse.")
+
+# Footer
+st.markdown("""
+    <style>
+        footer {visibility: hidden;}
+    </style>
+    """, unsafe_allow_html=True)
