@@ -24,7 +24,7 @@ def display_supplier_info(df, fournisseur):
 # Function to filter by designation and display corresponding data
 def display_designation_info(df, designation):
     designation = designation.strip().upper()  # Convert user input designation to uppercase
-    df_filtered = df[df['designation'].str.upper().str.contains(designation)] if designation else pd.DataFrame()
+    df_filtered = df[df['designation'].str.upper().str.contains(designation, na=False)] if designation else pd.DataFrame()
     return df_filtered
 
 # Function to filter negative stock
@@ -42,7 +42,7 @@ def display_anita_sizes(df):
 
 # Function to filter by SIDAS levels and display quantities available for each size
 def display_sidas_levels(df):
-    df_sidas = df[df['fournisseur'].str.upper().str.contains("SIDAS")]
+    df_sidas = df[df['fournisseur'].str.upper().str.contains("SIDAS", na=False)]
     levels = ['LOW', 'MID', 'HIGH']
     sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL']
     results = {}
@@ -137,6 +137,9 @@ if fichier_telecharge is not None:
             df = clean_numeric_columns(df)
             df = clean_size_column(df)  # Clean size column
 
+            # Drop rows with any NaN values in important columns to avoid errors
+            df.dropna(subset=['fournisseur', 'taille', 'Qté stock dispo', 'couleur', 'designation'], inplace=True)
+
             # Separate data by gender
             df_homme = df[df['rayon'].str.upper() == 'HOMME']
             df_femme = df[df['rayon'].str.upper() == 'FEMME']
@@ -206,63 +209,36 @@ if fichier_telecharge is not None:
                             st.dataframe(df_femme_filtered)
                         else:
                             st.write("Aucune information disponible pour la désignation spécifiée pour les femmes.")
-                        
-                        # Ask for size system
-                        size_system = st.selectbox("Sélectionnez le système de taille", ["EU", "US", "UK"])
-                        
-                        # Define sizes based on system
-                        tailles_us = ['4.5US', '5.0US', '5.5US', '6.0US', '6.5US', '7.0US', '7.5US', '8.0US', '8.5US', '9.0US', '9.5US', '10.0US','10.5US','11.0US','11.5US','12.0US','12.5US','13.0US','13.5US','14.0US']
-                        tailles_uk = ['4.5UK', '5.0UK', '5.5UK', '6.0UK', '6.5UK', '7.0UK', '7.5UK', '8.0UK', '8.5UK', '9.0UK', '9.5UK', '10.0UK','10.5UK','11.0UK','11.5UK','12.0UK','12.5UK','13.0UK']
-                        tailles_eu = [str(size) for size in list(range(30, 51)) + [f'{i}.5' for i in range(30, 50)]]
-                        
-                        if size_system == "US":
-                            tailles = tailles_us
-                        elif size_system == "UK":
-                            tailles = tailles_uk
-                        else:
-                            tailles = tailles_eu
-                        
-                        # Show quantity of stock for each size, excluding zero values
-                        st.subheader(f"Quantité de Stock par Taille ({size_system}) pour Hommes")
-                        homme_stock_by_size = df_homme_filtered[df_homme_filtered['taille'].isin(tailles)]
-                        homme_stock_by_size = homme_stock_by_size.groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
-                        homme_stock_by_size = homme_stock_by_size.map('{:,.2f}'.format).replace('.00', '', regex=False)
-                        homme_stock_by_size = homme_stock_by_size.replace("0", "Nul")
-                        st.table(homme_stock_by_size)
-                        
-                        st.subheader(f"Quantité de Stock par Taille ({size_system}) pour Femmes")
-                        femme_stock_by_size = df_femme_filtered[df_femme_filtered['taille'].isin(tailles)]
-                        femme_stock_by_size = femme_stock_by_size.groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
-                        femme_stock_by_size = femme_stock_by_size.map('{:,.2f}'.format).replace('.00', '', regex=False)
-                        femme_stock_by_size = femme_stock_by_size.replace("0", "Nul")
-                        st.table(femme_stock_by_size)
                     except Exception as e:
                         st.error(f"Erreur lors de l'analyse de la désignation: {e}")
             
             with tab4:
-                # Display negative stock for both men and women combined
-                st.subheader("Stock Négatif et Valeur Correspondante")
-                df_negative_stock = filter_negative_stock(df)
-                
-                if not df_negative_stock.empty:
-                    st.dataframe(df_negative_stock)
-                else:
-                    st.write("Aucun stock négatif trouvé.")
+                st.subheader("Stocks Négatifs")
+                try:
+                    df_negative_stock = filter_negative_stock(df)
+                    if not df_negative_stock.empty:
+                        st.dataframe(df_negative_stock)
+                    else:
+                        st.write("Aucun stock négatif trouvé.")
+                except Exception as e:
+                    st.error(f"Erreur lors de l'analyse des stocks négatifs: {e}")
             
             with tab5:
-                # Analyse SIDAS Levels
-                st.subheader("Analyse des Cases SIDAS par Niveaux (LOW, MID, HIGH)")
-                
+                st.subheader("Quantités Disponibles par Niveau - Fournisseur SIDAS")
                 try:
-                    df_sidas_results = display_sidas_levels(df)
-                    for level, df_level in df_sidas_results.items():
-                        st.subheader(f"Niveau {level}")
-                        if not df_level.empty:
-                            st.table(df_level)
-                        else:
-                            st.write(f"Aucune information disponible pour le niveau {level}.")
+                    sidas_levels = display_sidas_levels(df)
+                    if sidas_levels:
+                        for level, data in sidas_levels.items():
+                            st.markdown(f"#### {level}")
+                            if not data.empty:
+                                st.dataframe(data)
+                            else:
+                                st.write(f"Aucune information disponible pour le niveau {level}.")
+                    else:
+                        st.write("Aucune information disponible pour le fournisseur SIDAS.")
                 except Exception as e:
                     st.error(f"Erreur lors de l'analyse des niveaux SIDAS: {e}")
-    
     except Exception as e:
         st.error(f"Erreur lors du chargement du fichier: {e}")
+else:
+    st.info("Veuillez télécharger un fichier pour commencer l'analyse.")
