@@ -41,7 +41,7 @@ def filter_negative_stock(df):
     return df_homme, df_femme
 
 # Streamlit Application
-st.set_page_config(page_title="Application d'Analyse de Chaussure", layout="wide")
+st.set_page_config(page_title="Application d'Analyse TDR", layout="wide")
 
 # Custom CSS for futuristic design
 st.markdown("""
