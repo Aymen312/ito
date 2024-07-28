@@ -41,14 +41,18 @@ def display_anita_sizes(df):
     return df_anita_sizes
 
 # Function to filter by SIDAS levels and display quantities available for each size
-def display_sidas_levels(df, level):
+def display_sidas_levels(df):
     df_sidas = df[df['fournisseur'].str.upper().str.contains("SIDAS")]
-    df_sidas_level = df_sidas[df_sidas['fournisseur'].str.upper().str.contains(level)]
+    levels = ['LOW', 'MID', 'HIGH']
     sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL']
-    df_sizes = df_sidas_level[df_sidas_level['taille'].isin(sizes)]
-    df_sizes = df_sizes.groupby(['taille', 'designation'])['Qté stock dispo'].sum().unstack(fill_value=0)
-    df_sizes = df_sizes.replace(0, "Nul")
-    return df_sizes
+    results = {}
+    for level in levels:
+        df_sidas_level = df_sidas[df_sidas['couleur'].str.upper() == level]
+        df_sizes = df_sidas_level[df_sidas_level['taille'].isin(sizes)]
+        df_sizes_grouped = df_sizes.groupby(['taille', 'designation'])['Qté stock dispo'].sum().unstack(fill_value=0)
+        df_sizes_grouped = df_sizes_grouped.replace(0, "Nul")
+        results[level] = df_sizes_grouped
+    return results
 
 # Streamlit Application
 st.set_page_config(page_title="Application d'Analyse TDR", layout="wide")
@@ -203,10 +207,10 @@ if fichier_telecharge is not None:
                             st.write("Aucune information disponible pour la désignation spécifiée pour les femmes.")
                         
                         # Ask for size system
-                        size_system = st.selectbox("Sélectionnez le système de taille", ["US", "UK", "EU"])
+                        size_system = st.selectbox("Sélectionnez le système de taille", ["EU", "US", "UK"])
                         
-                        # Define size ranges for US, UK, and EU
-                        tailles_us = ['5.5US', '6.0US', '6.5US', '7.0US', '7.5US', '8.0US', '8.5US', '9.0US', '9.5US', '10.0US','10.5US','11.0US','11.5US','12.0US','12.5US','13.0US','13.5US','14.0US']
+                        # Define sizes based on system
+                        tailles_us = ['4.5US', '5.0US', '5.5US', '6.0US', '6.5US', '7.0US', '7.5US', '8.0US', '8.5US', '9.0US', '9.5US', '10.0US','10.5US','11.0US','11.5US','12.0US','12.5US','13.0US','13.5US','14.0US']
                         tailles_uk = ['4.5UK', '5.0UK', '5.5UK', '6.0UK', '6.5UK', '7.0UK', '7.5UK', '8.0UK', '8.5UK', '9.0UK', '9.5UK', '10.0UK','10.5UK','11.0UK','11.5UK','12.0UK','12.5UK','13.0UK']
                         tailles_eu = [str(size) for size in list(range(30, 51)) + [f'{i}.5' for i in range(30, 50)]]
                         
@@ -247,17 +251,17 @@ if fichier_telecharge is not None:
             with tab5:
                 # Analyse SIDAS Levels
                 st.subheader("Analyse des Cases SIDAS par Niveaux (LOW, MID, HIGH)")
-                sidas_level = st.selectbox("Sélectionnez le niveau SIDAS", ["LOW", "MID", "HIGH"])
                 
-                if sidas_level:
-                    try:
-                        df_sidas_sizes = display_sidas_levels(df, sidas_level)
-                        if not df_sidas_sizes.empty:
-                            st.table(df_sidas_sizes)
+                try:
+                    df_sidas_results = display_sidas_levels(df)
+                    for level, df_level in df_sidas_results.items():
+                        st.subheader(f"Niveau {level}")
+                        if not df_level.empty:
+                            st.table(df_level)
                         else:
-                            st.write(f"Aucune information disponible pour le niveau {sidas_level}.")
-                    except Exception as e:
-                        st.error(f"Erreur lors de l'analyse des niveaux SIDAS: {e}")
+                            st.write(f"Aucune information disponible pour le niveau {level}.")
+                except Exception as e:
+                    st.error(f"Erreur lors de l'analyse des niveaux SIDAS: {e}")
     
     except Exception as e:
         st.error(f"Erreur lors du chargement du fichier: {e}")
