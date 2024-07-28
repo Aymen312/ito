@@ -51,7 +51,8 @@ def display_sidas_levels(df):
         df_sizes = df_sidas_level[df_sidas_level['taille'].isin(sizes)]
         df_sizes_grouped = df_sizes.groupby(['taille', 'designation'])['Qté stock dispo'].sum().unstack(fill_value=0)
         df_sizes_grouped = df_sizes_grouped.replace(0, "Nul")
-        results[level] = df_sizes_grouped
+        df_sizes_with_designation = df_sizes_grouped.stack().reset_index().rename(columns={0: 'Qté stock dispo'})
+        results[level] = df_sizes_with_designation
     return results
 
 # Streamlit Application
