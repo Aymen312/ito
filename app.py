@@ -1,5 +1,7 @@
 import streamlit as st
 import pandas as pd
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
 from io import BytesIO
 
 # Function to clean numeric columns
@@ -9,13 +11,10 @@ def clean_numeric_columns(df):
         df[col] = df[col].astype(str).str.replace(',', '.').astype(float)
     return df
 
-# Function to clean size column and keep only numeric values
+# Function to strip leading and trailing spaces from sizes
 def clean_size_column(df):
     if 'taille' in df.columns:
-        # Keep only numeric values in the 'taille' column and convert them to float
-        df['taille'] = pd.to_numeric(df['taille'], errors='coerce')  # Convert to numeric, set errors to NaN
-        df = df.dropna(subset=['taille'])  # Drop rows where 'taille' could not be converted
-        df['taille'] = df['taille'].astype(int)  # Convert to integer
+        df['taille'] = df['taille'].astype(str).str.strip()
     return df
 
 # Function to filter by supplier and display corresponding data
@@ -33,28 +32,6 @@ def display_designation_info(df, designation):
 # Function to filter negative stock
 def filter_negative_stock(df):
     return df[df['Qté stock dispo'] < 0]
-
-# Function to filter by SIDAS levels and display quantities available for each size
-def display_sidas_levels(df):
-    df_sidas = df[df['fournisseur'].str.upper().str.contains("SIDAS")]
-    levels = ['LOW', 'MID', 'HIGH']
-    sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL']
-    results = {}
-    for level in levels:
-        df_sidas_level = df_sidas[df_sidas['couleur'].str.upper() == level]
-        df_sizes = df_sidas_level[df_sidas_level['taille'].isin(sizes)]
-        df_sizes_grouped = df_sizes.groupby(['taille', 'designation'])['Qté stock dispo'].sum().unstack(fill_value=0)
-        df_sizes_grouped = df_sizes_grouped.replace(0, "Nul")
-        df_sizes_with_designation = df_sizes_grouped.stack().reset_index().rename(columns={0: 'Qté stock dispo'})
-        results[level] = df_sizes_with_designation
-    return results
-
-# Function to convert DataFrame to Excel
-def to_excel(df):
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False, sheet_name='Sheet1')
-    return output.getvalue()
 
 # Streamlit Application
 st.set_page_config(page_title="Application d'Analyse TDR", layout="wide")
@@ -143,19 +120,7 @@ if fichier_telecharge is not None:
             df_femme = df[df['rayon'].str.upper() == 'FEMME']
             
             # Tab selection
-            tab1, tab2, tab3, tab4, tab5 = st.tabs(["Analyse ANITA", "Analyse par Fournisseur", "Analyse par Désignation", "Stock Négatif", "Analyse SIDAS"])
-            
-            with tab1:
-                st.subheader("Quantités Disponibles pour chaque Taille - Fournisseur ANITA")
-                try:
-                    # Assuming you have a function display_anita_sizes for this analysis
-                    df_anita_sizes = display_anita_sizes(df)
-                    if not df_anita_sizes.empty:
-                        st.table(df_anita_sizes)
-                    else:
-                        st.write("Aucune information disponible pour le fournisseur ANITA.")
-                except Exception as e:
-                    st.error(f"Erreur lors de l'analyse des tailles pour ANITA: {e}")
+            tab2, tab3, tab4 = st.tabs(["Analyse par Fournisseur", "Analyse par Désignation", "Stock Négatif"])
             
             with tab2:
                 # Ask for supplier name
@@ -208,45 +173,46 @@ if fichier_telecharge is not None:
                             st.dataframe(df_femme_filtered)
                         else:
                             st.write("Aucune information disponible pour la désignation spécifiée pour les femmes.")
+                        
+                        # Ask for size system
+                        size_system = st.selectbox("Sélectionnez le système de taille", ["US", "UK", "EU"])
+                        
+                        # Define size ranges for US, UK, and EU
+                        tailles_us = ['5.5US', '6.0US', '6.5US', '7.0US', '7.5US', '8.0US', '8.5US', '9.0US', '9.5US', '10.0US','10.5US','11.0US','11.5US','12.0US','12.5US','13.0US','13.5US','14.0US']
+                        tailles_uk = ['4.5UK', '5.0UK', '5.5UK', '6.0UK', '6.5UK', '7.0UK', '7.5UK', '8.0UK', '8.5UK', '9.0UK', '9.5UK', '10.0UK','10.5UK','11.0UK','11.5UK','12.0UK','12.5UK','13.0UK']
+                        tailles_eu = [str(size) for size in list(range(30, 51)) + [f'{i}.5' for i in range(30, 50)]]
+                        
+                        if size_system == "US":
+                            tailles = tailles_us
+                        elif size_system == "UK":
+                            tailles = tailles_uk
+                        else:
+                            tailles = tailles_eu
+                        
+                        # Show quantity of stock for each size, excluding zero values
+                        st.subheader(f"Quantité de Stock par Taille ({size_system}) pour Hommes")
+                        homme_stock_by_size = df_homme_filtered[df_homme_filtered['taille'].isin(tailles)]
+                        homme_stock_by_size = homme_stock_by_size.groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
+                        homme_stock_by_size = homme_stock_by_size[homme_stock_by_size != 0].map('{:,.2f}'.format).replace('.00', '', regex=False)
+                        st.table(homme_stock_by_size)
+                        
+                        st.subheader(f"Quantité de Stock par Taille ({size_system}) pour Femmes")
+                        femme_stock_by_size = df_femme_filtered[df_femme_filtered['taille'].isin(tailles)]
+                        femme_stock_by_size = femme_stock_by_size.groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
+                        femme_stock_by_size = femme_stock_by_size[femme_stock_by_size != 0].map('{:,.2f}'.format).replace('.00', '', regex=False)
+                        st.table(femme_stock_by_size)
                     except Exception as e:
                         st.error(f"Erreur lors de l'analyse de la désignation: {e}")
             
             with tab4:
-                st.subheader("Stock Négatif")
-                try:
-                    df_negative_stock = filter_negative_stock(df)
-                    if not df_negative_stock.empty:
-                        st.dataframe(df_negative_stock)
-                        st.download_button(
-                            label="Télécharger les données de stock négatif",
-                            data=to_excel(df_negative_stock),
-                            file_name="stock_negatif.xlsx",
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                        )
-                    else:
-                        st.write("Aucun stock négatif trouvé.")
-                except Exception as e:
-                    st.error(f"Erreur lors de l'analyse du stock négatif: {e}")
-            
-            with tab5:
-                st.subheader("Analyse SIDAS")
-                try:
-                    results = display_sidas_levels(df)
-                    for level, df_level in results.items():
-                        st.write(f"### Niveau SIDAS: {level}")
-                        if not df_level.empty:
-                            st.dataframe(df_level)
-                        else:
-                            st.write(f"Aucune information disponible pour le niveau SIDAS {level}.")
-                except Exception as e:
-                    st.error(f"Erreur lors de l'analyse SIDAS: {e}")
+                # Display negative stock for both men and women combined
+                st.subheader("Stock Négatif et Valeur Correspondante")
+                df_negative_stock = filter_negative_stock(df)
+                
+                if not df_negative_stock.empty:
+                    st.dataframe(df_negative_stock)
+                else:
+                    st.write("Aucun stock négatif trouvé.")
     
     except Exception as e:
-        st.error(f"Erreur lors de l'analyse du fichier: {e}")
-
-# Footer
-st.markdown("""
-    <style>
-        footer {visibility: hidden;}
-    </style>
-    """, unsafe_allow_html=True)
+        st.error(f"Erreur lors du chargement du fichier: {e}")
