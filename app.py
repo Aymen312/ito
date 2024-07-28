@@ -42,26 +42,41 @@ def convert_dataframe_to_eu(df):
 def filter_womens_shoes(df):
     return df[df['designation'].str.contains('WOMAN', na=False, case=False) | df['designation'].str.contains('W', na=False, case=False)]
 
-# Function to filter by shoe designation
-def filter_by_designation(df, keyword):
-    keyword = keyword.strip().lower()  # Convert keyword to lowercase for case insensitive search
-    return df[df['designation'].str.lower().str.contains(keyword, na=False)]
+# Function to filter by shoe size and display corresponding data
+def display_shoe_size_info(df, taille_utilisateur):
+    taille_utilisateur = taille_utilisateur.strip().upper()  # Convert user input size to uppercase
+    df_filtered = df[df['taille'].str.upper() == taille_utilisateur] if taille_utilisateur else pd.DataFrame()
+    df_women_filtered = filter_womens_shoes(df_filtered) if not df_filtered.empty else pd.DataFrame()
+    df_filtered = df_filtered[~(df_filtered['designation'].str.contains('WOMAN', na=False, case=False) | df_filtered['designation'].str.contains('W', na=False, case=False))]  # Exclude women's shoes
+    return df_filtered, df_women_filtered
+
+# Function to filter by supplier and display corresponding data
+def display_supplier_info(df, fournisseur):
+    fournisseur = fournisseur.strip().upper()  # Convert user input supplier to uppercase
+    df_filtered = df[df['fournisseur'].str.upper() == fournisseur] if fournisseur else pd.DataFrame()
+    return df_filtered
+
+# Function to filter by designation and display corresponding data
+def display_designation_info(df, designation):
+    designation = designation.strip().upper()  # Convert user input designation to uppercase
+    df_filtered = df[df['designation'].str.upper().str.contains(designation)] if designation else pd.DataFrame()
+    return df_filtered
 
 # Function to create PDF report
-def creer_pdf(df_filtered, df_women_filtered, keyword_designation):
+def creer_pdf(df_filtered, df_women_filtered, taille_utilisateur):
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=letter)
     
     # Start writing PDF content
     c.setFont("Helvetica-Bold", 16)
-    c.drawString(50, 750, "Rapport d'Analyse de Chaussures par Désignation")
+    c.drawString(50, 750, "Rapport d'Analyse de Taille de Chaussure")
     c.setFont("Helvetica", 12)
     
     y_position = 720
     
     if not df_filtered.empty:
-        # Add shoe designation analysis
-        c.drawString(50, y_position, f"Analyse pour le Mot-clé de Désignation '{keyword_designation}':")
+        # Add shoe size analysis
+        c.drawString(50, y_position, f"Analyse pour la Taille {taille_utilisateur}:")
         y_position -= 20
         for idx, (_, row) in enumerate(df_filtered.iterrows(), start=1):
             taille = f"{row['taille']} ({row['taille_originale']})" if row['taille_originale'] else row['taille']
@@ -71,7 +86,7 @@ def creer_pdf(df_filtered, df_women_filtered, keyword_designation):
     
     if not df_women_filtered.empty:
         # Add women's shoes analysis
-        c.drawString(50, y_position, f"Chaussures pour Femmes avec Désignation '{keyword_designation}':")
+        c.drawString(50, y_position, f"Chaussures pour Femmes à Taille {taille_utilisateur}:")
         y_position -= 20
         for idx, (_, row) in enumerate(df_women_filtered.iterrows(), start=1):
             taille = f"{row['taille']} ({row['taille_originale']})" if row['taille_originale'] else row['taille']
@@ -90,22 +105,16 @@ def creer_pdf(df_filtered, df_women_filtered, keyword_designation):
 def filter_negative_stock(df):
     return df[df['Qté stock dispo'] < 0]
 
-# Function to filter by supplier and display corresponding data
-def display_supplier_info(df, fournisseur):
-    fournisseur = fournisseur.strip().upper()  # Convert user input supplier to uppercase
-    df_filtered = df[df['fournisseur'].str.upper() == fournisseur] if fournisseur else pd.DataFrame()
-    return df_filtered
-
 # Streamlit Application
-st.set_page_config(page_title="Application d'Analyse de Chaussures", layout="wide")
+st.set_page_config(page_title="Application d'Analyse de Taille de Chaussure", layout="wide")
 
 # Custom CSS for futuristic design
 st.markdown("""
     <style>
         body {
-            background-color: #f0f2f6;
-            color: #1e2022;
-            font-family: 'Helvetica', sans-serif;
+            background: linear-gradient(135deg, #1E1E1E, #2D2D2D);
+            color: #F5F5F5;
+            font-family: 'Arial', sans-serif;
         }
         .stButton>button {
             background-color: #007BFF;
@@ -124,8 +133,8 @@ st.markdown("""
             border: 2px solid #007BFF;
             border-radius: 5px;
             padding: 10px;
-            background-color: #ffffff;
-            color: #1e2022;
+            background-color: #1E1E1E;
+            color: #F5F5F5;
         }
         .stTextInput>div>input:focus {
             border-color: #0056b3;
@@ -134,28 +143,25 @@ st.markdown("""
         .stMultiSelect>div>div {
             border: 2px solid #007BFF;
             border-radius: 5px;
-            background-color: #ffffff;
-            color: #1e2022;
+            background-color: #1E1E1E;
+            color: #F5F5F5;
         }
         .stMultiSelect>div>div>div>div {
-            color: #1e2022;
+            color: #F5F5F5;
         }
         .stExpander>div>div {
-            background-color: #ffffff;
-            color: #1e2022;
+            background-color: #2D2D2D;
+            color: #F5F5F5;
             border-radius: 5px;
             padding: 10px;
         }
         .stExpander>div>div>div {
-            color: #1e2022;
-        }
-        .stDataFrame>div>div>div>div>div>div>div>div {
-            background-color: #ffffff !important;
+            color: #F5F5F5;
         }
     </style>
     """, unsafe_allow_html=True)
 
-st.title("Application d'Analyse de Chaussures")
+st.title("Application d'Analyse de Taille de Chaussure")
 
 st.sidebar.markdown("### Menu")
 st.sidebar.info("Téléchargez un fichier CSV ou Excel pour commencer l'analyse.")
@@ -184,65 +190,89 @@ if fichier_telecharge is not None:
             # Convert sizes to EU sizes for display purposes only
             df = convert_dataframe_to_eu(df)
             
-            # Display all data initially
-            st.subheader("Visualisation des Données")
-            st.dataframe(df)
+            # Tab selection
+            tab1, tab2, tab3, tab4 = st.tabs(["Analyse de Taille de Chaussure", "Analyse par Fournisseur", "Analyse par Désignation", "Stock Négatif"])
             
-            # Ask for shoe designation keyword
-            keyword_designation = st.text_input("Entrez un mot-clé de désignation de chaussure (ex: Running, Sandals, Boots):")
-            
-            if st.button("Filtrer par Désignation"):
-                if keyword_designation:
+            with tab1:
+                # Ask for user shoe size
+                taille_utilisateur = st.text_input("Entrez votre taille de chaussure (ex: 40, 41, 42):")
+                
+                if taille_utilisateur:
                     try:
-                        keyword_designation = str(keyword_designation).strip()  # Convert input to string
+                        taille_utilisateur = str(taille_utilisateur).strip().upper()  # Convert user input size to uppercase
                         
-                        # Filter DataFrame based on shoe designation keyword
-                        df_filtered = filter_by_designation(df, keyword_designation)
-                        df_women_filtered = filter_womens_shoes(df_filtered)
+                        # Filter DataFrame based on user input
+                        df_filtered, df_women_filtered = display_shoe_size_info(df, taille_utilisateur)
                         
                         # Display filtered information
-                        st.subheader(f"Chaussures avec Désignation '{keyword_designation}'")
+                        st.subheader("Chaussures Disponibles")
                         if not df_filtered.empty:
                             st.dataframe(df_filtered)
-                            # Create PDF report
-                            if st.button("Créer un rapport PDF"):
-                                pdf_bytes = creer_pdf(df_filtered, df_women_filtered, keyword_designation)
-                                st.download_button(label="Télécharger le PDF", data=pdf_bytes, file_name=f"rapport_designation_{keyword_designation}.pdf", mime="application/pdf")
                         else:
-                            st.write(f"Aucune chaussure avec la désignation '{keyword_designation}' trouvée.")
+                            st.write("Aucune chaussure disponible pour la taille spécifiée.")
                         
-                        st.subheader(f"Chaussures pour Femmes avec Désignation '{keyword_designation}'")
+                        st.subheader("Chaussures pour Femmes Disponibles")
                         if not df_women_filtered.empty:
                             st.dataframe(df_women_filtered)
                         else:
-                            st.write(f"Aucune chaussure pour femmes avec la désignation '{keyword_designation}' trouvée.")
-                    
+                            st.write("Aucune chaussure pour femmes disponible pour la taille spécifiée.")
+                        
+                        # Create PDF report
+                        if st.button("Créer un rapport PDF"):
+                            pdf_bytes = creer_pdf(df_filtered, df_women_filtered, taille_utilisateur)
+                            st.download_button(label="Télécharger le PDF", data=pdf_bytes, file_name=f"rapport_taille_{taille_utilisateur}.pdf", mime="application/pdf")
                     except Exception as e:
-                        st.error(f"Erreur lors de l'analyse de désignation de chaussure: {e}")
-
-            # Display negative stock
-            st.sidebar.subheader("Analyse de Stock Négatif")
-            if st.sidebar.button("Afficher Stock Négatif"):
-                df_negative_stock = filter_negative_stock(df)
-                if not df_negative_stock.empty:
-                    st.sidebar.dataframe(df_negative_stock)
-                else:
-                    st.sidebar.write("Aucun stock négatif trouvé.")
-
-            # Display supplier information
-            st.sidebar.subheader("Analyse par Fournisseur")
-            fournisseur = st.sidebar.text_input("Entrez le nom du fournisseur:")
-            if st.sidebar.button("Rechercher par Fournisseur"):
+                        st.error(f"Erreur lors de l'analyse de la taille de chaussure: {e}")
+            
+            with tab2:
+                # Ask for supplier name
+                fournisseur = st.text_input("Entrez le nom du fournisseur:")
+                
                 if fournisseur:
                     try:
+                        fournisseur = str(fournisseur).strip().upper()  # Convert user input supplier to uppercase
+                        
+                        # Filter DataFrame based on user input
                         df_filtered = display_supplier_info(df, fournisseur)
-                        st.sidebar.subheader(f"Informations du Fournisseur '{fournisseur}'")
+                        
+                        # Display filtered information
+                        st.subheader("Informations du Fournisseur")
                         if not df_filtered.empty:
-                            st.sidebar.dataframe(df_filtered)
+                            st.dataframe(df_filtered)
                         else:
-                            st.sidebar.write("Aucune information disponible pour le fournisseur spécifié.")
+                            st.write("Aucune information disponible pour le fournisseur spécifié.")
                     except Exception as e:
-                        st.sidebar.error(f"Erreur lors de l'analyse du fournisseur: {e}")
+                        st.error(f"Erreur lors de l'analyse du fournisseur: {e}")
+            
+            with tab3:
+                # Ask for designation
+                designation = st.text_input("Entrez la désignation (ex: Sneakers, Running):")
+                
+                if designation:
+                    try:
+                        designation = str(designation).strip().upper()  # Convert user input designation to uppercase
+                        
+                        # Filter DataFrame based on user input
+                        df_filtered = display_designation_info(df, designation)
+                        
+                        # Display filtered information
+                        st.subheader("Informations par Désignation")
+                        if not df_filtered.empty:
+                            st.dataframe(df_filtered)
+                        else:
+                            st.write("Aucune information disponible pour la désignation spécifiée.")
+                    except Exception as e:
+                        st.error(f"Erreur lors de l'analyse de la désignation: {e}")
+            
+            with tab4:
+                # Display negative stock
+                st.subheader("Stock Négatif et Valeur Correspondante")
+                df_negative_stock = filter_negative_stock(df)
+                
+                if not df_negative_stock.empty:
+                    st.dataframe(df_negative_stock)
+                else:
+                    st.write("Aucun stock négatif trouvé.")
 
     except Exception as e:
         st.error(f"Erreur lors du chargement du fichier: {e}")
