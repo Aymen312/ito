@@ -90,8 +90,14 @@ def creer_pdf(df_filtered, df_women_filtered, keyword_designation):
 def filter_negative_stock(df):
     return df[df['Qté stock dispo'] < 0]
 
+# Function to filter by supplier and display corresponding data
+def display_supplier_info(df, fournisseur):
+    fournisseur = fournisseur.strip().upper()  # Convert user input supplier to uppercase
+    df_filtered = df[df['fournisseur'].str.upper() == fournisseur] if fournisseur else pd.DataFrame()
+    return df_filtered
+
 # Streamlit Application
-st.set_page_config(page_title="Application d'Analyse de Chaussures par Désignation", layout="wide")
+st.set_page_config(page_title="Application d'Analyse de Chaussures", layout="wide")
 
 # Custom CSS for futuristic design
 st.markdown("""
@@ -146,7 +152,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-st.title("Application d'Analyse de Chaussures par Désignation")
+st.title("Application d'Analyse de Chaussures")
 
 st.sidebar.markdown("### Menu")
 st.sidebar.info("Téléchargez un fichier CSV ou Excel pour commencer l'analyse.")
@@ -210,6 +216,30 @@ if fichier_telecharge is not None:
                     
                     except Exception as e:
                         st.error(f"Erreur lors de l'analyse de désignation de chaussure: {e}")
+
+            # Display negative stock
+            st.sidebar.subheader("Analyse de Stock Négatif")
+            if st.sidebar.button("Afficher Stock Négatif"):
+                df_negative_stock = filter_negative_stock(df)
+                if not df_negative_stock.empty:
+                    st.sidebar.dataframe(df_negative_stock)
+                else:
+                    st.sidebar.write("Aucun stock négatif trouvé.")
+
+            # Display supplier information
+            st.sidebar.subheader("Analyse par Fournisseur")
+            fournisseur = st.sidebar.text_input("Entrez le nom du fournisseur:")
+            if st.sidebar.button("Rechercher par Fournisseur"):
+                if fournisseur:
+                    try:
+                        df_filtered = display_supplier_info(df, fournisseur)
+                        st.sidebar.subheader(f"Informations du Fournisseur '{fournisseur}'")
+                        if not df_filtered.empty:
+                            st.sidebar.dataframe(df_filtered)
+                        else:
+                            st.sidebar.write("Aucune information disponible pour le fournisseur spécifié.")
+                    except Exception as e:
+                        st.sidebar.error(f"Erreur lors de l'analyse du fournisseur: {e}")
 
     except Exception as e:
         st.error(f"Erreur lors du chargement du fichier: {e}")
