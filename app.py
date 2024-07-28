@@ -178,8 +178,8 @@ if fichier_telecharge is not None:
                         size_system = st.selectbox("Sélectionnez le système de taille", ["US", "UK"])
                         
                         # Define size ranges for US and UK
-                        tailles_us = ['5.5US', '6US', '6.5US', '7US', '7.5US', '8US', '8.5US', '9US', '9.5US', '10US', '10.5US']
-                        tailles_uk = ['4.5UK', '5UK', '5.5UK', '6UK', '6.5UK', '7UK', '7.5UK', '8UK', '8.5UK', '9UK', '9.5UK']
+                        tailles_us = ['5.5US', '6.0US', '6.5US', '7.0US', '7.5US', '8.0US', '8.5US', '9.0US', '9.5US', '10.0US', '10.5US']
+                        tailles_uk = ['4.5UK', '5.0UK', '5.5UK', '6.0UK', '6.5UK', '7.0UK', '7.5UK', '8.0UK', '8.5UK', '9.0UK', '9.5UK']
                         
                         if size_system == "US":
                             tailles = tailles_us
