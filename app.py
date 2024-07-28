@@ -42,6 +42,16 @@ def display_anita_sizes(df):
     df_anita_sizes = df_anita_sizes.replace(0, "Nul")
     return df_anita_sizes
 
+# Function to filter by SIDA levels and display quantities available for each size
+def display_sida_levels(df, level):
+    level = level.strip().upper()  # Convert user input level to uppercase
+    df_filtered = df[df['fournisseur'].str.upper() == level] if level else pd.DataFrame()
+    sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL']
+    df_sizes = df_filtered[df_filtered['taille'].isin(sizes)]
+    df_sizes = df_sizes.groupby(['taille', 'designation'])['Qté stock dispo'].sum().unstack(fill_value=0)
+    df_sizes = df_sizes.replace(0, "Nul")
+    return df_sizes
+
 # Streamlit Application
 st.set_page_config(page_title="Application d'Analyse TDR", layout="wide")
 
@@ -129,7 +139,7 @@ if fichier_telecharge is not None:
             df_femme = df[df['rayon'].str.upper() == 'FEMME']
             
             # Tab selection
-            tab1, tab2, tab3, tab4 = st.tabs(["Analyse ANITA", "Analyse par Fournisseur", "Analyse par Désignation", "Stock Négatif"])
+            tab1, tab2, tab3, tab4, tab5 = st.tabs(["Analyse ANITA", "Analyse par Fournisseur", "Analyse par Désignation", "Stock Négatif", "Analyse SIDA"])
             
             with tab1:
                 st.subheader("Quantités Disponibles pour chaque Taille - Fournisseur ANITA")
@@ -235,6 +245,21 @@ if fichier_telecharge is not None:
                     st.dataframe(df_negative_stock)
                 else:
                     st.write("Aucun stock négatif trouvé.")
+            
+            with tab5:
+                # Analyse SIDA Levels
+                st.subheader("Analyse des Cases SIDA par Niveaux (LOW, MID, HIGH)")
+                sida_level = st.selectbox("Sélectionnez le niveau SIDA", ["LOW", "MID", "HIGH"])
+                
+                if sida_level:
+                    try:
+                        df_sida_sizes = display_sida_levels(df, sida_level)
+                        if not df_sida_sizes.empty:
+                            st.table(df_sida_sizes)
+                        else:
+                            st.write(f"Aucune information disponible pour le niveau {sida_level}.")
+                    except Exception as e:
+                        st.error(f"Erreur lors de l'analyse des niveaux SIDA: {e}")
     
     except Exception as e:
         st.error(f"Erreur lors du chargement du fichier: {e}")
