@@ -173,6 +173,17 @@ if fichier_telecharge is not None:
                             st.dataframe(df_femme_filtered)
                         else:
                             st.write("Aucune information disponible pour la désignation spécifiée pour les femmes.")
+                        
+                        # Show quantity of stock for each size
+                        tailles = [5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10, 10.5]
+                        
+                        st.subheader("Quantité de Stock par Taille pour Hommes")
+                        homme_stock_by_size = df_homme_filtered.groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
+                        st.table(homme_stock_by_size)
+                        
+                        st.subheader("Quantité de Stock par Taille pour Femmes")
+                        femme_stock_by_size = df_femme_filtered.groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
+                        st.table(femme_stock_by_size)
                     except Exception as e:
                         st.error(f"Erreur lors de l'analyse de la désignation: {e}")
             
