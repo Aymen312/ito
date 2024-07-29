@@ -42,6 +42,7 @@ def display_anita_sizes(df):
 
 # Function to filter by SIDAS levels and display quantities available for each size
 def display_sidas_levels(df):
+    # Drop rows where 'couleur' or 'taille' are NaN
     df_sidas = df[df['fournisseur'].str.upper().str.contains("SIDAS", na=False)]
     df_sidas = df_sidas.dropna(subset=['couleur', 'taille'])
     
@@ -57,8 +58,9 @@ def display_sidas_levels(df):
         results[level] = df_sizes_with_designation
     return results
 
+
 # Streamlit Application
-st.set_page_config(page_title="Application d'Analyse TDR", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Application d'Analyse TDR", layout="wide")
 
 # Custom CSS for futuristic design
 st.markdown("""
@@ -109,23 +111,6 @@ st.markdown("""
         }
         .stExpander>div>div>div {
             color: #F5F5F5;
-        }
-        .stFileUploader>div>label {
-            color: #F5F5F5;
-        }
-        .stTabs>div {
-            background-color: #2D2D2D;
-            border: none;
-        }
-        .stTabs>div button {
-            background-color: #2D2D2D;
-            color: #F5F5F5;
-            border: none;
-            border-radius: 0;
-        }
-        .stTabs>div button[aria-selected="true"] {
-            border-bottom: 2px solid #007BFF;
-            color: #007BFF;
         }
     </style>
     """, unsafe_allow_html=True)
@@ -216,18 +201,48 @@ if fichier_telecharge is not None:
                         # Display filtered information
                         st.subheader("Informations par Désignation pour Hommes")
                         if not df_homme_filtered.empty:
+                            df_homme_filtered = df_homme_filtered.fillna("Nul")
                             st.dataframe(df_homme_filtered)
                         else:
                             st.write("Aucune information disponible pour la désignation spécifiée pour les hommes.")
                         
                         st.subheader("Informations par Désignation pour Femmes")
                         if not df_femme_filtered.empty:
+                            df_femme_filtered = df_femme_filtered.fillna("Nul")
                             st.dataframe(df_femme_filtered)
                         else:
                             st.write("Aucune information disponible pour la désignation spécifiée pour les femmes.")
+                        
+                        # Ask for size system
+                        size_system = st.selectbox("Sélectionnez le système de taille", ["EU", "US", "UK"])
+                        
+                        # Define sizes based on system
+                        tailles_us = ['4.5US', '5.0US', '5.5US', '6.0US', '6.5US', '7.0US', '7.5US', '8.0US', '8.5US', '9.0US', '9.5US', '10.0US','10.5US','11.0US','11.5US','12.0US','12.5US','13.0US','13.5US','14.0US']
+                        tailles_uk = ['4.5UK', '5.0UK', '5.5UK', '6.0UK', '6.5UK', '7.0UK', '7.5UK', '8.0UK', '8.5UK', '9.0UK', '9.5UK', '10.0UK','10.5UK','11.0UK','11.5UK','12.0UK','12.5UK','13.0UK']
+                        tailles_eu = [str(size) for size in list(range(30, 51)) + [f'{i}.5' for i in range(30, 50)]]
+                        
+                        if size_system == "US":
+                            tailles = tailles_us
+                        elif size_system == "UK":
+                            tailles = tailles_uk
+                        else:
+                            tailles = tailles_eu
+                        
+                        # Show quantity of stock for each size, excluding zero values
+                        st.subheader(f"Quantité de Stock par Taille ({size_system}) pour Hommes")
+                        homme_stock_by_size = df_homme_filtered[df_homme_filtered['taille'].isin(tailles)]
+                        homme_stock_by_size = homme_stock_by_size.groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
+                        homme_stock_by_size = homme_stock_by_size.replace(0, "Nul")
+                        st.table(homme_stock_by_size)
+                        
+                        st.subheader(f"Quantité de Stock par Taille ({size_system}) pour Femmes")
+                        femme_stock_by_size = df_femme_filtered[df_femme_filtered['taille'].isin(tailles)]
+                        femme_stock_by_size = femme_stock_by_size.groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
+                        femme_stock_by_size = femme_stock_by_size.replace(0, "Nul")
+                        st.table(femme_stock_by_size)
                     except Exception as e:
                         st.error(f"Erreur lors de l'analyse de la désignation: {e}")
-
+            
             with tab4:
                 st.subheader("Stock Négatif")
                 try:
@@ -237,17 +252,19 @@ if fichier_telecharge is not None:
                     else:
                         st.write("Aucun stock négatif trouvé.")
                 except Exception as e:
-                    st.error(f"Erreur lors de l'analyse du stock négatif: {e}")
-
+                    st.error(f"Erreur lors de l'affichage du stock négatif: {e}")
+            
             with tab5:
                 st.subheader("Analyse SIDAS")
                 try:
                     sidas_results = display_sidas_levels(df)
-                    for level, df_sidas in sidas_results.items():
-                        st.subheader(f"Niveaux {level}")
-                        if not df_sidas.empty:
-                            st.dataframe(df_sidas)
+                    for level, df_result in sidas_results.items():
+                        st.subheader(f"Niveaux SIDAS - {level}")
+                        if not df_result.empty:
+                            st.dataframe(df_result)
                         else:
-                            st.write(f"Aucune information disponible pour le niveau {level}.")
+                            st.write(f"Aucune information disponible pour le niveau SIDAS {level}.")
                 except Exception as e:
                     st.error(f"Erreur lors de l'analyse SIDAS: {e}")
+    except Exception as e:
+        st.error(f"Erreur lors du chargement du fichier: {e}")
