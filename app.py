@@ -36,13 +36,12 @@ def display_anita_sizes(df):
     df_anita = df[df['fournisseur'].str.upper() == "ANITA"]
     tailles = [f"{num}{letter}" for num in [85, 90, 95, 100, 105, 110] for letter in 'ABCDEF']
     df_anita_sizes = df_anita[df_anita['taille'].isin(tailles)]
-    df_anita_sizes = df_anita_sizes.groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
-    df_anita_sizes = df_anita_sizes.replace(0, "Nul")
-    return df_anita_sizes
+    df_anita_sizes_grouped = df_anita_sizes.groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
+    df_anita_sizes_grouped = df_anita_sizes_grouped.replace(0, "Nul").reset_index().rename(columns={'Qté stock dispo': 'Quantité Disponibles'})
+    return df_anita_sizes_grouped
 
 # Function to filter by SIDAS levels and display quantities available for each size
 def display_sidas_levels(df):
-    # Drop rows where 'couleur' or 'taille' are NaN
     df_sidas = df[df['fournisseur'].str.upper().str.contains("SIDAS", na=False)]
     df_sidas = df_sidas.dropna(subset=['couleur', 'taille'])
     
@@ -152,13 +151,13 @@ if fichier_telecharge is not None:
                 try:
                     df_anita_sizes = display_anita_sizes(df)
                     
-                    # List of sizes to display separately
+                    # Display each size separately
                     tailles = [f"{num}{letter}" for num in [85, 90, 95, 100, 105, 110] for letter in 'ABCDEF']
                     
                     if not df_anita_sizes.empty:
                         for taille in tailles:
                             st.write(f"### Taille: {taille}")
-                            df_taille = df_anita_sizes[df_anita_sizes.index == taille]
+                            df_taille = df_anita_sizes[df_anita_sizes['taille'] == taille]
                             if not df_taille.empty:
                                 st.table(df_taille)
                             else:
