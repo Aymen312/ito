@@ -200,9 +200,28 @@ if fichier_telecharge is not None:
                     try:
                         designation = str(designation).strip().upper()  # Convert user input designation to uppercase
                         
+                        # Ask for size system
+                        size_system = st.selectbox("Sélectionnez le système de taille:", ["EU", "US", "UK"])
+                        
+                        # Define size lists for each system
+                        if size_system == "EU":
+                            sizes = [str(i) for i in range(35, 49)]
+                        elif size_system == "US":
+                            sizes = [str(i) for i in range(5, 13)]
+                        elif size_system == "UK":
+                            sizes = [str(i) for i in range(3, 11)]
+                        
                         # Filter DataFrame based on user input
                         df_homme_filtered = display_designation_info(df_homme, designation)
                         df_femme_filtered = display_designation_info(df_femme, designation)
+                        
+                        # Filter by size system and remove zero values
+                        df_homme_filtered = df_homme_filtered[df_homme_filtered['taille'].isin(sizes) & (df_homme_filtered['Qté stock dispo'] != 0)]
+                        df_femme_filtered = df_femme_filtered[df_femme_filtered['taille'].isin(sizes) & (df_femme_filtered['Qté stock dispo'] != 0)]
+                        
+                        # Replace NaN values with "Nul"
+                        df_homme_filtered.fillna("Nul", inplace=True)
+                        df_femme_filtered.fillna("Nul", inplace=True)
                         
                         # Display filtered information
                         st.subheader("Informations par Désignation pour Hommes")
@@ -217,61 +236,52 @@ if fichier_telecharge is not None:
                         else:
                             st.write("Aucune information disponible pour la désignation spécifiée pour les femmes.")
                     except Exception as e:
-                        st.error(f"Erreur lors de l'analyse de la désignation: {e}")
-
+                        st.error(f"Erreur lors de l'analyse par désignation: {e}")
+            
             with tab4:
                 st.subheader("Stock Négatif")
                 try:
                     df_negative_stock = filter_negative_stock(df)
                     
-                    # Default columns to display
-                    default_columns = ['fournisseur', 'barcode', 'couleur', 'taille', 'Qté stock dispo']
+                    # Display required columns only
+                    required_columns = ['fournisseur', 'barcode', 'couleur', 'taille', 'Qté stock dispo']
+                    optional_columns = [col for col in df.columns if col not in required_columns]
                     
-                    # Display default columns
-                    df_negative_stock_display = df_negative_stock[default_columns]
+                    # Ask for additional columns
+                    additional_columns = st.multiselect("Sélectionnez des colonnes supplémentaires à afficher:", optional_columns)
                     
-                    # Option to select additional columns
-                    all_columns = [col for col in df_negative_stock.columns if col not in default_columns]
-                    
-                    if all_columns:
-                        additional_columns = st.multiselect("Sélectionnez des colonnes supplémentaires à afficher", all_columns, default=[])
-                        
-                        # Combine default columns with selected additional columns
-                        columns_to_display = default_columns + additional_columns
-                        
-                        st.write("Données du stock négatif:")
-                        if not df_negative_stock_display.empty:
-                            st.dataframe(df_negative_stock[columns_to_display])
-                        else:
-                            st.write("Aucun stock négatif trouvé.")
+                    df_display = df_negative_stock[required_columns + additional_columns]
+                    if not df_display.empty:
+                        st.dataframe(df_display)
                     else:
-                        st.write("Aucune colonne disponible pour la sélection.")
-                        
+                        st.write("Aucune information disponible pour le stock négatif.")
                 except Exception as e:
-                    st.error(f"Erreur lors de l'affichage du stock négatif: {e}")
+                    st.error(f"Erreur lors de l'analyse du stock négatif: {e}")
             
             with tab5:
-                st.subheader("Analyse des Niveaux SIDAS")
+                st.subheader("Analyse des Tailles SIDAS")
                 try:
-                    sidas_results = display_sidas_levels(df)
-                    for level, df_level in sidas_results.items():
-                        st.write(f"Stock pour le niveau {level}:")
-                        if not df_level.empty:
-                            st.dataframe(df_level)
+                    df_sidas_levels = display_sidas_levels(df)
+                    for level, df_sizes_with_designation in df_sidas_levels.items():
+                        st.subheader(f"Niveau {level}")
+                        if not df_sizes_with_designation.empty:
+                            st.dataframe(df_sizes_with_designation)
                         else:
                             st.write(f"Aucune information disponible pour le niveau {level}.")
                 except Exception as e:
-                    st.error(f"Erreur lors de l'analyse des niveaux SIDAS: {e}")
+                    st.error(f"Erreur lors de l'analyse des tailles SIDAS: {e}")
             
             with tab6:
                 st.subheader("Valeur Totale du Stock par Fournisseur")
                 try:
-                    total_value_by_supplier = total_stock_value_by_supplier(df)
-                    if not total_value_by_supplier.empty:
-                        st.table(total_value_by_supplier)
+                    df_total_value_by_supplier = total_stock_value_by_supplier(df)
+                    if not df_total_value_by_supplier.empty:
+                        st.dataframe(df_total_value_by_supplier)
                     else:
-                        st.write("Aucune information disponible sur la valeur totale du stock par fournisseur.")
+                        st.write("Aucune information disponible pour la valeur totale du stock par fournisseur.")
                 except Exception as e:
-                    st.error(f"Erreur lors du calcul de la valeur totale du stock par fournisseur: {e}")
+                    st.error(f"Erreur lors de l'analyse de la valeur totale du stock par fournisseur: {e}")
     except Exception as e:
-        st.error(f"Erreur lors du chargement du fichier: {e}")
+        st.error(f"Erreur lors du chargement du fichier: {e}")
+else:
+    st.info("Veuillez télécharger un fichier pour commencer l'analyse.")
