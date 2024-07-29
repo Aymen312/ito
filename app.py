@@ -3,6 +3,19 @@ import pandas as pd
 from io import BytesIO
 import PyPDF2  # Assurez-vous d'installer cette bibliothèque avec `pip install PyPDF2`
 
+
+import pdfplumber
+
+def extract_text_from_pdf(pdf_file):
+    text = ""
+    try:
+        with pdfplumber.open(pdf_file) as pdf:
+            for page in pdf.pages:
+                text += page.extract_text() or ""
+    except Exception as e:
+        st.error(f"Erreur lors de l'extraction du texte du PDF: {e}")
+    return text
+
 # Function to clean numeric columns
 def clean_numeric_columns(df):
     numeric_columns = ['Prix Achat', 'Qté stock dispo', 'Valeur Stock']
