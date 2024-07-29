@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from io import BytesIO
+import PyPDF2  # Assurez-vous d'installer cette bibliothèque avec `pip install PyPDF2`
 
 # Function to clean numeric columns
 def clean_numeric_columns(df):
@@ -71,6 +72,27 @@ def sort_sizes(df):
     df = df.sort_values('taille')
     return df
 
+# Function to extract text from a PDF file
+def extract_text_from_pdf(pdf_file):
+    text = ""
+    try:
+        pdf_reader = PyPDF2.PdfFileReader(pdf_file)
+        for page_num in range(pdf_reader.numPages):
+            page = pdf_reader.getPage(page_num)
+            text += page.extract_text()
+    except Exception as e:
+        st.error(f"Erreur lors de l'extraction du texte du PDF: {e}")
+    return text
+
+# Function to process extracted text into a DataFrame
+def process_text_to_dataframe(text):
+    # This is a placeholder. Replace with your own logic to parse text into a DataFrame.
+    # Assuming the text contains CSV-like data.
+    from io import StringIO
+    data = StringIO(text)
+    df = pd.read_csv(data)
+    return df
+
 # Streamlit Application
 st.set_page_config(page_title="Application d'Analyse TDR", layout="wide")
 
@@ -130,20 +152,22 @@ st.markdown("""
 st.title("Application d'Analyse TDR")
 
 st.sidebar.markdown("### Menu")
-st.sidebar.info("Téléchargez un fichier CSV ou Excel pour commencer l'analyse.")
+st.sidebar.info("Téléchargez un fichier CSV, Excel ou PDF pour commencer l'analyse.")
 
 # File upload
-fichier_telecharge = st.file_uploader("Téléchargez un fichier CSV ou Excel", type=['csv', 'xlsx'])
+file_upload = st.file_uploader("Téléchargez un fichier CSV, Excel ou PDF", type=['csv', 'xlsx', 'pdf'])
 
-if fichier_telecharge is not None:
-    extension_fichier = fichier_telecharge.name.split('.')[-1]
+if file_upload is not None:
+    extension_file = file_upload.name.split('.')[-1]
     try:
         with st.spinner("Chargement des données..."):
-            if extension_fichier == 'csv':
-                # Read CSV with proper encoding and separator
-                df = pd.read_csv(fichier_telecharge, encoding='ISO-8859-1', sep=';')
-            elif extension_fichier == 'xlsx':
-                df = pd.read_excel(fichier_telecharge)
+            if extension_file == 'csv':
+                df = pd.read_csv(file_upload, encoding='ISO-8859-1', sep=';')
+            elif extension_file == 'xlsx':
+                df = pd.read_excel(file_upload)
+            elif extension_file == 'pdf':
+                text = extract_text_from_pdf(file_upload)
+                df = process_text_to_dataframe(text)
             else:
                 st.error("Format de fichier non supporté")
                 df = None
@@ -158,7 +182,7 @@ if fichier_telecharge is not None:
             df_femme = df[df['rayon'].str.upper() == 'FEMME']
             
             # Tab selection
-            tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["Analyse ANITA", "Analyse par Fournisseur", "Analyse par Désignation", "Stock Négatif", "Analyse SIDAS", "Valeur Totale du Stock par Fournisseur"])
+            tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["Analyse ANITA", "Analyse par Fournisseur", "Analyse par Désignation", "Stock Négatif", "Analyse SIDAS", "Valeur Totale du Stock par Fournisseur", "Exporter Excel"])
             
             with tab1:
                 st.subheader("Quantités Disponibles pour chaque Taille - Fournisseur ANITA")
@@ -273,7 +297,26 @@ if fichier_telecharge is not None:
                 except Exception as e:
                     st.error(f"Erreur lors du calcul de la valeur totale du stock par fournisseur: {e}")
 
+            with tab7:
+                st.subheader("Exporter les Données au Format Excel")
+                try:
+                    # Convert DataFrame to Excel
+                    excel_buffer = BytesIO()
+                    with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
+                        df.to_excel(writer, index=False, sheet_name='Données')
+                    excel_buffer.seek(0)
+                    
+                    # Provide download link
+                    st.download_button(
+                        label="Télécharger le fichier Excel",
+                        data=excel_buffer,
+                        file_name='donnees_analyse.xlsx',
+                        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                    )
+                except Exception as e:
+                    st.error(f"Erreur lors de l'exportation des données au format Excel: {e}")
+
     except Exception as e:
         st.error(f"Erreur lors du chargement du fichier: {e}")
 else:
-    st.warning("Veuillez télécharger un fichier pour commencer l'analyse.")
+    st.warning("Veuillez télécharger un fichier pour commencer l'analyse.")
