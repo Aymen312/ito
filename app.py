@@ -35,17 +35,9 @@ def filter_negative_stock(df):
 def display_anita_sizes(df):
     df_anita = df[df['fournisseur'].str.upper() == "ANITA"]
     tailles = [f"{num}{letter}" for num in [85, 90, 95, 100, 105, 110] for letter in 'ABCDEF']
-    
-    # Create a dictionary to hold dataframes for each size group
-    df_anita_sizes = {}
-    
-    for taille in tailles:
-        df_group = df_anita[df_anita['taille'] == taille]
-        if not df_group.empty:
-            df_anita_sizes[taille] = df_group[['taille', 'Qté stock dispo']].groupby('taille').sum().reset_index()
-        else:
-            df_anita_sizes[taille] = pd.DataFrame(columns=['taille', 'Qté stock dispo'])
-    
+    df_anita_sizes = df_anita[df_anita['taille'].isin(tailles)]
+    df_anita_sizes = df_anita_sizes.groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
+    df_anita_sizes = df_anita_sizes.replace(0, "Nul")
     return df_anita_sizes
 
 # Function to filter by SIDAS levels and display quantities available for each size
@@ -159,10 +151,8 @@ if fichier_telecharge is not None:
                 st.subheader("Quantités Disponibles pour chaque Taille - Fournisseur ANITA")
                 try:
                     df_anita_sizes = display_anita_sizes(df)
-                    if df_anita_sizes:
-                        for taille, df_group in df_anita_sizes.items():
-                            st.write(f"### Taille {taille}")
-                            st.table(df_group)
+                    if not df_anita_sizes.empty:
+                        st.table(df_anita_sizes)
                     else:
                         st.write("Aucune information disponible pour le fournisseur ANITA.")
                 except Exception as e:
@@ -226,31 +216,44 @@ if fichier_telecharge is not None:
                 st.subheader("Stock Négatif")
                 try:
                     df_negative_stock = filter_negative_stock(df)
-                    if not df_negative_stock.empty:
-                        # Option to select additional columns
-                        additional_columns = st.multiselect("Sélectionnez des colonnes supplémentaires à afficher", options=df_negative_stock.columns.tolist(), default=['fournisseur', 'barcode', 'couleur', 'taille', 'Qté stock dispo'])
+                    
+                    # Default columns to display
+                    default_columns = ['fournisseur', 'barcode', 'couleur', 'taille', 'Qté stock dispo']
+                    
+                    # Display default columns
+                    df_negative_stock_display = df_negative_stock[default_columns]
+                    
+                    # Option to select additional columns
+                    all_columns = df_negative_stock.columns.tolist()
+                    
+                    if all_columns:
+                        additional_columns = st.multiselect("Sélectionnez des colonnes supplémentaires à afficher", all_columns, default=[])
                         
-                        if additional_columns:
-                            st.dataframe(df_negative_stock[additional_columns])
+                        # Combine default columns with selected additional columns
+                        columns_to_display = default_columns + [col for col in additional_columns if col not in default_columns]
+                        
+                        st.write("Données du stock négatif:")
+                        if not df_negative_stock_display.empty:
+                            st.dataframe(df_negative_stock[columns_to_display])
                         else:
-                            st.write("Veuillez sélectionner des colonnes supplémentaires à afficher.")
+                            st.write("Aucun stock négatif trouvé.")
                     else:
-                        st.write("Aucun stock négatif trouvé.")
+                        st.write("Aucune colonne disponible pour la sélection.")
+                        
                 except Exception as e:
                     st.error(f"Erreur lors de l'affichage du stock négatif: {e}")
-
+            
             with tab5:
-                st.subheader("Analyse SIDAS")
+                st.subheader("Analyse des Niveaux SIDAS")
                 try:
                     sidas_results = display_sidas_levels(df)
-                    if sidas_results:
-                        for level, df_group in sidas_results.items():
-                            st.write(f"### Niveau {level}")
-                            st.table(df_group)
-                    else:
-                        st.write("Aucune information disponible pour les niveaux SIDAS.")
+                    for level, df_level in sidas_results.items():
+                        st.write(f"Stock pour le niveau {level}:")
+                        if not df_level.empty:
+                            st.dataframe(df_level)
+                        else:
+                            st.write(f"Aucune information disponible pour le niveau {level}.")
                 except Exception as e:
                     st.error(f"Erreur lors de l'analyse des niveaux SIDAS: {e}")
-
-    else:
-        st.write("Veuillez télécharger un fichier pour commencer.")
+    except Exception as e:
+        st.error(f"Erreur lors du chargement du fichier: {e}")
