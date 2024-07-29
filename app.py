@@ -287,5 +287,6 @@ if fichier_telecharge is not None:
                 except Exception as e:
                     st.error(f"Erreur lors du calcul de la valeur totale du stock: {e}")
 
-else:
+    except Exception as e:
+
     st.info("Veuillez télécharger un fichier pour commencer l'analyse.")
