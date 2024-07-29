@@ -22,10 +22,13 @@ def display_supplier_info(df, fournisseur):
     return df_filtered
 
 # Function to filter by designation and display corresponding data
+# Function to filter by supplier and display corresponding data
 def display_designation_info(df, designation):
     designation = designation.strip().upper()  # Convert user input designation to uppercase
     df_filtered = df[df['designation'].str.upper().str.contains(designation)] if designation else pd.DataFrame()
     return df_filtered
+
+
 
 # Function to filter negative stock
 def filter_negative_stock(df):
