@@ -244,15 +244,30 @@ if fichier_telecharge is not None:
                         st.error(f"Erreur lors de l'analyse de la désignation: {e}")
             
             with tab4:
-                st.subheader("Stock Négatif")
-                try:
-                    df_negative_stock = filter_negative_stock(df)
-                    if not df_negative_stock.empty:
-                        st.dataframe(df_negative_stock)
-                    else:
-                        st.write("Aucun stock négatif trouvé.")
-                except Exception as e:
-                    st.error(f"Erreur lors de l'affichage du stock négatif: {e}")
+    st.subheader("Stock Négatif")
+    try:
+        df_negative_stock = filter_negative_stock(df)
+        
+        # Default columns to display
+        default_columns = ['fournisseur', 'barcode', 'couleur', 'taille', 'Qté stock dispo']
+        
+        # Display default columns
+        df_negative_stock_display = df_negative_stock[default_columns]
+        
+        # Option to select additional columns
+        all_columns = df_negative_stock.columns.tolist()
+        additional_columns = st.multiselect("Sélectionnez des colonnes supplémentaires à afficher", all_columns, default=[])
+
+        # Combine default columns with selected additional columns
+        columns_to_display = default_columns + [col for col in additional_columns if col not in default_columns]
+        
+        st.write("Données du stock négatif:")
+        if not df_negative_stock_display.empty:
+            st.dataframe(df_negative_stock[columns_to_display])
+        else:
+            st.write("Aucun stock négatif trouvé.")
+    except Exception as e:
+        st.error(f"Erreur lors de l'affichage du stock négatif: {e}")
             
             with tab5:
                 st.subheader("Analyse SIDAS")
