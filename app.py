@@ -164,7 +164,7 @@ if fichier_telecharge is not None:
                 st.subheader("Exporter les Données au Format Excel")
                 try:
                     excel_buffer = BytesIO()
-                    with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
+                    with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
                         df.to_excel(writer, index=False, sheet_name='Données')
                     excel_buffer.seek(0)
 
