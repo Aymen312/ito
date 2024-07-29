@@ -204,21 +204,6 @@ if fichier_telecharge is not None:
                         df_homme_filtered = display_designation_info(df_homme, designation)
                         df_femme_filtered = display_designation_info(df_femme, designation)
                         
-                        # Display filtered information
-                        st.subheader("Informations par Désignation pour Hommes")
-                        if not df_homme_filtered.empty:
-                            df_homme_filtered = df_homme_filtered.fillna("Nul")
-                            st.dataframe(df_homme_filtered)
-                        else:
-                            st.write("Aucune information disponible pour la désignation spécifiée pour les hommes.")
-                        
-                        st.subheader("Informations par Désignation pour Femmes")
-                        if not df_femme_filtered.empty:
-                            df_femme_filtered = df_femme_filtered.fillna("Nul")
-                            st.dataframe(df_femme_filtered)
-                        else:
-                            st.write("Aucune information disponible pour la désignation spécifiée pour les femmes.")
-                        
                         # Ask for size system
                         size_system = st.selectbox("Sélectionnez le système de taille", ["EU", "US", "UK"])
                         
