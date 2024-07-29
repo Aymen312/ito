@@ -58,13 +58,6 @@ def display_sidas_levels(df):
         results[level] = df_sizes_with_designation
     return results
 
-# Function to calculate total stock value by supplier
-def total_stock_value_by_supplier(df):
-    df['Valeur Totale HT'] = df['Qté stock dispo'] * df['Prix Achat']
-    total_value_by_supplier = df.groupby('fournisseur')['Valeur Totale HT'].sum().reset_index()
-    total_value_by_supplier = total_value_by_supplier.sort_values(by='Valeur Totale HT', ascending=False)
-    return total_value_by_supplier
-
 # Streamlit Application
 st.set_page_config(page_title="Application d'Analyse TDR", layout="wide")
 
@@ -152,7 +145,7 @@ if fichier_telecharge is not None:
             df_femme = df[df['rayon'].str.upper() == 'FEMME']
             
             # Tab selection
-            tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["Analyse ANITA", "Analyse par Fournisseur", "Analyse par Désignation", "Stock Négatif", "Analyse SIDAS", "Valeur Totale du Stock par Fournisseur"])
+            tab1, tab2, tab3, tab4, tab5 = st.tabs(["Analyse ANITA", "Analyse par Fournisseur", "Analyse par Désignation", "Stock Négatif", "Analyse SIDAS"])
             
             with tab1:
                 st.subheader("Quantités Disponibles pour chaque Taille - Fournisseur ANITA")
@@ -231,13 +224,13 @@ if fichier_telecharge is not None:
                     df_negative_stock_display = df_negative_stock[default_columns]
                     
                     # Option to select additional columns
-                    all_columns = [col for col in df_negative_stock.columns if col not in default_columns]
+                    all_columns = df_negative_stock.columns.tolist()
                     
                     if all_columns:
                         additional_columns = st.multiselect("Sélectionnez des colonnes supplémentaires à afficher", all_columns, default=[])
                         
                         # Combine default columns with selected additional columns
-                        columns_to_display = default_columns + additional_columns
+                        columns_to_display = default_columns + [col for col in additional_columns if col not in default_columns]
                         
                         st.write("Données du stock négatif:")
                         if not df_negative_stock_display.empty:
@@ -262,16 +255,5 @@ if fichier_telecharge is not None:
                             st.write(f"Aucune information disponible pour le niveau {level}.")
                 except Exception as e:
                     st.error(f"Erreur lors de l'analyse des niveaux SIDAS: {e}")
-            
-            with tab6:
-                st.subheader("Valeur Totale du Stock par Fournisseur")
-                try:
-                    total_value_by_supplier = total_stock_value_by_supplier(df)
-                    if not total_value_by_supplier.empty:
-                        st.table(total_value_by_supplier)
-                    else:
-                        st.write("Aucune information disponible sur la valeur totale du stock par fournisseur.")
-                except Exception as e:
-                    st.error(f"Erreur lors du calcul de la valeur totale du stock par fournisseur: {e}")
     except Exception as e:
-        st.error(f"Erreur lors du chargement du fichier: {e}")
+        st.error(f"Erreur lors du chargement du fichier: {e}")
