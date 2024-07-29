@@ -200,14 +200,12 @@ if fichier_telecharge is not None:
                         # Display filtered information
                         st.subheader("Informations par Désignation pour Hommes")
                         if not df_homme_filtered.empty:
-                            df_homme_filtered = df_homme_filtered.fillna("Nul")
                             st.dataframe(df_homme_filtered)
                         else:
                             st.write("Aucune information disponible pour la désignation spécifiée pour les hommes.")
                         
                         st.subheader("Informations par Désignation pour Femmes")
                         if not df_femme_filtered.empty:
-                            df_femme_filtered = df_femme_filtered.fillna("Nul")
                             st.dataframe(df_femme_filtered)
                         else:
                             st.write("Aucune information disponible pour la désignation spécifiée pour les femmes.")
@@ -227,16 +225,21 @@ if fichier_telecharge is not None:
                     
                     # Option to select additional columns
                     all_columns = df_negative_stock.columns.tolist()
-                    additional_columns = st.multiselect("Sélectionnez des colonnes supplémentaires à afficher", all_columns, default=[])
                     
-                    # Combine default columns with selected additional columns
-                    columns_to_display = default_columns + [col for col in additional_columns if col not in default_columns]
-                    
-                    st.write("Données du stock négatif:")
-                    if not df_negative_stock_display.empty:
-                        st.dataframe(df_negative_stock[columns_to_display])
+                    if all_columns:
+                        additional_columns = st.multiselect("Sélectionnez des colonnes supplémentaires à afficher", all_columns, default=[])
+                        
+                        # Combine default columns with selected additional columns
+                        columns_to_display = default_columns + [col for col in additional_columns if col not in default_columns]
+                        
+                        st.write("Données du stock négatif:")
+                        if not df_negative_stock_display.empty:
+                            st.dataframe(df_negative_stock[columns_to_display])
+                        else:
+                            st.write("Aucun stock négatif trouvé.")
                     else:
-                        st.write("Aucun stock négatif trouvé.")
+                        st.write("Aucune colonne disponible pour la sélection.")
+                        
                 except Exception as e:
                     st.error(f"Erreur lors de l'affichage du stock négatif: {e}")
             
