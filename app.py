@@ -207,45 +207,15 @@ if fichier_telecharge is not None:
                         # Display filtered information
                         st.subheader("Informations par Désignation pour Hommes")
                         if not df_homme_filtered.empty:
-                            df_homme_filtered = df_homme_filtered.fillna("Nul")
                             st.dataframe(df_homme_filtered)
                         else:
                             st.write("Aucune information disponible pour la désignation spécifiée pour les hommes.")
                         
                         st.subheader("Informations par Désignation pour Femmes")
                         if not df_femme_filtered.empty:
-                            df_femme_filtered = df_femme_filtered.fillna("Nul")
                             st.dataframe(df_femme_filtered)
                         else:
                             st.write("Aucune information disponible pour la désignation spécifiée pour les femmes.")
-                        
-                        # Ask for size system
-                        size_system = st.selectbox("Sélectionnez le système de taille", ["EU", "US", "UK"])
-                        
-                        # Define sizes based on system
-                        tailles_us = ['4.5US', '5.0US', '5.5US', '6.0US', '6.5US', '7.0US', '7.5US', '8.0US', '8.5US', '9.0US', '9.5US', '10.0US', '10.5US', '11.0US', '11.5US', '12.0US', '12.5US', '13.0US', '13.5US', '14.0US']
-                        tailles_uk = ['4.5UK', '5.0UK', '5.5UK', '6.0UK', '6.5UK', '7.0UK', '7.5UK', '8.0UK', '8.5UK', '9.0UK', '9.5UK', '10.0UK', '10.5UK', '11.0UK', '11.5UK', '12.0UK', '12.5UK', '13.0UK']
-                        tailles_eu = [str(size) for size in list(range(30, 51)) + [f'{i}.5' for i in range(30, 50)]]
-                        
-                        if size_system == "US":
-                            tailles = tailles_us
-                        elif size_system == "UK":
-                            tailles = tailles_uk
-                        else:
-                            tailles = tailles_eu
-                        
-                        # Show quantity of stock for each size, excluding zero values
-                        st.subheader(f"Quantité de Stock par Taille ({size_system}) pour Hommes")
-                        homme_stock_by_size = df_homme_filtered[df_homme_filtered['taille'].isin(tailles)]
-                        homme_stock_by_size = homme_stock_by_size.groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
-                        homme_stock_by_size = homme_stock_by_size.replace(0, "Nul")
-                        st.table(homme_stock_by_size)
-                        
-                        st.subheader(f"Quantité de Stock par Taille ({size_system}) pour Femmes")
-                        femme_stock_by_size = df_femme_filtered[df_femme_filtered['taille'].isin(tailles)]
-                        femme_stock_by_size = femme_stock_by_size.groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
-                        femme_stock_by_size = femme_stock_by_size.replace(0, "Nul")
-                        st.table(femme_stock_by_size)
                     except Exception as e:
                         st.error(f"Erreur lors de l'analyse de la désignation: {e}")
             
@@ -254,41 +224,33 @@ if fichier_telecharge is not None:
                 try:
                     df_negative_stock = filter_negative_stock(df)
                     if not df_negative_stock.empty:
-                        st.dataframe(df_negative_stock[['fournisseur', 'barcode', 'couleur', 'taille', 'Qté stock dispo']])
+                        additional_columns = st.multiselect("Sélectionnez des colonnes supplémentaires à afficher", df_negative_stock.columns.tolist(), default=['fournisseur', 'barcode', 'couleur', 'taille', 'Qté stock dispo'])
+                        st.dataframe(df_negative_stock[additional_columns])
                     else:
-                        st.write("Aucun stock négatif disponible.")
+                        st.write("Aucun stock négatif trouvé.")
                 except Exception as e:
-                    st.error(f"Erreur lors de l'affichage du stock négatif: {e}")
+                    st.error(f"Erreur lors de l'analyse du stock négatif: {e}")
             
             with tab5:
                 st.subheader("Analyse SIDAS")
                 try:
                     sidas_results = display_sidas_levels(df)
-                    if sidas_results:
-                        for level, df_level in sidas_results.items():
-                            st.subheader(f"Analyse SIDAS - Niveau {level}")
-                            if not df_level.empty:
-                                st.dataframe(df_level)
-                            else:
-                                st.write(f"Aucune information disponible pour le niveau {level}.")
-                    else:
-                        st.write("Aucune information disponible pour SIDAS.")
+                    for level, df_sidas in sidas_results.items():
+                        st.write(f"#### Niveaux SIDAS: {level}")
+                        st.dataframe(df_sidas)
                 except Exception as e:
                     st.error(f"Erreur lors de l'analyse SIDAS: {e}")
             
-           with tab6:
-    st.subheader("Valeur Totale du Stock par Fournisseur")
-    try:
-        total_value_by_supplier = total_stock_value_by_supplier(df)
-        if not total_value_by_supplier.empty:
-            st.dataframe(total_value_by_supplier)
+            with tab6:
+                st.subheader("Valeur Totale du Stock par Fournisseur")
+                try:
+                    total_value_by_supplier = total_stock_value_by_supplier(df)
+                    if not total_value_by_supplier.empty:
+                        st.dataframe(total_value_by_supplier)
+                    else:
+                        st.write("Aucune information disponible pour la valeur totale du stock par fournisseur.")
+                except Exception as e:
+                    st.error(f"Erreur lors du calcul de la valeur totale du stock par fournisseur: {e}")
+
         else:
-            st.write("Aucune information disponible pour la valeur totale du stock.")
-    except Exception as e:
-        st.error(f"Erreur lors du calcul de la valeur totale du stock: {e}")
-
-# Assurez-vous que ce bloc `except` est à l'intérieur de la structure du code principale
-except Exception as e:
-    st.error(f"Erreur lors du chargement du fichier: {e}")
-
-st.info("Veuillez télécharger un fichier pour commencer l'analyse.")
+            st.write("Aucun fichier chargé.")
