@@ -264,16 +264,16 @@ if uploaded_file is not None:
                 except Exception as e:
                     st.error(f"Erreur lors du calcul de la valeur totale du stock : {e}")
 
-            with tab7:
-                st.subheader("Téléchargement de Fichier Excel")
-                if st.button("Télécharger le fichier Excel"):
-                    try:
-                        excel_buffer = create_excel_file(df)
-                        st.download_button(
-                            label="Télécharger le fichier Excel",
-                            data=excel_buffer,
-                            file_name="data.xlsx",
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                        )
-                    except Exception as e:
-                        st.error(f"Erreur lors de la création du fichier Excel : {e}")
+         with tab7:
+    st.subheader("Téléchargement de Fichier Excel")
+    if st.button("Télécharger le fichier Excel"):
+        try:
+            excel_buffer = create_excel_file(df)
+            st.download_button(
+                label="Télécharger le fichier Excel",
+                data=excel_buffer,
+                file_name="data.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+        except Exception as e:
+            st.error(f"Erreur lors de la création du fichier Excel : {e}")
