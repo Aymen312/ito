@@ -221,7 +221,7 @@ if fichier_telecharge is not None:
                             st.write("Aucune information disponible pour la désignation spécifiée pour les femmes.")
                     except Exception as e:
                         st.error(f"Erreur lors de l'analyse de la désignation: {e}")
-            
+
             with tab4:
                 st.subheader("Stock Négatif")
                 try:
