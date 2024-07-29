@@ -58,7 +58,6 @@ def display_sidas_levels(df):
         results[level] = df_sizes_with_designation
     return results
 
-
 # Streamlit Application
 st.set_page_config(page_title="Application d'Analyse TDR", layout="wide")
 
@@ -112,6 +111,22 @@ st.markdown("""
         .stExpander>div>div>div {
             color: #F5F5F5;
         }
+        .stTable>table {
+            border-collapse: collapse;
+            width: 100%;
+            border: 1px solid #F5F5F5;
+        }
+        .stTable>table>thead>tr>th, .stTable>table>tbody>tr>td {
+            border: 1px solid #F5F5F5;
+            padding: 8px;
+        }
+        .stTable>table>tbody>tr:nth-child(even) {
+            background-color: #2D2D2D;
+        }
+        .stTable>table>tbody>tr:hover {
+            background-color: #007BFF;
+            color: white;
+        }
     </style>
     """, unsafe_allow_html=True)
 
@@ -153,7 +168,7 @@ if fichier_telecharge is not None:
                 try:
                     df_anita_sizes = display_anita_sizes(df)
                     if not df_anita_sizes.empty:
-                        st.table(df_anita_sizes)
+                        st.dataframe(df_anita_sizes, width=1000, height=600)
                     else:
                         st.write("Aucune information disponible pour le fournisseur ANITA.")
                 except Exception as e:
@@ -184,67 +199,37 @@ if fichier_telecharge is not None:
                         else:
                             st.write("Aucune information disponible pour le fournisseur spécifié pour les femmes.")
                     except Exception as e:
-                        st.error(f"Erreur lors de l'analyse du fournisseur: {e}")
+                        st.error(f"Erreur lors de l'affichage des informations du fournisseur: {e}")
             
             with tab3:
                 # Ask for designation
-                designation = st.text_input("Entrez la désignation (ex: Sneakers, Running):")
+                designation = st.text_input("Entrez la désignation (nom du produit):")
                 
                 if designation:
                     try:
                         designation = str(designation).strip().upper()  # Convert user input designation to uppercase
                         
                         # Filter DataFrame based on user input
-                        df_homme_filtered = display_designation_info(df_homme, designation)
-                        df_femme_filtered = display_designation_info(df_femme, designation)
+                        df_homme_designation = display_designation_info(df_homme, designation)
+                        df_femme_designation = display_designation_info(df_femme, designation)
                         
                         # Display filtered information
                         st.subheader("Informations par Désignation pour Hommes")
-                        if not df_homme_filtered.empty:
-                            df_homme_filtered = df_homme_filtered.fillna("Nul")
-                            st.dataframe(df_homme_filtered)
+                        if not df_homme_designation.empty:
+                            st.dataframe(df_homme_designation)
                         else:
                             st.write("Aucune information disponible pour la désignation spécifiée pour les hommes.")
                         
                         st.subheader("Informations par Désignation pour Femmes")
-                        if not df_femme_filtered.empty:
-                            df_femme_filtered = df_femme_filtered.fillna("Nul")
-                            st.dataframe(df_femme_filtered)
+                        if not df_femme_designation.empty:
+                            st.dataframe(df_femme_designation)
                         else:
                             st.write("Aucune information disponible pour la désignation spécifiée pour les femmes.")
-                        
-                        # Ask for size system
-                        size_system = st.selectbox("Sélectionnez le système de taille", ["EU", "US", "UK"])
-                        
-                        # Define sizes based on system
-                        tailles_us = ['4.5US', '5.0US', '5.5US', '6.0US', '6.5US', '7.0US', '7.5US', '8.0US', '8.5US', '9.0US', '9.5US', '10.0US','10.5US','11.0US','11.5US','12.0US','12.5US','13.0US','13.5US','14.0US']
-                        tailles_uk = ['4.5UK', '5.0UK', '5.5UK', '6.0UK', '6.5UK', '7.0UK', '7.5UK', '8.0UK', '8.5UK', '9.0UK', '9.5UK', '10.0UK','10.5UK','11.0UK','11.5UK','12.0UK','12.5UK','13.0UK']
-                        tailles_eu = [str(size) for size in list(range(30, 51)) + [f'{i}.5' for i in range(30, 50)]]
-                        
-                        if size_system == "US":
-                            tailles = tailles_us
-                        elif size_system == "UK":
-                            tailles = tailles_uk
-                        else:
-                            tailles = tailles_eu
-                        
-                        # Show quantity of stock for each size, excluding zero values
-                        st.subheader(f"Quantité de Stock par Taille ({size_system}) pour Hommes")
-                        homme_stock_by_size = df_homme_filtered[df_homme_filtered['taille'].isin(tailles)]
-                        homme_stock_by_size = homme_stock_by_size.groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
-                        homme_stock_by_size = homme_stock_by_size.replace(0, "Nul")
-                        st.table(homme_stock_by_size)
-                        
-                        st.subheader(f"Quantité de Stock par Taille ({size_system}) pour Femmes")
-                        femme_stock_by_size = df_femme_filtered[df_femme_filtered['taille'].isin(tailles)]
-                        femme_stock_by_size = femme_stock_by_size.groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
-                        femme_stock_by_size = femme_stock_by_size.replace(0, "Nul")
-                        st.table(femme_stock_by_size)
                     except Exception as e:
-                        st.error(f"Erreur lors de l'analyse de la désignation: {e}")
+                        st.error(f"Erreur lors de l'affichage des informations par désignation: {e}")
             
             with tab4:
-                st.subheader("Stock Négatif")
+                st.subheader("Stock Négatif et sa Valeur")
                 try:
                     df_negative_stock = filter_negative_stock(df)
                     if not df_negative_stock.empty:
@@ -255,16 +240,41 @@ if fichier_telecharge is not None:
                     st.error(f"Erreur lors de l'affichage du stock négatif: {e}")
             
             with tab5:
-                st.subheader("Analyse SIDAS")
+                st.subheader("Analyse des Niveaux de SIDAS")
                 try:
-                    sidas_results = display_sidas_levels(df)
-                    for level, df_result in sidas_results.items():
-                        st.subheader(f"Niveaux SIDAS - {level}")
-                        if not df_result.empty:
-                            st.dataframe(df_result)
-                        else:
-                            st.write(f"Aucune information disponible pour le niveau SIDAS {level}.")
+                    sidas_levels = display_sidas_levels(df)
+                    if not sidas_levels:
+                        st.write("Aucune information disponible pour les niveaux de SIDAS.")
+                    else:
+                        for level, data in sidas_levels.items():
+                            st.write(f"Niveau: {level}")
+                            st.dataframe(data)
                 except Exception as e:
-                    st.error(f"Erreur lors de l'analyse SIDAS: {e}")
+                    st.error(f"Erreur lors de l'analyse des niveaux de SIDAS: {e}")
+
+            # Additional section: Stock quantities for each size system
+            st.subheader("Quantités disponibles pour chaque système de taille")
+            taille_systeme = st.selectbox("Sélectionnez le système de taille:", ["US", "UK", "EU"])
+            
+            if taille_systeme:
+                try:
+                    df_sizes = df[df['taille'].str.contains(taille_systeme, na=False)]
+                    df_sizes_grouped = df_sizes.groupby(['taille', 'designation'])['Qté stock dispo'].sum().unstack(fill_value=0)
+                    df_sizes_grouped = df_sizes_grouped[df_sizes_grouped.sum(axis=1) != 0]  # Exclude zero values
+                    df_sizes_grouped = df_sizes_grouped.replace(0, "Nul")
+                    st.dataframe(df_sizes_grouped, width=1000, height=600)
+                except Exception as e:
+                    st.error(f"Erreur lors de l'affichage des quantités pour le système de taille {taille_systeme}: {e}")
+            
+            # Download button
+            buffer = BytesIO()
+            with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
+                df.to_excel(writer, sheet_name='Data', index=False)
+            st.download_button(
+                label="Télécharger les Données",
+                data=buffer,
+                file_name="analyse_donnees.xlsx",
+                mime="application/vnd.ms-excel"
+            )
     except Exception as e:
-        st.error(f"Erreur lors du chargement du fichier: {e}")
+        st.error(f"Erreur lors du chargement du fichier: {e}")
