@@ -197,4 +197,4 @@ if fichier_telecharge is not None:
                         if not df_femme_filtered.empty:
                             st.dataframe(df_femme_filtered)
                         else:
-                            st.write("Aucune information disponible pour le fournisseur
+                            st.write("Aucune information disponible pour le fournisseur")
