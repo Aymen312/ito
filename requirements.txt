@@ -7,3 +7,4 @@ plotly
 LinearRegression
 reportlab
 PyMuPDF
+PyPDF2
