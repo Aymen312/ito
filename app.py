@@ -97,6 +97,14 @@ def text_to_dataframe(text):
             data['Column3'].append(columns[2])
     return pd.DataFrame(data)
 
+# Function to create Excel file from DataFrame
+def create_excel_file(df):
+    buffer = BytesIO()
+    with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name='Data')
+    buffer.seek(0)
+    return buffer
+
 # Streamlit Application
 st.set_page_config(page_title="Application d'Analyse TDR", layout="wide")
 
@@ -189,7 +197,83 @@ if uploaded_file is not None:
             df_femme = df[df['rayon'].str.upper() == 'FEMME']
             
             # Tab selection
-            tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["Analyse ANITA", "Analyse par Fournisseur", "Analyse par Désignation", "Stock Négatif", "Analyse SIDAS", "Valeur Totale du Stock par Fournisseur"])
+            tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+                "Analyse ANITA", "Analyse par Fournisseur", "Analyse par Désignation", 
+                "Stock Négatif", "Analyse SIDAS", "Valeur Totale du Stock par Fournisseur", 
+                "Téléchargement de Fichier Excel"
+            ])
             
             with tab1:
-                st.subheader("Quantités
+                st.subheader("Quantités Disponibles pour chaque Taille - Fournisseur ANITA")
+                try:
+                    df_anita_sizes = display_anita_sizes(df)
+                    if not df_anita_sizes.empty:
+                        st.dataframe(df_anita_sizes)
+                    else:
+                        st.write("Aucune donnée disponible pour le fournisseur ANITA.")
+                except Exception as e:
+                    st.error(f"Erreur lors de l'analyse des tailles ANITA : {e}")
+
+            with tab2:
+                st.subheader("Analyse par Fournisseur")
+                fournisseur = st.text_input("Entrez le nom du fournisseur")
+                df_supplier = display_supplier_info(df, fournisseur)
+                if not df_supplier.empty:
+                    st.dataframe(df_supplier)
+                else:
+                    st.write("Aucune donnée disponible pour ce fournisseur.")
+
+            with tab3:
+                st.subheader("Analyse par Désignation")
+                designation = st.text_input("Entrez la désignation")
+                df_designation = display_designation_info(df, designation)
+                if not df_designation.empty:
+                    st.dataframe(df_designation)
+                else:
+                    st.write("Aucune donnée disponible pour cette désignation.")
+
+            with tab4:
+                st.subheader("Stock Négatif")
+                df_negative_stock = filter_negative_stock(df)
+                if not df_negative_stock.empty:
+                    st.dataframe(df_negative_stock)
+                else:
+                    st.write("Aucune donnée de stock négatif disponible.")
+
+            with tab5:
+                st.subheader("Analyse SIDAS")
+                try:
+                    sidas_results = display_sidas_levels(df)
+                    for level, data in sidas_results.items():
+                        st.write(f"**Niveau {level}**")
+                        if not data.empty:
+                            st.dataframe(data)
+                        else:
+                            st.write("Aucune donnée disponible pour ce niveau.")
+                except Exception as e:
+                    st.error(f"Erreur lors de l'analyse SIDAS : {e}")
+
+            with tab6:
+                st.subheader("Valeur Totale du Stock par Fournisseur")
+                try:
+                    total_value_by_supplier = total_stock_value_by_supplier(df)
+                    if not total_value_by_supplier.empty:
+                        st.dataframe(total_value_by_supplier)
+                    else:
+                        st.write("Aucune donnée disponible pour la valeur totale du stock.")
+                except Exception as e:
+                    st.error(f"Erreur lors du calcul de la valeur totale du stock : {e}")
+
+            with tab7:
+                st.subheader("Téléchargement de Fichier Excel")
+                if st.button("Télécharger le fichier Excel"):
+                    try:
+                        excel_buffer = create_excel_file(df)
+                        st.download_button(
+                            label="Télécharger le fichier Excel",
+                            data=excel_buffer,
+                            file_name="data.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        )
+                    except Exception as e:
+                        st.error(f"Erreur lors de la création du fichier Excel : {e}")
