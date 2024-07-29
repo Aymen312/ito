@@ -148,15 +148,26 @@ if fichier_telecharge is not None:
             tab1, tab2, tab3, tab4, tab5 = st.tabs(["Analyse ANITA", "Analyse par Fournisseur", "Analyse par Désignation", "Stock Négatif", "Analyse SIDAS"])
             
             with tab1:
-                st.subheader("Quantités Disponibles pour chaque Taille - Fournisseur ANITA")
-                try:
-                    df_anita_sizes = display_anita_sizes(df)
-                    if not df_anita_sizes.empty:
-                        st.table(df_anita_sizes)
-                    else:
-                        st.write("Aucune information disponible pour le fournisseur ANITA.")
-                except Exception as e:
-                    st.error(f"Erreur lors de l'analyse des tailles pour ANITA: {e}")
+    st.subheader("Quantités Disponibles pour chaque Taille - Fournisseur ANITA")
+    try:
+        df_anita_sizes = display_anita_sizes(df)
+        
+        # List of sizes to display separately
+        tailles = [f"{num}{letter}" for num in [85, 90, 95, 100, 105, 110] for letter in 'ABCDEF']
+        
+        if not df_anita_sizes.empty:
+            for taille in tailles:
+                st.write(f"### Taille: {taille}")
+                df_taille = df_anita_sizes[df_anita_sizes.index == taille]
+                if not df_taille.empty:
+                    st.table(df_taille)
+                else:
+                    st.write(f"Aucune information disponible pour la taille {taille}.")
+        else:
+            st.write("Aucune information disponible pour le fournisseur ANITA.")
+    except Exception as e:
+        st.error(f"Erreur lors de l'analyse des tailles pour ANITA: {e}")
+
             
             with tab2:
                 # Ask for supplier name
