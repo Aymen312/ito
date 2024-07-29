@@ -231,13 +231,13 @@ if fichier_telecharge is not None:
                     df_negative_stock_display = df_negative_stock[default_columns]
                     
                     # Option to select additional columns
-                    all_columns = df_negative_stock.columns.tolist()
+                    all_columns = [col for col in df_negative_stock.columns if col not in default_columns]
                     
                     if all_columns:
                         additional_columns = st.multiselect("Sélectionnez des colonnes supplémentaires à afficher", all_columns, default=[])
                         
                         # Combine default columns with selected additional columns
-                        columns_to_display = default_columns + [col for col in additional_columns if col not in default_columns]
+                        columns_to_display = default_columns + additional_columns
                         
                         st.write("Données du stock négatif:")
                         if not df_negative_stock_display.empty:
