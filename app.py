@@ -277,11 +277,10 @@ if fichier_telecharge is not None:
             buffer = BytesIO()
             with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
                 df.to_excel(writer, index=False, sheet_name='Sheet1')
-                writer.save()
 
             download_file = st.download_button(
                 label="Télécharger les données nettoyées",
-                data=buffer,
+                data=buffer.getvalue(),
                 file_name="donnees_nettoyees.xlsx",
                 mime="application/vnd.ms-excel"
             )
