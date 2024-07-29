@@ -276,17 +276,19 @@ if fichier_telecharge is not None:
                 except Exception as e:
                     st.error(f"Erreur lors de l'analyse SIDAS: {e}")
             
-            with tab6:
-                st.subheader("Valeur Totale du Stock par Fournisseur")
-                try:
-                    total_value_by_supplier = total_stock_value_by_supplier(df)
-                    if not total_value_by_supplier.empty:
-                        st.dataframe(total_value_by_supplier)
-                    else:
-                        st.write("Aucune information disponible pour la valeur totale du stock.")
-                except Exception as e:
-                    st.error(f"Erreur lors du calcul de la valeur totale du stock: {e}")
-
+           with tab6:
+    st.subheader("Valeur Totale du Stock par Fournisseur")
+    try:
+        total_value_by_supplier = total_stock_value_by_supplier(df)
+        if not total_value_by_supplier.empty:
+            st.dataframe(total_value_by_supplier)
+        else:
+            st.write("Aucune information disponible pour la valeur totale du stock.")
     except Exception as e:
+        st.error(f"Erreur lors du calcul de la valeur totale du stock: {e}")
 
-    st.info("Veuillez télécharger un fichier pour commencer l'analyse.")
+# Assurez-vous que ce bloc `except` est à l'intérieur de la structure du code principale
+except Exception as e:
+    st.error(f"Erreur lors du chargement du fichier: {e}")
+
+st.info("Veuillez télécharger un fichier pour commencer l'analyse.")
