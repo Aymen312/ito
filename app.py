@@ -197,4 +197,57 @@ if fichier_telecharge is not None:
                         if not df_femme_filtered.empty:
                             st.dataframe(df_femme_filtered)
                         else:
-                            st.write("Aucune information disponible pour le fournisseur")
+                            st.write("Aucune information disponible pour le fournisseur spécifié pour les femmes.")
+                    except Exception as e:
+                        st.error(f"Erreur lors de l'analyse du fournisseur: {e}")
+            
+            with tab3:
+                # Ask for designation
+                designation = st.text_input("Entrez la désignation (ex: Sneakers, Running):")
+                
+                if designation:
+                    try:
+                        designation = str(designation).strip().upper()  # Convert user input designation to uppercase
+                        
+                        # Filter DataFrame based on user input
+                        df_homme_filtered = display_designation_info(df_homme, designation)
+                        df_femme_filtered = display_designation_info(df_femme, designation)
+                        
+                        # Display filtered information
+                        st.subheader("Informations par Désignation pour Hommes")
+                        if not df_homme_filtered.empty:
+                            st.dataframe(df_homme_filtered)
+                        else:
+                            st.write("Aucune information disponible pour la désignation spécifiée pour les hommes.")
+                        
+                        st.subheader("Informations par Désignation pour Femmes")
+                        if not df_femme_filtered.empty:
+                            st.dataframe(df_femme_filtered)
+                        else:
+                            st.write("Aucune information disponible pour la désignation spécifiée pour les femmes.")
+                    except Exception as e:
+                        st.error(f"Erreur lors de l'analyse de la désignation: {e}")
+
+            with tab4:
+                st.subheader("Stock Négatif")
+                try:
+                    df_negative_stock = filter_negative_stock(df)
+                    if not df_negative_stock.empty:
+                        st.dataframe(df_negative_stock)
+                    else:
+                        st.write("Aucun stock négatif trouvé.")
+                except Exception as e:
+                    st.error(f"Erreur lors de l'analyse du stock négatif: {e}")
+
+            with tab5:
+                st.subheader("Analyse SIDAS")
+                try:
+                    sidas_results = display_sidas_levels(df)
+                    for level, df_sidas in sidas_results.items():
+                        st.subheader(f"Niveaux {level}")
+                        if not df_sidas.empty:
+                            st.dataframe(df_sidas)
+                        else:
+                            st.write(f"Aucune information disponible pour le niveau {level}.")
+                except Exception as e:
+                    st.error(f"Erreur lors de l'analyse SIDAS: {e}")
