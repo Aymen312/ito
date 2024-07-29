@@ -273,18 +273,6 @@ if fichier_telecharge is not None:
                 except Exception as e:
                     st.error(f"Erreur lors du calcul de la valeur totale du stock par fournisseur: {e}")
 
-            # Option to download the cleaned data
-            buffer = BytesIO()
-            with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-                df.to_excel(writer, index=False, sheet_name='Sheet1')
-
-            download_file = st.download_button(
-                label="Télécharger les données nettoyées",
-                data=buffer.getvalue(),
-                file_name="donnees_nettoyees.xlsx",
-                mime="application/vnd.ms-excel"
-            )
-
     except Exception as e:
         st.error(f"Erreur lors du chargement du fichier: {e}")
 else:
