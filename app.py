@@ -183,14 +183,18 @@ if fichier_telecharge is not None:
                         df_homme_filtered = display_supplier_info(df_homme, fournisseur)
                         df_femme_filtered = display_supplier_info(df_femme, fournisseur)
                         
+                        # Sort sizes numerically
+                        df_homme_filtered = sort_sizes(df_homme_filtered)
+                        df_femme_filtered = sort_sizes(df_femme_filtered)
+                        
                         # Display filtered information
-                        st.subheader("Informations du Fournisseur pour Hommes")
+                        st.subheader("Informations sur le Fournisseur pour Hommes")
                         if not df_homme_filtered.empty:
                             st.dataframe(df_homme_filtered)
                         else:
                             st.write("Aucune information disponible pour le fournisseur spécifié pour les hommes.")
                         
-                        st.subheader("Informations du Fournisseur pour Femmes")
+                        st.subheader("Informations sur le Fournisseur pour Femmes")
                         if not df_femme_filtered.empty:
                             st.dataframe(df_femme_filtered)
                         else:
@@ -271,7 +275,7 @@ if fichier_telecharge is not None:
 
             # Option to download the cleaned data
             buffer = BytesIO()
-            with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
+            with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
                 df.to_excel(writer, index=False, sheet_name='Sheet1')
                 writer.save()
 
