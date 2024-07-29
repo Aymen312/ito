@@ -256,10 +256,10 @@ if fichier_telecharge is not None:
                 except Exception as e:
                     st.error(f"Erreur lors de l'analyse SIDAS: {e}")
             
-            with tab6:
-                st.subheader("Valeur Totale du Stock par Fournisseur")
-                try:
-                    total_value_by_supplier = total_stock_value_by_supplier(df)
-                    st.dataframe(total_value_by_supplier)
-                except Exception as e:
-                    st.error(f"Erreur lors du calcul de la valeur totale du stock: {e}")
+      with tab6:
+    st.subheader("Valeur Totale du Stock par Fournisseur")
+    try:
+        total_value_by_supplier = total_stock_value_by_supplier(df)
+        st.dataframe(total_value_by_supplier)
+    except Exception as e:
+        st.error(f"Erreur lors du calcul de la valeur totale du stock: {e}")
