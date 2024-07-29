@@ -218,39 +218,60 @@ if fichier_telecharge is not None:
                             st.write("Aucune information disponible pour la désignation spécifiée pour les femmes.")
                     except Exception as e:
                         st.error(f"Erreur lors de l'analyse de la désignation: {e}")
-            
+
             with tab4:
                 st.subheader("Stock Négatif")
                 try:
                     df_negative_stock = filter_negative_stock(df)
-                    if not df_negative_stock.empty:
-                        additional_columns = st.multiselect("Sélectionnez des colonnes supplémentaires à afficher", df_negative_stock.columns.tolist(), default=['fournisseur', 'barcode', 'couleur', 'taille', 'Qté stock dispo'])
-                        st.dataframe(df_negative_stock[additional_columns])
+                    
+                    # Default columns to display
+                    default_columns = ['fournisseur', 'barcode', 'couleur', 'taille', 'Qté stock dispo']
+                    
+                    # Display default columns
+                    df_negative_stock_display = df_negative_stock[default_columns]
+                    
+                    # Option to select additional columns
+                    all_columns = [col for col in df_negative_stock.columns if col not in default_columns]
+                    
+                    if all_columns:
+                        additional_columns = st.multiselect("Sélectionnez des colonnes supplémentaires à afficher", all_columns, default=[])
+                        
+                        # Combine default columns with selected additional columns
+                        columns_to_display = default_columns + additional_columns
+                        
+                        st.write("Données du stock négatif:")
+                        if not df_negative_stock_display.empty:
+                            st.dataframe(df_negative_stock[columns_to_display])
+                        else:
+                            st.write("Aucun stock négatif trouvé.")
                     else:
-                        st.write("Aucun stock négatif trouvé.")
+                        st.write("Aucune colonne disponible pour la sélection.")
+                        
                 except Exception as e:
-                    st.error(f"Erreur lors de l'analyse du stock négatif: {e}")
+                    st.error(f"Erreur lors de l'affichage du stock négatif: {e}")
             
             with tab5:
-                st.subheader("Analyse SIDAS")
+                st.subheader("Analyse des Niveaux SIDAS")
                 try:
                     sidas_results = display_sidas_levels(df)
-                    for level, df_sidas in sidas_results.items():
-                        st.write(f"#### Niveaux SIDAS: {level}")
-                        st.dataframe(df_sidas)
+                    for level, df_level in sidas_results.items():
+                        st.write(f"Stock pour le niveau {level}:")
+                        if not df_level.empty:
+                            st.dataframe(df_level)
+                        else:
+                            st.write(f"Aucune information disponible pour le niveau {level}.")
                 except Exception as e:
-                    st.error(f"Erreur lors de l'analyse SIDAS: {e}")
+                    st.error(f"Erreur lors de l'analyse des niveaux SIDAS: {e}")
             
             with tab6:
                 st.subheader("Valeur Totale du Stock par Fournisseur")
                 try:
                     total_value_by_supplier = total_stock_value_by_supplier(df)
                     if not total_value_by_supplier.empty:
-                        st.dataframe(total_value_by_supplier)
+                        st.table(total_value_by_supplier)
                     else:
-                        st.write("Aucune information disponible pour la valeur totale du stock par fournisseur.")
+                        st.write("Aucune information disponible sur la valeur totale du stock par fournisseur.")
                 except Exception as e:
                     st.error(f"Erreur lors du calcul de la valeur totale du stock par fournisseur: {e}")
-
-        else:
-            st.write("Aucun fichier chargé.")
+    except Exception as e:
+        st.error(f"Erreur lors du chargement du fichier: {e}")
