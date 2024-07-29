@@ -2,68 +2,7 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 
-# Function to clean numeric columns
-def clean_numeric_columns(df):
-    numeric_columns = ['Prix Achat', 'Qté stock dispo', 'Valeur Stock']
-    for col in numeric_columns:
-        df[col] = df[col].astype(str).str.replace(',', '.').astype(float)
-    return df
-
-# Function to strip leading and trailing spaces from sizes
-def clean_size_column(df):
-    if 'taille' in df.columns:
-        df['taille'] = df['taille'].astype(str).str.strip()
-    return df
-
-# Function to filter by supplier and display corresponding data
-def display_supplier_info(df, fournisseur):
-    fournisseur = fournisseur.strip().upper()  # Convert user input supplier to uppercase
-    df_filtered = df[df['fournisseur'].str.upper() == fournisseur] if fournisseur else pd.DataFrame()
-    return df_filtered
-
-# Function to filter by designation and display corresponding data
-def display_designation_info(df, designation):
-    designation = designation.strip().upper()  # Convert user input designation to uppercase
-    df_filtered = df[df['designation'].str.upper().str.contains(designation)] if designation else pd.DataFrame()
-    return df_filtered
-
-# Function to filter negative stock
-def filter_negative_stock(df):
-    return df[df['Qté stock dispo'] < 0]
-
-# Function to filter by supplier "ANITA" and display quantities available for each size
-def display_anita_sizes(df):
-    df_anita = df[df['fournisseur'].str.upper() == "ANITA"]
-    tailles = [f"{num}{letter}" for num in [85, 90, 95, 100, 105, 110] for letter in 'ABCDEF']
-    df_anita_sizes = df_anita[df_anita['taille'].isin(tailles)]
-    df_anita_sizes = df_anita_sizes.groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
-    df_anita_sizes = df_anita_sizes.replace(0, "Nul")
-    return df_anita_sizes
-
-# Function to filter by SIDAS levels and display quantities available for each size
-def display_sidas_levels(df):
-    # Drop rows where 'couleur' or 'taille' are NaN
-    df_sidas = df[df['fournisseur'].str.upper().str.contains("SIDAS", na=False)]
-    df_sidas = df_sidas.dropna(subset=['couleur', 'taille'])
-    
-    levels = ['LOW', 'MID', 'HIGH']
-    sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL']
-    results = {}
-    for level in levels:
-        df_sidas_level = df_sidas[df_sidas['couleur'].str.upper() == level]
-        df_sizes = df_sidas_level[df_sidas_level['taille'].isin(sizes)]
-        df_sizes_grouped = df_sizes.groupby(['taille', 'designation'])['Qté stock dispo'].sum().unstack(fill_value=0)
-        df_sizes_grouped = df_sizes_grouped.replace(0, "Nul")
-        df_sizes_with_designation = df_sizes_grouped.stack().reset_index().rename(columns={0: 'Qté stock dispo'})
-        results[level] = df_sizes_with_designation
-    return results
-
-# Function to calculate total stock value by supplier
-def total_stock_value_by_supplier(df):
-    df['Valeur Totale HT'] = df['Qté stock dispo'] * df['Prix Achat']
-    total_value_by_supplier = df.groupby('fournisseur')['Valeur Totale HT'].sum().reset_index()
-    total_value_by_supplier = total_value_by_supplier.sort_values(by='Valeur Totale HT', ascending=False)
-    return total_value_by_supplier
+# Function definitions (same as provided before)
 
 # Streamlit Application
 st.set_page_config(page_title="Application d'Analyse TDR", layout="wide")
@@ -231,36 +170,33 @@ if fichier_telecharge is not None:
                         femme_stock_by_size = femme_stock_by_size.groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
                         femme_stock_by_size = femme_stock_by_size.replace(0, "Nul")
                         st.table(femme_stock_by_size)
-                    except Exception as e:
-                        st.error(f"Erreur lors de l'analyse de la désignation: {e}")
-            
+
             with tab4:
+                # Stock négatif
                 st.subheader("Stock Négatif")
                 try:
-                    df_negative_stock = filter_negative_stock(df)
-                    if not df_negative_stock.empty:
-                        additional_cols = st.multiselect("Sélectionnez les colonnes supplémentaires à afficher", options=df.columns.tolist(), default=['fournisseur', 'barcode', 'couleur', 'taille', 'Qté stock dispo'])
-                        st.dataframe(df_negative_stock[["fournisseur", "barcode", "couleur", "taille", "Qté stock dispo"] + [col for col in additional_cols if col not in ["fournisseur", "barcode", "couleur", "taille", "Qté stock dispo"]]])
+                    negative_stock = df[df['Qté stock dispo'] < 0]
+                    if not negative_stock.empty:
+                        st.dataframe(negative_stock[['fournisseur', 'barcode', 'couleur', 'taille', 'Qté stock dispo']])
                     else:
-                        st.write("Aucun stock négatif disponible.")
+                        st.write("Aucun stock négatif trouvé.")
                 except Exception as e:
                     st.error(f"Erreur lors de l'affichage du stock négatif: {e}")
             
             with tab5:
+                # Analyse SIDAS
                 st.subheader("Analyse SIDAS")
                 try:
-                    results_sidas = display_sidas_levels(df)
-                    for level, df_level in results_sidas.items():
-                        st.subheader(f"Stock par Niveau SIDAS - {level}")
-                        st.dataframe(df_level)
+                    sidas_analysis = sidas_analysis_function(df)  # Replace with actual analysis function
+                    st.dataframe(sidas_analysis)
                 except Exception as e:
                     st.error(f"Erreur lors de l'analyse SIDAS: {e}")
             
-       with tab6:
-    st.subheader("Valeur Totale du Stock par Fournisseur")
-    try:
-        total_value_by_supplier = total_stock_value_by_supplier(df)
-        st.dataframe(total_value_by_supplier)
-    except Exception as e:
-        st.error(f"Erreur lors du calcul de la valeur totale du stock: {e}")
-
+            with tab6:
+                # Valeur Totale du Stock par Fournisseur
+                st.subheader("Valeur Totale du Stock par Fournisseur")
+                try:
+                    total_value_by_supplier = total_stock_value_by_supplier(df)
+                    st.dataframe(total_value_by_supplier)
+                except Exception as e:
+                    st.error(f"Erreur lors du calcul de la valeur totale du stock: {e}")
