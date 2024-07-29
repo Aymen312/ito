@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import fitz  # PyMuPDF
 from io import BytesIO
 
 # Function to clean numeric columns
@@ -71,6 +72,31 @@ def sort_sizes(df):
     df = df.sort_values('taille')
     return df
 
+# Function to extract text from PDF
+def extract_text_from_pdf(file):
+    document = fitz.open(file)
+    text = ""
+    for page_num in range(len(document)):
+        page = document.load_page(page_num)
+        text += page.get_text()
+    return text
+
+# Function to convert extracted text to DataFrame (customize as needed)
+def text_to_dataframe(text):
+    # Custom parsing logic depending on PDF content
+    data = {
+        'Column1': [],
+        'Column2': [],
+        'Column3': []
+    }
+    for line in text.splitlines():
+        columns = line.split()
+        if len(columns) == 3:
+            data['Column1'].append(columns[0])
+            data['Column2'].append(columns[1])
+            data['Column3'].append(columns[2])
+    return pd.DataFrame(data)
+
 # Streamlit Application
 st.set_page_config(page_title="Application d'Analyse TDR", layout="wide")
 
@@ -130,20 +156,25 @@ st.markdown("""
 st.title("Application d'Analyse TDR")
 
 st.sidebar.markdown("### Menu")
-st.sidebar.info("Téléchargez un fichier CSV ou Excel pour commencer l'analyse.")
+st.sidebar.info("Téléchargez un fichier CSV, Excel ou PDF pour commencer l'analyse.")
 
 # File upload
-fichier_telecharge = st.file_uploader("Téléchargez un fichier CSV ou Excel", type=['csv', 'xlsx'])
+uploaded_file = st.file_uploader("Téléchargez un fichier CSV, Excel ou PDF", type=['csv', 'xlsx', 'pdf'])
 
-if fichier_telecharge is not None:
-    extension_fichier = fichier_telecharge.name.split('.')[-1]
+if uploaded_file is not None:
+    extension_fichier = uploaded_file.name.split('.')[-1]
     try:
         with st.spinner("Chargement des données..."):
             if extension_fichier == 'csv':
                 # Read CSV with proper encoding and separator
-                df = pd.read_csv(fichier_telecharge, encoding='ISO-8859-1', sep=';')
+                df = pd.read_csv(uploaded_file, encoding='ISO-8859-1', sep=';')
             elif extension_fichier == 'xlsx':
-                df = pd.read_excel(fichier_telecharge)
+                df = pd.read_excel(uploaded_file)
+            elif extension_fichier == 'pdf':
+                # Extract text from PDF
+                text = extract_text_from_pdf(uploaded_file)
+                # Convert text to DataFrame
+                df = text_to_dataframe(text)
             else:
                 st.error("Format de fichier non supporté")
                 df = None
@@ -161,119 +192,4 @@ if fichier_telecharge is not None:
             tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["Analyse ANITA", "Analyse par Fournisseur", "Analyse par Désignation", "Stock Négatif", "Analyse SIDAS", "Valeur Totale du Stock par Fournisseur"])
             
             with tab1:
-                st.subheader("Quantités Disponibles pour chaque Taille - Fournisseur ANITA")
-                try:
-                    df_anita_sizes = display_anita_sizes(df)
-                    if not df_anita_sizes.empty:
-                        st.table(df_anita_sizes)
-                    else:
-                        st.write("Aucune information disponible pour le fournisseur ANITA.")
-                except Exception as e:
-                    st.error(f"Erreur lors de l'analyse des tailles pour ANITA: {e}")
-            
-            with tab2:
-                # Ask for supplier name
-                fournisseur = st.text_input("Entrez le nom du fournisseur:")
-                
-                if fournisseur:
-                    try:
-                        fournisseur = str(fournisseur).strip().upper()  # Convert user input supplier to uppercase
-                        
-                        # Filter DataFrame based on user input
-                        df_homme_filtered = display_supplier_info(df_homme, fournisseur)
-                        df_femme_filtered = display_supplier_info(df_femme, fournisseur)
-                        
-                        # Sort sizes numerically
-                        df_homme_filtered = sort_sizes(df_homme_filtered)
-                        df_femme_filtered = sort_sizes(df_femme_filtered)
-                        
-                        # Display filtered information
-                        st.subheader("Informations sur le Fournisseur pour Hommes")
-                        if not df_homme_filtered.empty:
-                            st.dataframe(df_homme_filtered)
-                        else:
-                            st.write("Aucune information disponible pour le fournisseur spécifié pour les hommes.")
-                        
-                        st.subheader("Informations sur le Fournisseur pour Femmes")
-                        if not df_femme_filtered.empty:
-                            st.dataframe(df_femme_filtered)
-                        else:
-                            st.write("Aucune information disponible pour le fournisseur spécifié pour les femmes.")
-                    except Exception as e:
-                        st.error(f"Erreur lors de l'affichage des informations du fournisseur: {e}")
-            
-            with tab3:
-                # Ask for designation input
-                designation = st.text_input("Entrez la désignation:")
-
-                if designation:
-                    try:
-                        designation = str(designation).strip().upper()  # Convert user input designation to uppercase
-
-                        # Filter DataFrame based on user input
-                        df_homme_filtered = display_designation_info(df_homme, designation)
-                        df_femme_filtered = display_designation_info(df_femme, designation)
-
-                        # Sort sizes numerically
-                        df_homme_filtered = sort_sizes(df_homme_filtered)
-                        df_femme_filtered = sort_sizes(df_femme_filtered)
-                        
-                        # Display filtered information
-                        st.subheader("Informations par Désignation pour Hommes")
-                        if not df_homme_filtered.empty:
-                            st.dataframe(df_homme_filtered)
-                        else:
-                            st.write("Aucune information disponible pour la désignation spécifiée pour les hommes.")
-                        
-                        st.subheader("Informations par Désignation pour Femmes")
-                        if not df_femme_filtered.empty:
-                            st.dataframe(df_femme_filtered)
-                        else:
-                            st.write("Aucune information disponible pour la désignation spécifiée pour les femmes.")
-                    except Exception as e:
-                        st.error(f"Erreur lors de l'affichage des informations par désignation: {e}")
-
-            with tab4:
-                st.subheader("Stock Négatif et Sa Valeur")
-                try:
-                    df_negative_stock = filter_negative_stock(df)
-                    
-                    if not df_negative_stock.empty:
-                        # Display selected columns by default
-                        columns_to_display = ['fournisseur', 'barcode', 'couleur', 'taille', 'Qté stock dispo']
-                        
-                        # Allow user to select additional columns to display
-                        additional_columns = st.multiselect("Sélectionnez des colonnes supplémentaires à afficher", df.columns.difference(columns_to_display))
-                        
-                        columns_to_display.extend(additional_columns)
-                        st.dataframe(df_negative_stock[columns_to_display])
-                    else:
-                        st.write("Aucun stock négatif trouvé.")
-                except Exception as e:
-                    st.error(f"Erreur lors de l'affichage du stock négatif: {e}")
-            
-            with tab5:
-                st.subheader("Analyse des Tailles de Chaussures SIDAS")
-                try:
-                    sidas_results = display_sidas_levels(df)
-                    if sidas_results:
-                        for level, data in sidas_results.items():
-                            st.write(f"Niveau: {level}")
-                            st.dataframe(data)
-                    else:
-                        st.write("Aucune information disponible pour les niveaux SIDAS.")
-                except Exception as e:
-                    st.error(f"Erreur lors de l'analyse des niveaux SIDAS: {e}")
-
-            with tab6:
-                st.subheader("Valeur Totale du Stock par Fournisseur")
-                try:
-                    total_value_by_supplier = total_stock_value_by_supplier(df)
-                    st.dataframe(total_value_by_supplier)
-                except Exception as e:
-                    st.error(f"Erreur lors du calcul de la valeur totale du stock par fournisseur: {e}")
-
-    except Exception as e:
-        st.error(f"Erreur lors du chargement du fichier: {e}")
-else:
-    st.warning("Veuillez télécharger un fichier pour commencer l'analyse.")
+                st.subheader("Quantités
