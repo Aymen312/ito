@@ -212,19 +212,35 @@ if fichier_telecharge is not None:
                     except Exception as e:
                         st.error(f"Erreur lors de l'analyse par fournisseur: {e}")
 
-            with tab3:
-                designation = st.text_input("Entrez la désignation à rechercher:")
-                if designation:
-                    try:
-                        df_designation_filtered = display_designation_info(df, designation)
-                        df_designation_filtered = sort_sizes(df_designation_filtered)
-                        st.subheader("Informations par Désignation")
-                        if not df_designation_filtered.empty:
-                            st.dataframe(df_designation_filtered)
-                        else:
-                            st.write("Aucune information disponible pour la désignation spécifiée.")
-                    except Exception as e:
-                        st.error(f"Erreur lors de l'analyse par désignation: {e}")
+          with tab3:
+    st.subheader("Analyse par Désignation")
+    
+    # Rayon selection
+    rayon = st.selectbox("Sélectionnez le rayon", ['Tous', 'Homme', 'Femme', 'Unisexe'])
+    
+    # Désignation input
+    designation = st.text_input("Entrez la désignation à rechercher:")
+    
+    if designation:
+        try:
+            # Filtrer par rayon
+            if rayon == 'Tous':
+                df_filtered = df
+            else:
+                df_filtered = df[df['rayon'].str.upper() == rayon.upper()]
+            
+            # Filtrer par désignation
+            df_designation_filtered = display_designation_info(df_filtered, designation)
+            df_designation_filtered = sort_sizes(df_designation_filtered)
+            
+            st.subheader("Informations par Désignation")
+            if not df_designation_filtered.empty:
+                st.dataframe(df_designation_filtered)
+            else:
+                st.write("Aucune information disponible pour la désignation spécifiée.")
+        except Exception as e:
+            st.error(f"Erreur lors de l'analyse par désignation: {e}")
+
 
             with tab4:
                 st.subheader("Stock Négatif")
