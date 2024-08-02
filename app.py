@@ -215,11 +215,11 @@ if fichier_telecharge is not None:
             with tab3:
                st.subheader("Analyse par Désignation")
     
-    # Input for designation
-    designation = st.text_input("Entrez la désignation à rechercher:")
+        # Input for designation
+             designation = st.text_input("Entrez la désignation à rechercher:")
     
     # Dropdown for selecting rayon
-    rayon = st.selectbox("Sélectionnez le rayon", ["Tous", "Homme", "Femme", "Unisexe"])
+           rayon = st.selectbox("Sélectionnez le rayon", ["Tous", "Homme", "Femme", "Unisexe"])
     
     if designation:
         try:
