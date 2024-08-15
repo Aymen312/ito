@@ -71,28 +71,6 @@ def sort_sizes(df):
     df = df.sort_values('taille')
     return df
 
-# Function to calculate total trail and running shoes
-def count_shoes_by_type(df):
-    # Convert the designation column to uppercase for consistency
-    df['designation'] = df['designation'].str.upper()
-    
-    # Filter for trail and running shoes
-    df_trail = df[df['designation'].str.contains('TRAIL')]
-    df_running = df[df['designation'].str.contains('RUNNING')]
-    
-    # Calculate totals for men and women
-    trail_homme = df_trail[df_trail['rayon'].str.upper() == 'HOMME']['Qté stock dispo'].sum()
-    trail_femme = df_trail[df_trail['rayon'].str.upper() == 'FEMME']['Qté stock dispo'].sum()
-    running_homme = df_running[df_running['rayon'].str.upper() == 'HOMME']['Qté stock dispo'].sum()
-    running_femme = df_running[df_running['rayon'].str.upper() == 'FEMME']['Qté stock dispo'].sum()
-    
-    return {
-        'trail_homme': trail_homme,
-        'trail_femme': trail_femme,
-        'running_homme': running_homme,
-        'running_femme': running_femme
-    }
-
 # Streamlit Application
 st.set_page_config(page_title="Application d'Analyse TDR", layout="wide")
 
@@ -181,97 +159,133 @@ if fichier_telecharge is not None:
             df_unisexe = df[df['rayon'].str.upper() == 'UNISEXE']
             
             # Tab selection
-            tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
-                "Analyse ANITA", 
-                "Analyse par Fournisseur", 
-                "Analyse par Désignation", 
-                "Stock Négatif", 
-                "Analyse SIDAS", 
-                "Valeur Totale du Stock par Fournisseur", 
-                "Total Chaussures Trail et Running"
-            ])
+            tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["Analyse ANITA", "Analyse par Fournisseur", "Analyse par Désignation", "Stock Négatif", "Analyse SIDAS", "Valeur Totale du Stock par Fournisseur"])
             
             with tab1:
                 st.subheader("Quantités Disponibles pour chaque Taille - Fournisseur ANITA")
                 try:
                     df_anita_sizes = display_anita_sizes(df)
                     if not df_anita_sizes.empty:
-                        df_anita_sizes = sort_sizes(df_anita_sizes)
-                        st.write(df_anita_sizes)
+                        st.table(df_anita_sizes)
                     else:
-                        st.warning("Aucune donnée trouvée pour le fournisseur ANITA")
+                        st.write("Aucune information disponible pour le fournisseur ANITA.")
                 except Exception as e:
                     st.error(f"Erreur lors de l'analyse des tailles pour ANITA: {e}")
-
+            
             with tab2:
-                st.subheader("Analyse par Fournisseur")
-                fournisseur = st.text_input("Entrez le nom du fournisseur")
-                try:
-                    df_filtered = display_supplier_info(df, fournisseur)
-                    if not df_filtered.empty:
-                        st.write(df_filtered)
-                    else:
-                        st.warning("Aucune donnée trouvée pour ce fournisseur")
-                except Exception as e:
-                    st.error(f"Erreur lors de l'analyse par fournisseur: {e}")
+                # Ask for supplier name
+                fournisseur = st.text_input("Entrez le nom du fournisseur:")
+                
+                if fournisseur:
+                    try:
+                        fournisseur = str(fournisseur).strip().upper()  # Convert user input supplier to uppercase
+                        
+                        # Filter DataFrame based on user input
+                        df_homme_filtered = display_supplier_info(df_homme, fournisseur)
+                        df_femme_filtered = display_supplier_info(df_femme, fournisseur)
+                        df_unisexe_filtered = display_supplier_info(df_unisexe, fournisseur)
+                        
+                        # Sort sizes numerically
+                        df_homme_filtered = sort_sizes(df_homme_filtered)
+                        df_femme_filtered = sort_sizes(df_femme_filtered)
+                        df_unisexe_filtered = sort_sizes(df_unisexe_filtered)
+                        
+                        # Display filtered information
+                        st.subheader("Informations sur le Fournisseur pour Hommes")
+                        if not df_homme_filtered.empty:
+                            st.dataframe(df_homme_filtered)
+                        else:
+                            st.write("Aucune information disponible pour le fournisseur spécifié.")
+                        
+                        st.subheader("Informations sur le Fournisseur pour Femmes")
+                        if not df_femme_filtered.empty:
+                            st.dataframe(df_femme_filtered)
+                        else:
+                            st.write("Aucune information disponible pour le fournisseur spécifié.")
+                        
+                        st.subheader("Informations sur le Fournisseur Unisexe")
+                        if not df_unisexe_filtered.empty:
+                            st.dataframe(df_unisexe_filtered)
+                        else:
+                            st.write("Aucune information disponible pour le fournisseur spécifié.")
+                    except Exception as e:
+                        st.error(f"Erreur lors de l'affichage des informations pour le fournisseur: {e}")
 
             with tab3:
-                st.subheader("Analyse par Désignation")
-                designation = st.text_input("Entrez une désignation (ex: Soutien-gorge)")
-                try:
-                    df_filtered_designation = display_designation_info(df, designation)
-                    if not df_filtered_designation.empty:
-                        st.write(df_filtered_designation)
-                    else:
-                        st.warning("Aucune donnée trouvée pour cette désignation")
-                except Exception as e:
-                    st.error(f"Erreur lors de l'analyse par désignation: {e}")
+                # Ask for designation name
+                designation = st.text_input("Entrez la désignation:")
+                
+                if designation:
+                    try:
+                        # Convert designation input to uppercase
+                        designation = str(designation).strip().upper()
+                        
+                        # Filter DataFrame based on user input
+                        df_homme_filtered = display_designation_info(df_homme, designation)
+                        df_femme_filtered = display_designation_info(df_femme, designation)
+                        df_unisexe_filtered = display_designation_info(df_unisexe, designation)
+                        
+                        # Sort sizes numerically
+                        df_homme_filtered = sort_sizes(df_homme_filtered)
+                        df_femme_filtered = sort_sizes(df_femme_filtered)
+                        df_unisexe_filtered = sort_sizes(df_unisexe_filtered)
+                        
+                        # Display filtered information
+                        st.subheader("Informations sur la Désignation pour Hommes")
+                        if not df_homme_filtered.empty:
+                            st.dataframe(df_homme_filtered)
+                        else:
+                            st.write("Aucune information disponible pour la désignation spécifiée.")
+                        
+                        st.subheader("Informations sur la Désignation pour Femmes")
+                        if not df_femme_filtered.empty:
+                            st.dataframe(df_femme_filtered)
+                        else:
+                            st.write("Aucune information disponible pour la désignation spécifiée.")
+                        
+                        st.subheader("Informations sur la Désignation Unisexe")
+                        if not df_unisexe_filtered.empty:
+                            st.dataframe(df_unisexe_filtered)
+                        else:
+                            st.write("Aucune information disponible pour la désignation spécifiée.")
+                    except Exception as e:
+                        st.error(f"Erreur lors de l'affichage des informations pour la désignation: {e}")
 
             with tab4:
-                st.subheader("Produits en Stock Négatif")
+                st.subheader("Stock Négatif")
                 try:
                     df_negative_stock = filter_negative_stock(df)
                     if not df_negative_stock.empty:
-                        st.write(df_negative_stock)
+                        # Display columns fournisseur, barcode, couleur, taille, Qté stock dispo
+                        selected_columns = st.multiselect("Sélectionnez des colonnes supplémentaires à afficher:", df.columns.tolist(), default=['fournisseur', 'barcode', 'couleur', 'taille', 'Qté stock dispo'])
+                        df_selected_columns = df_negative_stock[selected_columns]
+                        st.dataframe(df_selected_columns)
                     else:
-                        st.warning("Aucun produit trouvé avec un stock négatif")
+                        st.write("Aucun stock négatif trouvé.")
                 except Exception as e:
-                    st.error(f"Erreur lors de l'analyse des stocks négatifs: {e}")
+                    st.error(f"Erreur lors de l'analyse du stock négatif: {e}")
 
             with tab5:
-                st.subheader("Quantités Disponibles pour chaque Taille - Fournisseur SIDAS")
+                st.subheader("Analyse des Niveaux SIDAS")
                 try:
-                    df_sidas_levels = display_sidas_levels(df)
-                    if df_sidas_levels:
-                        for level, df_level in df_sidas_levels.items():
-                            with st.expander(f"Niveau {level}"):
-                                st.write(df_level)
+                    sidas_levels_results = display_sidas_levels(df)
+                    if sidas_levels_results:
+                        for level, df_sidas_level in sidas_levels_results.items():
+                            st.subheader(f"Niveau {level}")
+                            st.dataframe(df_sidas_level)
                     else:
-                        st.warning("Aucune donnée trouvée pour le fournisseur SIDAS")
+                        st.write("Aucune information disponible pour les niveaux SIDAS.")
                 except Exception as e:
-                    st.error(f"Erreur lors de l'analyse des niveaux pour SIDAS: {e}")
+                    st.error(f"Erreur lors de l'analyse des niveaux SIDAS: {e}")
 
             with tab6:
                 st.subheader("Valeur Totale du Stock par Fournisseur")
                 try:
-                    df_total_value = total_stock_value_by_supplier(df)
-                    st.write(df_total_value)
+                    total_value_by_supplier = total_stock_value_by_supplier(df)
+                    st.dataframe(total_value_by_supplier)
                 except Exception as e:
                     st.error(f"Erreur lors du calcul de la valeur totale du stock: {e}")
-
-            with tab7:
-                st.subheader("Nombre Total des Chaussures Trail et Running")
-                try:
-                    shoe_counts = count_shoes_by_type(df)
-                    
-                    st.write(f"**Trail Homme :** {shoe_counts['trail_homme']}")
-                    st.write(f"**Trail Femme :** {shoe_counts['trail_femme']}")
-                    st.write(f"**Running Homme :** {shoe_counts['running_homme']}")
-                    st.write(f"**Running Femme :** {shoe_counts['running_femme']}")
-                except Exception as e:
-                    st.error(f"Erreur lors du calcul des totaux pour les chaussures Trail et Running: {e}")
-
     except Exception as e:
-        st.error(f"Erreur lors du chargement du fichier : {e}")
+        st.error(f"Erreur lors du chargement des données: {e}")
 else:
-    st.warning("Veuillez télécharger un fichier pour commencer l'analyse.")
+    st.write("Veuillez télécharger un fichier CSV ou Excel pour commencer l'analyse.") 
