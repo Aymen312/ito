@@ -93,8 +93,8 @@ def display_stock_by_family(df):
 
         if not df_family.empty:
             df_family = sort_sizes(df_family.copy())
-            # Affichage de la colonne 'famille' dans le DataFrame
-            st.dataframe(df_family[['famille', 'fournisseur', 'couleur', 'taille', 'designation', 'marque', 'ssfamille']])
+            # Affichage de la colonne 'rayon' dans le DataFrame
+            st.dataframe(df_family[['rayon', 'fournisseur', 'couleur', 'taille', 'designation', 'marque', 'ssfamille']])
 
             total_stock_filtered = df_family['Qté stock dispo'].sum()
             st.write(f"**Qté dispo totale pour {rayon_filter} : {total_stock_filtered}**")
