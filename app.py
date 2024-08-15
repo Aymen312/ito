@@ -250,9 +250,15 @@ if fichier_telecharge is not None:
                     st.table(df_sizes_with_designation)
                     
             with tab6:
-                st.subheader("Valeur Totale du Stock par Fournisseur")
-                df_total_value_by_supplier = total_stock_value_by_supplier(df)
-                st.dataframe(df_total_value_by_supplier)
+    st.subheader("Valeur Totale du Stock par Fournisseur")
+    df_total_value_by_supplier = total_stock_value_by_supplier(df)
+    
+    # Display the sorted table
+    st.dataframe(df_total_value_by_supplier)
+    
+    # Calculate and display the total sum of all suppliers
+    total_value = df_total_value_by_supplier['Valeur Totale HT'].sum()
+    st.write(f"**Valeur Totale du Stock pour tous les fournisseurs : {total_value:.2f}**")
                 
             with tab7:
                 st.subheader("Stock par Famille")
