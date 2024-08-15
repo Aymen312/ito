@@ -70,33 +70,32 @@ def sort_sizes(df):
     df = df.sort_values('taille')
     return df
 
-# Function to filter by family and rayon, and display stock quantities for each family
-def display_stock_by_family(df):
+# Function to display stock quantities by family and category
+def display_stock_by_family_and_gender(df):
     familles = ["CHAUSSURES RANDO", "CHAUSSURES RUNN", "CHAUSSURE TRAIL"]
     
+    # Filter the DataFrame for the specified families
+    df_filtered = df[df['famille'].str.upper().isin(familles)]
+    
+    # Initialize a dictionary to store dataframes for each family
+    famille_data = {}
+    
     for famille in familles:
-        # Filter the DataFrame for the specified family
-        df_family = df[df['famille'].str.upper() == famille]
+        df_famille = df_filtered[df_filtered['famille'].str.upper() == famille]
         
-        # Calculate total stock quantity for the family
-        qte_totale = df_family['Qté stock dispo'].sum()
-        
-        # Group by the necessary columns and sum the stock quantities
-        df_grouped = df_family.groupby(['fournisseur', 'couleur', 'taille', 'designation', 'marque', 'ssfamille']).agg({'Qté stock dispo': 'sum'}).reset_index()
+        # Separate data by gender
+        df_homme = df_famille[df_famille['rayon'].str.upper() == 'HOMME']
+        df_femme = df_famille[df_famille['rayon'].str.upper() == 'FEMME']
+        df_autre = df_famille[~df_famille['rayon'].str.upper().isin(['HOMME', 'FEMME'])]
 
-        # Create a title with the total quantity
-        st.subheader(f"Stock pour {famille} - Qté dispo totale: {qte_totale}")
-        
-        # Add a filter for 'rayon'
-        rayon_filter = st.multiselect(f"Filtrer par Rayon pour {famille}", options=df_family['rayon'].unique())
-        if rayon_filter:
-            df_grouped = df_grouped[df_grouped['rayon'].isin(rayon_filter)]
-        
-        # Display the filtered data
-        if not df_grouped.empty:
-            st.dataframe(df_grouped)
-        else:
-            st.write(f"Aucune donnée disponible pour {famille}.")
+        # Store dataframes in the dictionary
+        famille_data[famille] = {
+            "HOMME": df_homme,
+            "FEMME": df_femme,
+            "AUTRE": df_autre
+        }
+
+    return famille_data
 
 # Streamlit Application
 st.set_page_config(page_title="Application d'Analyse TDR", layout="wide")
@@ -197,5 +196,77 @@ if fichier_telecharge is not None:
             ])
             
             with tab1:
-                st.subheader("Quantités Disponibles par Taille pour ANITA")
-                df_anita_sizes = display_anita_sizes
+                st.subheader("Quantités Disponibles pour chaque Taille - Fournisseur ANITA")
+                try:
+                    df_anita_sizes = display_anita_sizes(df)
+                    if not df_anita_sizes.empty:
+                        st.table(df_anita_sizes)
+                    else:
+                        st.write("Aucune information disponible pour le fournisseur ANITA.")
+                except Exception as e:
+                    st.error(f"Une erreur s'est produite lors de l'affichage des tailles pour ANITA: {e}")
+            
+            with tab2:
+                st.subheader("Analyse par Fournisseur")
+                fournisseur_input = st.text_input("Entrez le nom du fournisseur", "")
+                df_fournisseur_info = display_supplier_info(df, fournisseur_input)
+                if not df_fournisseur_info.empty:
+                    st.write(f"Quantités disponibles pour le fournisseur: **{fournisseur_input}**")
+                    st.table(df_fournisseur_info)
+                else:
+                    st.write("Aucune information disponible pour ce fournisseur.")
+            
+            with tab3:
+                st.subheader("Analyse par Désignation")
+                designation_input = st.text_input("Entrez la désignation", "")
+                df_designation_info = display_designation_info(df, designation_input)
+                if not df_designation_info.empty:
+                    st.write(f"Quantités disponibles pour la désignation: **{designation_input}**")
+                    st.table(df_designation_info)
+                else:
+                    st.write("Aucune information disponible pour cette désignation.")
+            
+            with tab4:
+                st.subheader("Articles avec Stock Négatif")
+                df_negative_stock = filter_negative_stock(df)
+                if not df_negative_stock.empty:
+                    st.write("Liste des articles avec un stock négatif:")
+                    st.table(df_negative_stock)
+                else:
+                    st.write("Aucun article avec un stock négatif.")
+            
+            with tab5:
+                st.subheader("Analyse des Niveaux SIDAS")
+                try:
+                    df_sidas_levels = display_sidas_levels(df)
+                    for level, df_level in df_sidas_levels.items():
+                        st.write(f"Quantités disponibles pour le niveau: **{level}**")
+                        st.table(df_level)
+                except Exception as e:
+                    st.error(f"Une erreur s'est produite lors de l'analyse des niveaux SIDAS: {e}")
+            
+            with tab6:
+                st.subheader("Valeur Totale du Stock par Fournisseur")
+                df_total_stock_value = total_stock_value_by_supplier(df)
+                st.table(df_total_stock_value)
+            
+            with tab7:
+                st.subheader("Stock par Famille et Genre")
+                famille_data = display_stock_by_family_and_gender(df)
+                
+                for famille, data in famille_data.items():
+                    st.write(f"Stock pour la famille: **{famille}**")
+                    
+                    st.write("Qté dispo totale pour HOMME")
+                    st.table(data["HOMME"][['fournisseur','couleur','taille','designation','marque','ssfamille','Qté stock dispo']])
+                    
+                    st.write("Qté dispo totale pour FEMME")
+                    st.table(data["FEMME"][['fournisseur','couleur','taille','designation','marque','ssfamille','Qté stock dispo']])
+                    
+                    st.write("Qté dispo totale pour AUTRE")
+                    st.table(data["AUTRE"][['fournisseur','couleur','taille','designation','marque','ssfamille','Qté stock dispo']])
+                
+    except Exception as e:
+        st.error(f"Une erreur s'est produite lors du traitement du fichier: {e}")
+else:
+    st.info("Veuillez télécharger un fichier CSV ou Excel pour commencer l'analyse.")
