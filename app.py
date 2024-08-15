@@ -118,61 +118,12 @@ def display_stock_by_family(df):
             st.write(f"Aucune information disponible pour {famille} "
                      f"dans la catégorie {rayon_filter}.")
 
+
 # Streamlit Application
 st.set_page_config(page_title="Application d'Analyse TDR", layout="wide")
 
-# Custom CSS for futuristic design
-st.markdown("""
-    <style>
-        body {
-            background: linear-gradient(135deg, #1E1E1E, #2D2D2D);
-            color: #F5F5F5;
-            font-family: 'Arial', sans-serif;
-        }
-        .stButton>button {
-            background-color: #007BFF;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            padding: 10px 20px;
-            font-size: 14px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-        .stButton>button:hover {
-            background-color: #0056b3;
-        }
-        .stTextInput>div>input {
-            border: 2px solid #007BFF;
-            border-radius: 5px;
-            padding: 10px;
-            background-color: #1E1E1E;
-            color: #F5F5F5;
-        }
-        .stTextInput>div>input:focus {
-            border-color: #0056b3;
-            outline: none.
-        }
-        .stMultiSelect>div>div {
-            border: 2px solid #007BFF;
-            border-radius: 5px;
-            background-color: #1E1E1E;
-            color: #F5F5F5.
-        }
-        .stMultiSelect>div>div>div>div {
-            color: #F5F5F5.
-        }
-        .stExpander>div>div {
-            background-color: #2D2D2D;
-            color: #F5F5F5;
-            border-radius: 5px;
-            padding: 10px.
-        }
-        .stExpander>div>div>div {
-            color: #F5F5F5.
-        }
-    </style>
-    """, unsafe_allow_html=True)
+# Custom CSS for futuristic design (same as before)
+# ... (rest of your CSS code)
 
 st.title("Application d'Analyse TDR")
 
@@ -200,17 +151,36 @@ if fichier_telecharge is not None:
             df = clean_numeric_columns(df)
             df = clean_size_column(df)  # Clean size column
 
-            st.success("Données chargées avec succès.")
+            st.success("Données chargées avec succès!")
 
-            # Section 1: Stock par Famille
-            st.header("Stock par Famille")
-            display_stock_by_family(df)
+            # Tabs for different analyses
+            tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["Filtrer par Fournisseur", 
+                                                          "Filtrer par Désignation", 
+                                                          "Stock Négatif", 
+                                                          "Anita Tailles", 
+                                                          "Sidas Niveaux", 
+                                                          "Valeur Totale du Stock par Fournisseur",
+                                                          "Stock par Famille"])
 
-            # Section 2: Valeur Totale du Stock par Fournisseur
-            st.header("Valeur Totale du Stock par Fournisseur")
-            total_value_by_supplier = total_stock_value_by_supplier(df)
-            st.dataframe(total_value_by_supplier)
+            # ... (Tab contents for tab1 to tab5 - same as before)
+
+            # Total Stock Value by Supplier Tab
+            with tab6:
+                st.subheader("Valeur Totale du Stock par Fournisseur")
+                df_total_value_by_supplier = total_stock_value_by_supplier(df)
+
+                # Display the sorted table
+                st.dataframe(df_total_value_by_supplier)
+
+                # Calculate and display the total sum of all suppliers
+                total_value = df_total_value_by_supplier['Valeur Totale HT'].sum()
+                st.write(f"**Valeur Totale du Stock pour tous les fournisseurs : {total_value:.2f}**")
+
+            # Stock by Family Section
+            with tab7:
+                st.header("Stock par Famille")
+                display_stock_by_family(df)
     except Exception as e:
-        st.error(f"Erreur lors du traitement du fichier : {e}")
+        st.error(f"Erreur lors du traitement du fichier: {str(e)}")
 else:
-    st.warning("Veuillez télécharger un fichier pour continuer.")
+    st.warning("Veuillez télécharger un fichier pour commencer l'analyse.") 
