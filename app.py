@@ -70,29 +70,17 @@ def sort_sizes(df):
     df = df.sort_values('taille')
     return df
 
-# Function to filter by family and rayon, and display stock quantities 
-# with additional columns for Homme, Femme, and Autres
+# Function to filter by family and rayon, and display stock quantities for men and women
 def display_stock_by_family(df):
     familles = ["CHAUSSURES RANDO", "CHAUSSURES RUNN", "CHAUSSURE TRAIL"]
-    additional_columns = ['couleur', 'taille', 'designation', 'ssfamille', 'marque', 'rayon']
     
     # Filter the DataFrame for the specified families
     df_filtered = df[df['famille'].str.upper().isin(familles)]
-
-    # Create separate DataFrames for Homme, Femme, and Autres
-    df_homme = df_filtered[df_filtered['rayon'].str.upper() == 'HOMME']
-    df_femme = df_filtered[df_filtered['rayon'].str.upper() == 'FEMME']
-    df_autres = df_filtered[~df_filtered['rayon'].str.upper().isin(['HOMME', 'FEMME'])]
-
-    # Group each DataFrame by 'famille' and the additional columns, 
-    # then sum the stock quantities
-    df_homme_grouped = df_homme.groupby(['famille'] + additional_columns)['Qté stock dispo'].sum().reset_index()
-    df_femme_grouped = df_femme.groupby(['famille'] + additional_columns)['Qté stock dispo'].sum().reset_index()
-    # Include 'rayon' in the grouping for df_autres_grouped
-    df_autres_grouped = df_autres.groupby(['rayon', 'famille'] + additional_columns)['Qté stock dispo'].sum().reset_index()
     
-    return df_homme_grouped, df_femme_grouped, df_autres_grouped
-
+    # Group by 'rayon' and 'famille', then sum the stock quantities
+    df_grouped = df_filtered.groupby(['rayon', 'famille'])['Qté stock dispo'].sum().reset_index()
+    
+    return df_grouped
 
 # Streamlit Application
 st.set_page_config(page_title="Application d'Analyse TDR", layout="wide")
@@ -313,45 +301,15 @@ if fichier_telecharge is not None:
                     st.error(f"Erreur lors du calcul de la valeur totale du stock: {e}")
 
             with tab7:
-                st.subheader("Quantité de Stock par Famille")
+                st.subheader("Quantité de Stock par Homme et Femme pour CHAUSSURES RANDO, CHAUSSURES RUNN, CHAUSSURE TRAIL")
                 try:
-                    df_homme_grouped, df_femme_grouped, df_autres_grouped = display_stock_by_family(df)
-
-                    if not df_homme_grouped.empty:
-                        st.write("**Stock Homme:**")
-                        st.dataframe(df_homme_grouped)
-                        total_homme = df_homme_grouped['Qté stock dispo'].sum()
-                        st.write(f"**Total Stock Homme: {total_homme}**")
+                    df_stock_by_family = display_stock_by_family(df)
+                    if not df_stock_by_family.empty:
+                        st.dataframe(df_stock_by_family)
                     else:
-                        st.write("Aucune information disponible pour le rayon Homme.")
-
-                    if not df_femme_grouped.empty:
-                        st.write("**Stock Femme:**")
-                        st.dataframe(df_femme_grouped)
-                        total_femme = df_femme_grouped['Qté stock dispo'].sum()
-                        st.write(f"**Total Stock Femme: {total_femme}**")
-                    else:
-                        st.write("Aucune information disponible pour le rayon Femme.")
-
-                    if not df_autres_grouped.empty:
-                        st.write("**Stock Autres Rayons:**")
-                        
-                        # Group by 'rayon' to calculate and display totals for each
-                        for rayon, rayon_df in df_autres_grouped.groupby('rayon'):
-                            st.write(f"**Rayon: {rayon}**")
-                            st.dataframe(rayon_df)
-                            total_rayon = rayon_df['Qté stock dispo'].sum()
-                            st.write(f"**Total Stock {rayon}: {total_rayon}**")
-                            
-                    else:
-                        st.write("Aucune information disponible pour les autres rayons.")
-
-                    # Calculate and display the grand total quantity from the original DataFrame
-                    total_global = df['Qté stock dispo'].sum()
-                    st.write(f"**Total Stock Global: {total_global}**")
-
+                        st.write("Aucune information disponible pour les familles spécifiées.")
                 except Exception as e:
                     st.error(f"Erreur lors de l'affichage du stock par famille: {e}")
 
     except Exception as e:
-        st.error(f"Erreur lors du traitement du fichier: {e}") 
+        st.error(f"Erreur lors du traitement du fichier: {e}")
