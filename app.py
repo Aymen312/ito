@@ -66,13 +66,16 @@ def total_stock_value_by_supplier(df):
 
 # Function to sort sizes numerically
 def sort_sizes(df):
-    df['taille'] = pd.Categorical(df['taille'], categories=sorted(df['taille'].unique(), key=lambda x: (int(x[:-1]), x[-1]) if x[:-1].isdigit() else (float('inf'), x)), ordered=True)
+    df['taille'] = pd.Categorical(df['taille'], 
+                                  categories=sorted(df['taille'].unique(), 
+                                                    key=lambda x: (int(x[:-1]), x[-1]) if x[:-1].isdigit() else (float('inf'), x)), 
+                                  ordered=True)
     df = df.sort_values('taille')
     return df
 
-
-
-  def display_stock_by_family(df):
+# Function to filter by family and rayon, and display stock quantities 
+# for men, women, and other categories with additional columns
+def display_stock_by_family(df):
     familles = ["CHAUSSURES RANDO", "CHAUSSURES RUNN", "CHAUSSURE TRAIL"]
 
     # Create tabs for each family
@@ -90,7 +93,7 @@ def sort_sizes(df):
         if rayon_filter != 'Tous':
             df_family = df_family[df_family['rayon'].str.upper() == rayon_filter.upper()]
 
-        # --- Display the filtered table with specific columns ---
+        # Display the filtered table with specific columns
         if not df_family.empty:
             # Sort by size
             df_family = sort_sizes(df_family.copy())
@@ -103,6 +106,7 @@ def sort_sizes(df):
         else:
             st.write(f"Aucune information disponible pour {famille} "
                      f"dans la catégorie {rayon_filter}.")
+
 
 # Streamlit Application
 st.set_page_config(page_title="Application d'Analyse TDR", layout="wide")
