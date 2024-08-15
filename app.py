@@ -70,28 +70,33 @@ def sort_sizes(df):
     df = df.sort_values('taille')
     return df
 
-# Function to filter by family and rayon, and display stock quantities for men, women, and other categories with additional columns
+# Function to filter by family and rayon, and display stock quantities for each family
 def display_stock_by_family(df):
     familles = ["CHAUSSURES RANDO", "CHAUSSURES RUNN", "CHAUSSURE TRAIL"]
-
-    # Create tabs for each family
+    
     for famille in familles:
-        st.subheader(f"Stock pour {famille}")
-        
         # Filter the DataFrame for the specified family
         df_family = df[df['famille'].str.upper() == famille]
-
-        # Filter options for rayon
-        rayon_filter = st.selectbox(f"Filtrer par Rayon pour {famille}:", options=['Tous', 'Homme', 'Femme', 'Unisexe'], key=f"rayon_{famille}")
         
-        if rayon_filter != 'Tous':
-            df_family = df_family[df_family['rayon'].str.upper() == rayon_filter.upper()]
+        # Calculate total stock quantity for the family
+        qte_totale = df_family['Qté stock dispo'].sum()
+        
+        # Group by the necessary columns and sum the stock quantities
+        df_grouped = df_family.groupby(['fournisseur', 'couleur', 'taille', 'designation', 'marque', 'ssfamille']).agg({'Qté stock dispo': 'sum'}).reset_index()
 
-        # Display the filtered table with additional information
-        if not df_family.empty:
-            st.dataframe(df_family[['designation', 'taille', 'Qté stock dispo', 'Prix Achat', 'Valeur Stock']])
+        # Create a title with the total quantity
+        st.subheader(f"Stock pour {famille} - Qté dispo totale: {qte_totale}")
+        
+        # Add a filter for 'rayon'
+        rayon_filter = st.multiselect(f"Filtrer par Rayon pour {famille}", options=df_family['rayon'].unique())
+        if rayon_filter:
+            df_grouped = df_grouped[df_grouped['rayon'].isin(rayon_filter)]
+        
+        # Display the filtered data
+        if not df_grouped.empty:
+            st.dataframe(df_grouped)
         else:
-            st.write(f"Aucune information disponible pour {famille} dans la catégorie {rayon_filter}.")
+            st.write(f"Aucune donnée disponible pour {famille}.")
 
 # Streamlit Application
 st.set_page_config(page_title="Application d'Analyse TDR", layout="wide")
@@ -193,43 +198,4 @@ if fichier_telecharge is not None:
             
             with tab1:
                 st.subheader("Quantités Disponibles par Taille pour ANITA")
-                df_anita_sizes = display_anita_sizes(df)
-                st.table(df_anita_sizes)
-                
-            with tab2:
-                st.subheader("Recherche par Fournisseur")
-                fournisseur = st.text_input("Entrez le nom du fournisseur", "")
-                if fournisseur:
-                    df_filtered = display_supplier_info(df, fournisseur)
-                    st.dataframe(df_filtered)
-                    
-            with tab3:
-                st.subheader("Recherche par Désignation")
-                designation = st.text_input("Entrez la désignation du produit", "")
-                if designation:
-                    df_filtered = display_designation_info(df, designation)
-                    st.dataframe(df_filtered)
-                    
-            with tab4:
-                st.subheader("Produits avec Stock Négatif")
-                df_negative_stock = filter_negative_stock(df)
-                st.dataframe(df_negative_stock)
-                
-            with tab5:
-                st.subheader("Quantités Disponibles pour SIDAS par Niveau")
-                df_sidas_levels = display_sidas_levels(df)
-                for level, df_sizes_with_designation in df_sidas_levels.items():
-                    st.write(f"Niveau {level}:")
-                    st.table(df_sizes_with_designation)
-                    
-            with tab6:
-                st.subheader("Valeur Totale du Stock par Fournisseur")
-                df_total_value_by_supplier = total_stock_value_by_supplier(df)
-                st.dataframe(df_total_value_by_supplier)
-                
-            with tab7:
-                st.subheader("Stock par Famille")
-                display_stock_by_family(df)
-                
-    except Exception as e:
-        st.error(f"Erreur lors du traitement du fichier: {str(e)}")
+                df_anita_sizes = display_anita_sizes
