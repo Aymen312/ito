@@ -27,9 +27,17 @@ def display_designation_info(df, designation):
     df_filtered = df[df['designation'].str.upper().str.contains(designation)] if designation else pd.DataFrame()
     return df_filtered
 
-# Function to filter negative stock
+# Function to filter negative stock with rayon filter
 def filter_negative_stock(df):
-    return df[df['Qté stock dispo'] < 0]
+    rayons = df['rayon'].str.upper().unique()
+    selected_rayon = st.selectbox("Filtrer par Rayon:", ['Tous'] + list(rayons))
+
+    if selected_rayon == 'Tous':
+        df_filtered = df[df['Qté stock dispo'] < 0]
+    else:
+        df_filtered = df[(df['rayon'].str.upper() == selected_rayon) & (df['Qté stock dispo'] < 0)]
+    
+    return df_filtered
 
 # Function to filter by supplier "ANITA" and display quantities available for each size
 def display_anita_sizes(df):
