@@ -73,36 +73,32 @@ def sort_sizes(df):
     df = df.sort_values('taille')
     return df
 
-# Function to filter by family and rayon, and display stock quantities 
-# for men, women, and other categories with additional columns
+# Function to filter by family and rayon, and display stock quantities
+# for men, women, and other categories (no Unisexe) 
 def display_stock_by_family(df):
     familles = ["CHAUSSURES RANDO", "CHAUSSURES RUNN", "CHAUSSURE TRAIL"]
 
-    # Create tabs for each family
     for famille in familles:
         st.subheader(f"Stock pour {famille}")
         
-        # Filter the DataFrame for the specified family
         df_family = df[df['famille'].str.upper() == famille]
 
-        # Filter options for rayon
+        # Get unique rayons for the selected family, excluding "UNISEXE"
+        rayons = df_family['rayon'].str.upper().unique()
+        rayons = [r for r in rayons if r != "UNISEXE"]
         rayon_filter = st.selectbox(f"Filtrer par Rayon pour {famille}:", 
-                                    options=['Tous', 'Homme', 'Femme', 'Unisexe'], 
+                                    options=['Tous'] + rayons, 
                                     key=f"rayon_{famille}")
         
         if rayon_filter != 'Tous':
             df_family = df_family[df_family['rayon'].str.upper() == rayon_filter.upper()]
 
-        # Display the filtered table with specific columns
         if not df_family.empty:
-            # Sort by size
             df_family = sort_sizes(df_family.copy())
-
-            # Display with selected columns
+            # Exclude "Prix Achat" from the displayed columns
             st.dataframe(df_family[['fournisseur', 'famille', 'rayon', 
                                    'designation', 'taille', 'couleur', 
-                                   'Qté stock dispo', 'Prix Achat', 
-                                   'Valeur Stock']])
+                                   'Qté stock dispo', 'Valeur Stock']])
         else:
             st.write(f"Aucune information disponible pour {famille} "
                      f"dans la catégorie {rayon_filter}.")
