@@ -70,8 +70,9 @@ def sort_sizes(df):
     df = df.sort_values('taille')
     return df
 
-# Function to filter by family and rayon, and display stock quantities for men, women, and other categories with additional columns
-def display_stock_by_family(df):
+
+
+  def display_stock_by_family(df):
     familles = ["CHAUSSURES RANDO", "CHAUSSURES RUNN", "CHAUSSURE TRAIL"]
 
     # Create tabs for each family
@@ -82,16 +83,26 @@ def display_stock_by_family(df):
         df_family = df[df['famille'].str.upper() == famille]
 
         # Filter options for rayon
-        rayon_filter = st.selectbox(f"Filtrer par Rayon pour {famille}:", options=['Tous', 'Homme', 'Femme', 'Unisexe'], key=f"rayon_{famille}")
+        rayon_filter = st.selectbox(f"Filtrer par Rayon pour {famille}:", 
+                                    options=['Tous', 'Homme', 'Femme', 'Unisexe'], 
+                                    key=f"rayon_{famille}")
         
         if rayon_filter != 'Tous':
             df_family = df_family[df_family['rayon'].str.upper() == rayon_filter.upper()]
 
-        # Display the filtered table with additional information
+        # --- Display the filtered table with specific columns ---
         if not df_family.empty:
-            st.dataframe(df_family[['designation', 'taille', 'Qté stock dispo', 'Prix Achat', 'Valeur Stock']])
+            # Sort by size
+            df_family = sort_sizes(df_family.copy())
+
+            # Display with selected columns
+            st.dataframe(df_family[['fournisseur', 'famille', 'rayon', 
+                                   'designation', 'taille', 'couleur', 
+                                   'Qté stock dispo', 'Prix Achat', 
+                                   'Valeur Stock']])
         else:
-            st.write(f"Aucune information disponible pour {famille} dans la catégorie {rayon_filter}.")
+            st.write(f"Aucune information disponible pour {famille} "
+                     f"dans la catégorie {rayon_filter}.")
 
 # Streamlit Application
 st.set_page_config(page_title="Application d'Analyse TDR", layout="wide")
