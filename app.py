@@ -200,72 +200,17 @@ if fichier_telecharge is not None:
             df = clean_numeric_columns(df)
             df = clean_size_column(df)  # Clean size column
 
-            st.success("Données chargées avec succès!")
+            st.success("Données chargées avec succès.")
 
-            # Tabs for different analyses
-            tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["Filtrer par Fournisseur", 
-                                                          "Filtrer par Désignation", 
-                                                          "Stock Négatif", 
-                                                          "Anita Tailles", 
-                                                          "Sidas Niveaux", 
-                                                          "Valeur Totale du Stock par Fournisseur"])
-
-            # Filter by Supplier Tab
-            with tab1:
-                fournisseur = st.text_input("Entrez le nom du fournisseur:")
-                df_filtered = display_supplier_info(df, fournisseur)
-                if not df_filtered.empty:
-                    st.dataframe(df_filtered)
-                else:
-                    st.write("Aucune information disponible pour ce fournisseur.")
-
-            # Filter by Designation Tab
-            with tab2:
-                designation = st.text_input("Entrez la désignation du produit:")
-                df_filtered = display_designation_info(df, designation)
-                if not df_filtered.empty:
-                    st.dataframe(df_filtered)
-                else:
-                    st.write("Aucune information disponible pour cette désignation.")
-
-            # Negative Stock Tab
-            with tab3:
-                df_negative_stock = filter_negative_stock(df)
-                if not df_negative_stock.empty:
-                    st.dataframe(df_negative_stock)
-                else:
-                    st.write("Aucun stock négatif trouvé.")
-
-            # Anita Sizes Tab
-            with tab4:
-                df_anita_sizes = display_anita_sizes(df)
-                st.write("Quantités disponibles pour Anita par taille:")
-                st.dataframe(df_anita_sizes)
-
-            # Sidas Levels Tab
-            with tab5:
-                sidas_results = display_sidas_levels(df)
-                for level, df_level in sidas_results.items():
-                    st.write(f"Quantités disponibles pour SIDAS niveau {level}:")
-                    st.dataframe(df_level)
-
-            # Total Stock Value by Supplier Tab
-            with tab6:
-                st.subheader("Valeur Totale du Stock par Fournisseur")
-                df_total_value_by_supplier = total_stock_value_by_supplier(df)
-
-                # Display the sorted table
-                st.dataframe(df_total_value_by_supplier)
-
-                # Calculate and display the total sum of all suppliers
-                total_value = df_total_value_by_supplier['Valeur Totale HT'].sum()
-                st.write(f"**Valeur Totale du Stock pour tous les fournisseurs : {total_value:.2f}**")
-            
-            # Stock by Family Section
+            # Section 1: Stock par Famille
             st.header("Stock par Famille")
             display_stock_by_family(df)
 
+            # Section 2: Valeur Totale du Stock par Fournisseur
+            st.header("Valeur Totale du Stock par Fournisseur")
+            total_value_by_supplier = total_stock_value_by_supplier(df)
+            st.dataframe(total_value_by_supplier)
     except Exception as e:
-        st.error(f"Erreur lors du traitement du fichier: {str(e)}")
+        st.error(f"Erreur lors du traitement du fichier : {e}")
 else:
-    st.warning("Veuillez télécharger un fichier pour commencer l'analyse.")
+    st.warning("Veuillez télécharger un fichier pour continuer.")
