@@ -2,44 +2,38 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 
-# Function to clean numeric columns
+# --- Fonctions pour le traitement des données ---
+
 def clean_numeric_columns(df):
     numeric_columns = ['Prix Achat', 'Qté stock dispo', 'Valeur Stock']
     for col in numeric_columns:
         df[col] = df[col].astype(str).str.replace(',', '.').astype(float)
     return df
 
-# Function to strip leading and trailing spaces from sizes
 def clean_size_column(df):
     if 'taille' in df.columns:
         df['taille'] = df['taille'].astype(str).str.strip()
     return df
 
-# Function to filter by supplier and display corresponding data
 def display_supplier_info(df, fournisseur):
     fournisseur = fournisseur.strip().upper() 
     df_filtered = df[df['fournisseur'].str.upper() == fournisseur] if fournisseur else pd.DataFrame()
     return df_filtered
 
-# Function to filter by designation and display corresponding data
 def display_designation_info(df, designation):
     designation = designation.strip().upper()  
     df_filtered = df[df['designation'].str.upper().str.contains(designation)] if designation else pd.DataFrame()
     return df_filtered
 
-# Function to filter negative stock with rayon filter
 def filter_negative_stock(df):
     rayons = df['rayon'].str.upper().unique()
     selected_rayon = st.selectbox("Filtrer par Rayon:", ['Tous'] + list(rayons))
-
     if selected_rayon == 'Tous':
         df_filtered = df[df['Qté stock dispo'] < 0]
     else:
         df_filtered = df[(df['rayon'].str.upper() == selected_rayon) & (df['Qté stock dispo'] < 0)]
-    
     return df_filtered
 
-# Function to filter by supplier "ANITA" and display quantities available for each size
 def display_anita_sizes(df):
     df_anita = df[df['fournisseur'].str.upper() == "ANITA"]
     tailles = [f"{num}{letter}" for num in [85, 90, 95, 100, 105, 110] for letter in 'ABCDEF']
@@ -48,11 +42,9 @@ def display_anita_sizes(df):
     df_anita_sizes = df_anita_sizes.replace(0, "Nul")
     return df_anita_sizes
 
-# Function to filter by SIDAS levels and display quantities available for each size
 def display_sidas_levels(df):
     df_sidas = df[df['fournisseur'].str.upper().str.contains("SIDAS", na=False)]
     df_sidas = df_sidas.dropna(subset=['couleur', 'taille'])
-    
     levels = ['LOW', 'MID', 'HIGH']
     sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL']
     results = {}
@@ -65,14 +57,12 @@ def display_sidas_levels(df):
         results[level] = df_sizes_with_designation
     return results
 
-# Function to calculate total stock value by supplier (Sorted in descending order)
 def total_stock_value_by_supplier(df):
     df['Valeur Totale HT'] = df['Qté stock dispo'] * df['Prix Achat']
     total_value_by_supplier = df.groupby('fournisseur')['Valeur Totale HT'].sum().reset_index()
     total_value_by_supplier = total_value_by_supplier.sort_values(by='Valeur Totale HT', ascending=False) 
     return total_value_by_supplier
 
-# Function to sort sizes numerically
 def sort_sizes(df):
     df['taille'] = pd.Categorical(df['taille'], 
                                   categories=sorted(df['taille'].unique(), 
@@ -81,19 +71,14 @@ def sort_sizes(df):
     df = df.sort_values('taille')
     return df
 
-# Function to filter by family and rayon, and display stock quantities
 def display_stock_by_family(df):
     familles = ["CHAUSSURES RANDO", "CHAUSSURES RUNN", "CHAUSSURE TRAIL"]
-
     for famille in familles:
         st.subheader(f"Stock pour {famille}")
-
         df_family = df[df['famille'].str.upper() == famille]
-
         total_stock = df_family['Qté stock dispo'].sum()
         st.write(f"**Qté dispo totale pour {famille} : {total_stock}**") 
 
-        rayons = df_family['rayon'].str.upper().unique()
         rayon_options = ['Tous', 'Homme', 'Femme', 'Autre']
         rayon_filter = st.selectbox(f"Filtrer par Rayon pour {famille}:", 
                                     options=rayon_options, 
@@ -116,22 +101,75 @@ def display_stock_by_family(df):
             st.write(f"Aucune information disponible pour {famille} "
                      f"dans la catégorie {rayon_filter}.")
 
-# Streamlit Application
+# --- Configuration de l'application Streamlit ---
 st.set_page_config(page_title="Application d'Analyse TDR", layout="wide")
 
-# Custom CSS 
-st.markdown("""
+# --- CSS Personnalisé ---
+st.markdown(
+    """
     <style>
-        /* ... (Your CSS code here) */
-    </style>
-    """, unsafe_allow_html=True)
+        /* Styles globaux */
+        body {
+            font-family: 'Arial', sans-serif;
+        }
 
+        /* Styles pour les titres */
+        h1, h2, h3 {
+            color: #337ab7;
+        }
+
+        /* Styles pour les tableaux de données */
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            text-align: left;
+            padding: 8px;
+            border: 1px solid #ddd; 
+        }
+        th {
+            background-color: #f5f5f5;
+        }
+
+        /* Styles pour les messages d'état */
+        .st-success {
+            color: green;
+        }
+        .st-warning {
+            color: orange;
+        }
+        .st-error {
+            color: red;
+        }
+
+        /* Styles pour les onglets */
+        .stTabs [data-baseweb="tab-list"] button {
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            margin-right: 5px;
+            padding: 10px 15px;
+            border-radius: 5px 5px 0 0;
+        }
+        .stTabs [data-baseweb="tab-list"] button:hover {
+            background-color: #e0e0e0;
+        }
+        .stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {
+            background-color: white;
+            border-bottom: none; 
+        }
+
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+# --- Interface principale de l'application ---
 st.title("Application d'Analyse TDR")
 
 st.sidebar.markdown("### Menu")
 st.sidebar.info("Téléchargez un fichier CSV ou Excel pour commencer l'analyse.")
 
-# File upload
 fichier_telecharge = st.file_uploader("Téléchargez un fichier CSV ou Excel", type=['csv', 'xlsx'])
 
 if fichier_telecharge is not None:
