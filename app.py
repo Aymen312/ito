@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 from io import BytesIO
@@ -110,9 +109,13 @@ def display_stock_by_family(df):
         # Display the filtered DataFrame
         if not df_family.empty:
             df_family = sort_sizes(df_family.copy())
-            st.dataframe(df_family[['fournisseur', 'famille', 'rayon', 
-                                   'designation', 'taille', 'couleur', 
-                                   'Qté stock dispo', 'Valeur Stock']])
+            st.dataframe(df_family[['fournisseur', 'couleur', 'taille', 
+                                    'designation', 'marque', 'ssfamille', 
+                                    'Qté stock dispo']])
+
+            # Display total stock for the selected category
+            total_filtered_stock = df_family['Qté stock dispo'].sum()
+            st.write(f"**Total stock pour {rayon_filter} : {total_filtered_stock}**")
         else:
             st.write(f"Aucune information disponible pour {famille} "
                      f"dans la catégorie {rayon_filter}.")
@@ -257,5 +260,3 @@ if fichier_telecharge is not None:
                 
     except Exception as e:
         st.error(f"Erreur lors du traitement du fichier: {str(e)}")
-
-
