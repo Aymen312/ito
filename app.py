@@ -84,7 +84,7 @@ def display_stock_by_family(df):
 
         # Calculate and display the total stock for the family
         total_stock = df_family['Qté stock dispo'].sum()
-        st.write(f"**Total stock : {total_stock}**") 
+        st.write(f"**Qté dispo totale pour {famille} : {total_stock}**") 
 
         # Get unique rayons for the selected family 
         rayons = df_family['rayon'].str.upper().unique()
@@ -109,13 +109,11 @@ def display_stock_by_family(df):
         # Display the filtered DataFrame
         if not df_family.empty:
             df_family = sort_sizes(df_family.copy())
-            st.dataframe(df_family[['fournisseur', 'couleur', 'taille', 
-                                    'designation', 'marque', 'ssfamille', 
-                                    'Qté stock dispo']])
+            st.dataframe(df_family[['fournisseur', 'couleur', 'taille', 'designation', 'marque', 'ssfamille']])
 
-            # Display total stock for the selected category
-            total_filtered_stock = df_family['Qté stock dispo'].sum()
-            st.write(f"**Total stock pour {rayon_filter} : {total_filtered_stock}**")
+            # Calculate and display the total stock for the filtered rayon
+            total_stock_filtered = df_family['Qté stock dispo'].sum()
+            st.write(f"**Qté dispo totale pour {rayon_filter} : {total_stock_filtered}**")
         else:
             st.write(f"Aucune information disponible pour {famille} "
                      f"dans la catégorie {rayon_filter}.")
@@ -153,25 +151,25 @@ st.markdown("""
         }
         .stTextInput>div>input:focus {
             border-color: #0056b3;
-            outline: none;
+            outline: none.
         }
         .stMultiSelect>div>div {
             border: 2px solid #007BFF;
             border-radius: 5px;
             background-color: #1E1E1E;
-            color: #F5F5F5;
+            color: #F5F5F5.
         }
         .stMultiSelect>div>div>div>div {
-            color: #F5F5F5;
+            color: #F5F5F5.
         }
         .stExpander>div>div {
             background-color: #2D2D2D;
             color: #F5F5F5;
             border-radius: 5px;
-            padding: 10px;
+            padding: 10px.
         }
         .stExpander>div>div>div {
-            color: #F5F5F5;
+            color: #F5F5F5.
         }
     </style>
     """, unsafe_allow_html=True)
@@ -202,67 +200,72 @@ if fichier_telecharge is not None:
             df = clean_numeric_columns(df)
             df = clean_size_column(df)  # Clean size column
 
-            # Separate data by gender
-            df_homme = df[df['rayon'].str.upper() == 'HOMME']
-            df_femme = df[df['rayon'].str.upper() == 'FEMME']
-            df_unisexe = df[df['rayon'].str.upper() == 'UNISEXE']
-            
-            # Tab selection
-            tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
-                "Analyse ANITA", 
-                "Analyse par Fournisseur", 
-                "Analyse par Désignation", 
-                "Stock Négatif", 
-                "Analyse SIDAS", 
-                "Valeur Totale du Stock par Fournisseur",
-                "Stock par Famille"
-            ])
-            
+            st.success("Données chargées avec succès!")
+
+            # Tabs for different analyses
+            tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["Filtrer par Fournisseur", 
+                                                          "Filtrer par Désignation", 
+                                                          "Stock Négatif", 
+                                                          "Anita Tailles", 
+                                                          "Sidas Niveaux", 
+                                                          "Valeur Totale du Stock par Fournisseur"])
+
+            # Filter by Supplier Tab
             with tab1:
-                st.subheader("Quantités Disponibles par Taille pour ANITA")
-                df_anita_sizes = display_anita_sizes(df)
-                st.table(df_anita_sizes)
-                
+                fournisseur = st.text_input("Entrez le nom du fournisseur:")
+                df_filtered = display_supplier_info(df, fournisseur)
+                if not df_filtered.empty:
+                    st.dataframe(df_filtered)
+                else:
+                    st.write("Aucune information disponible pour ce fournisseur.")
+
+            # Filter by Designation Tab
             with tab2:
-                st.subheader("Recherche par Fournisseur")
-                fournisseur = st.text_input("Entrez le nom du fournisseur", "")
-                if fournisseur:
-                    df_filtered = display_supplier_info(df, fournisseur)
+                designation = st.text_input("Entrez la désignation du produit:")
+                df_filtered = display_designation_info(df, designation)
+                if not df_filtered.empty:
                     st.dataframe(df_filtered)
-                    
+                else:
+                    st.write("Aucune information disponible pour cette désignation.")
+
+            # Negative Stock Tab
             with tab3:
-                st.subheader("Recherche par Désignation")
-                designation = st.text_input("Entrez la désignation du produit", "")
-                if designation:
-                    df_filtered = display_designation_info(df, designation)
-                    st.dataframe(df_filtered)
-                    
-            with tab4:
-                st.subheader("Produits avec Stock Négatif")
                 df_negative_stock = filter_negative_stock(df)
-                st.dataframe(df_negative_stock)
-                
+                if not df_negative_stock.empty:
+                    st.dataframe(df_negative_stock)
+                else:
+                    st.write("Aucun stock négatif trouvé.")
+
+            # Anita Sizes Tab
+            with tab4:
+                df_anita_sizes = display_anita_sizes(df)
+                st.write("Quantités disponibles pour Anita par taille:")
+                st.dataframe(df_anita_sizes)
+
+            # Sidas Levels Tab
             with tab5:
-                st.subheader("Quantités Disponibles pour SIDAS par Niveau")
-                df_sidas_levels = display_sidas_levels(df)
-                for level, df_sizes_with_designation in df_sidas_levels.items():
-                    st.write(f"Niveau {level}:")
-                    st.table(df_sizes_with_designation)
-                    
+                sidas_results = display_sidas_levels(df)
+                for level, df_level in sidas_results.items():
+                    st.write(f"Quantités disponibles pour SIDAS niveau {level}:")
+                    st.dataframe(df_level)
+
+            # Total Stock Value by Supplier Tab
             with tab6:
-    st.subheader("Valeur Totale du Stock par Fournisseur")
-    df_total_value_by_supplier = total_stock_value_by_supplier(df)
-    
-    # Display the sorted table
-    st.dataframe(df_total_value_by_supplier)
-    
-    # Calculate and display the total sum of all suppliers
-    total_value = df_total_value_by_supplier['Valeur Totale HT'].sum()
-    st.write(f"**Valeur Totale du Stock pour tous les fournisseurs : {total_value:.2f}**")
-                
-            with tab7:
-                st.subheader("Stock par Famille")
-                display_stock_by_family(df)
-                
+                st.subheader("Valeur Totale du Stock par Fournisseur")
+                df_total_value_by_supplier = total_stock_value_by_supplier(df)
+
+                # Display the sorted table
+                st.dataframe(df_total_value_by_supplier)
+
+                # Calculate and display the total sum of all suppliers
+                total_value = df_total_value_by_supplier['Valeur Totale HT'].sum()
+                st.write(f"**Valeur Totale du Stock pour tous les fournisseurs : {total_value:.2f}**")
+            
+            # Stock by Family Section
+            st.header("Stock par Famille")
+            display_stock_by_family(df)
+
     except Exception as e:
         st.error(f"Erreur lors du traitement du fichier: {str(e)}")
+else:
+    st.warning("Veuillez télécharger un fichier pour commencer l'analyse.")
