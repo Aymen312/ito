@@ -203,7 +203,17 @@ st.markdown(
 # --- Interface principale de l'application ---
 st.title("Application d'Analyse TDR")
 
-st.sidebar.markdown("### Menu")
+# --- Barre latérale pour la sélection de la section ---
+st.sidebar.markdown("### Sections")
+afficher_fournisseur = st.sidebar.checkbox("Filtrer par Fournisseur")
+afficher_designation = st.sidebar.checkbox("Filtrer par Désignation")
+afficher_stock_negatif = st.sidebar.checkbox("Stock Négatif")
+afficher_anita_tailles = st.sidebar.checkbox("Anita Tailles")
+afficher_sidas_niveaux = st.sidebar.checkbox("Sidas Niveaux")
+afficher_valeur_totale = st.sidebar.checkbox("Valeur Totale du Stock par Fournisseur")
+afficher_stock_famille = st.sidebar.checkbox("Stock par Famille")
+
+
 st.sidebar.info("Téléchargez un fichier CSV ou Excel pour commencer l'analyse.")
 
 fichier_telecharge = st.file_uploader("Téléchargez un fichier CSV ou Excel", type=['csv', 'xlsx'])
@@ -226,15 +236,9 @@ if fichier_telecharge is not None:
 
             st.success("Données chargées avec succès!")
 
-            tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["Filtrer par Fournisseur", 
-                                                              "Filtrer par Désignation", 
-                                                              "Stock Négatif", 
-                                                              "Anita Tailles", 
-                                                              "Sidas Niveaux", 
-                                                              "Valeur Totale du Stock par Fournisseur",
-                                                              "Stock par Famille"])
-
-            with tab1:
+            # --- Affichage des sections en fonction des choix de l'utilisateur ---
+            if afficher_fournisseur:
+                st.header("Filtrer par Fournisseur")
                 fournisseur = st.text_input("Entrez le nom du fournisseur:")
                 df_filtered = display_supplier_info(df, fournisseur)
                 if not df_filtered.empty:
@@ -242,7 +246,8 @@ if fichier_telecharge is not None:
                 else:
                     st.write("Aucune information disponible pour ce fournisseur.")
 
-            with tab2:
+            if afficher_designation:
+                st.header("Filtrer par Désignation")
                 designation = st.text_input("Entrez la désignation du produit:")
                 df_filtered = display_designation_info(df, designation)
                 if not df_filtered.empty:
@@ -250,32 +255,35 @@ if fichier_telecharge is not None:
                 else:
                     st.write("Aucune information disponible pour cette désignation.")
 
-            with tab3:
+            if afficher_stock_negatif:
+                st.header("Stock Négatif")
                 df_negative_stock = filter_negative_stock(df)
                 if not df_negative_stock.empty:
                     st.dataframe(df_negative_stock)
                 else:
                     st.write("Aucun stock négatif trouvé.")
 
-            with tab4:
+            if afficher_anita_tailles:
+                st.header("Anita Tailles")
                 df_anita_sizes = display_anita_sizes(df)
                 st.write("Quantités disponibles pour Anita par taille:")
                 st.dataframe(df_anita_sizes)
 
-            with tab5:
+            if afficher_sidas_niveaux:
+                st.header("Sidas Niveaux")
                 sidas_results = display_sidas_levels(df)
                 for level, df_level in sidas_results.items():
                     st.write(f"Quantités disponibles pour SIDAS niveau {level}:")
                     st.dataframe(df_level)
 
-            with tab6:
-                st.subheader("Valeur Totale du Stock par Fournisseur")
+            if afficher_valeur_totale:
+                st.header("Valeur Totale du Stock par Fournisseur")
                 df_total_value_by_supplier = total_stock_value_by_supplier(df)
                 st.dataframe(df_total_value_by_supplier)
                 total_value = df_total_value_by_supplier['Valeur Totale HT'].sum()
                 st.write(f"**Valeur Totale du Stock pour tous les fournisseurs : {total_value:.2f}**")
             
-            with tab7:
+            if afficher_stock_famille:
                 st.header("Stock par Famille")
                 display_stock_by_family(df)
 
