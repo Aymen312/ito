@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 from io import BytesIO
@@ -73,13 +74,18 @@ def sort_sizes(df):
     df = df.sort_values('taille')
     return df
 
+# Function to filter by family and rayon, and display stock quantities
 def display_stock_by_family(df):
     familles = ["CHAUSSURES RANDO", "CHAUSSURES RUNN", "CHAUSSURE TRAIL"]
 
     for famille in familles:
         st.subheader(f"Stock pour {famille}")
-        
+
         df_family = df[df['famille'].str.upper() == famille]
+
+        # Calculate and display the total stock for the family
+        total_stock = df_family['Qté stock dispo'].sum()
+        st.write(f"**Total stock : {total_stock}**") 
 
         # Get unique rayons for the selected family 
         rayons = df_family['rayon'].str.upper().unique()
@@ -110,7 +116,6 @@ def display_stock_by_family(df):
         else:
             st.write(f"Aucune information disponible pour {famille} "
                      f"dans la catégorie {rayon_filter}.")
-
 
 # Streamlit Application
 st.set_page_config(page_title="Application d'Analyse TDR", layout="wide")
@@ -252,3 +257,5 @@ if fichier_telecharge is not None:
                 
     except Exception as e:
         st.error(f"Erreur lors du traitement du fichier: {str(e)}")
+
+
