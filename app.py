@@ -73,8 +73,6 @@ def sort_sizes(df):
     df = df.sort_values('taille')
     return df
 
-# Function to filter by family and rayon, and display stock quantities
-# for men, women, and other categories (no Unisexe) 
 def display_stock_by_family(df):
     familles = ["CHAUSSURES RANDO", "CHAUSSURES RUNN", "CHAUSSURE TRAIL"]
 
@@ -83,19 +81,29 @@ def display_stock_by_family(df):
         
         df_family = df[df['famille'].str.upper() == famille]
 
-        # Get unique rayons for the selected family, excluding "UNISEXE"
+        # Get unique rayons for the selected family 
         rayons = df_family['rayon'].str.upper().unique()
-        rayons = [r for r in rayons if r != "UNISEXE"]
+
+        # Options for rayon filter
+        rayon_options = ['Tous', 'Homme', 'Femme', 'Autre']
+
+        # Create the rayon filter selectbox
         rayon_filter = st.selectbox(f"Filtrer par Rayon pour {famille}:", 
-                                    options=['Tous'] + rayons, 
+                                    options=rayon_options, 
                                     key=f"rayon_{famille}")
         
-        if rayon_filter != 'Tous':
+        # Apply filtering based on selected rayon
+        if rayon_filter == 'Tous':
+            # Show all rayons
+            pass 
+        elif rayon_filter in ['Homme', 'Femme']:
             df_family = df_family[df_family['rayon'].str.upper() == rayon_filter.upper()]
+        else:  # rayon_filter == 'Autre'
+            df_family = df_family[~df_family['rayon'].str.upper().isin(['HOMME', 'FEMME'])]
 
+        # Display the filtered DataFrame
         if not df_family.empty:
             df_family = sort_sizes(df_family.copy())
-            # Exclude "Prix Achat" from the displayed columns
             st.dataframe(df_family[['fournisseur', 'famille', 'rayon', 
                                    'designation', 'taille', 'couleur', 
                                    'Qté stock dispo', 'Valeur Stock']])
