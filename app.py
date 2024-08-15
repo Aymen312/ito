@@ -72,34 +72,33 @@ def sort_sizes(df):
     return df
 
 def display_stock_by_family(df):
-    familles = ["CHAUSSURES RANDO", "CHAUSSURES RUNN", "CHAUSSURE TRAIL"]
-    for famille in familles:
-        st.subheader(f"Stock pour {famille}")
-        df_family = df[df['famille'].str.upper() == famille]
+    familles = df['famille'].str.upper().unique()
+    selected_famille = st.selectbox("Sélectionnez une famille:", familles)
+    
+    if selected_famille:
+        st.subheader(f"Stock pour {selected_famille}")
+        df_family = df[df['famille'].str.upper() == selected_famille]
         total_stock = df_family['Qté stock dispo'].sum()
-        st.write(f"**Qté dispo totale pour {famille} : {total_stock}**") 
+        st.write(f"**Qté dispo totale pour {selected_famille} : {total_stock}**")
 
-        rayon_options = ['Tous', 'Homme', 'Femme', 'Autre']
-        rayon_filter = st.selectbox(f"Filtrer par Rayon pour {famille}:", 
+        rayon_options = ['Tous'] + list(df_family['rayon'].str.upper().unique())
+        rayon_filter = st.selectbox(f"Filtrer par Rayon pour {selected_famille}:", 
                                     options=rayon_options, 
-                                    key=f"rayon_{famille}")
+                                    key=f"rayon_{selected_famille}")
         
         if rayon_filter == 'Tous':
             pass 
-        elif rayon_filter in ['Homme', 'Femme']:
-            df_family = df_family[df_family['rayon'].str.upper() == rayon_filter.upper()]
-        else: 
-            df_family = df_family[~df_family['rayon'].str.upper().isin(['HOMME', 'FEMME'])]
+        else:
+            df_family = df_family[df_family['rayon'].str.upper() == rayon_filter]
 
         if not df_family.empty:
             df_family = sort_sizes(df_family.copy())
-            # Affichage de la colonne 'rayon' dans le DataFrame
             st.dataframe(df_family[['rayon', 'fournisseur', 'couleur', 'taille', 'designation', 'marque', 'ssfamille']])
 
             total_stock_filtered = df_family['Qté stock dispo'].sum()
             st.write(f"**Qté dispo totale pour {rayon_filter} : {total_stock_filtered}**")
         else:
-            st.write(f"Aucune information disponible pour {famille} "
+            st.write(f"Aucune information disponible pour {selected_famille} "
                      f"dans la catégorie {rayon_filter}.")
 
 # --- Configuration de l'application Streamlit ---
@@ -203,19 +202,8 @@ st.markdown(
 # --- Interface principale de l'application ---
 st.title("Application d'Analyse TDR")
 
-# --- Barre latérale pour la sélection de la section ---
-st.sidebar.markdown("### Sections")
-afficher_fournisseur = st.sidebar.checkbox("Filtrer par Fournisseur")
-afficher_designation = st.sidebar.checkbox("Filtrer par Désignation")
-afficher_stock_negatif = st.sidebar.checkbox("Stock Négatif")
-afficher_anita_tailles = st.sidebar.checkbox("Anita Tailles")
-afficher_sidas_niveaux = st.sidebar.checkbox("Sidas Niveaux")
-afficher_valeur_totale = st.sidebar.checkbox("Valeur Totale du Stock par Fournisseur")
-afficher_stock_famille = st.sidebar.checkbox("Stock par Famille")
-
-
+# --- Chargement du fichier ---
 st.sidebar.info("Téléchargez un fichier CSV ou Excel pour commencer l'analyse.")
-
 fichier_telecharge = st.file_uploader("Téléchargez un fichier CSV ou Excel", type=['csv', 'xlsx'])
 
 if fichier_telecharge is not None:
@@ -236,56 +224,71 @@ if fichier_telecharge is not None:
 
             st.success("Données chargées avec succès!")
 
-            # --- Affichage des sections en fonction des choix de l'utilisateur ---
-            if afficher_fournisseur:
-                st.header("Filtrer par Fournisseur")
-                fournisseur = st.text_input("Entrez le nom du fournisseur:")
-                df_filtered = display_supplier_info(df, fournisseur)
-                if not df_filtered.empty:
-                    st.dataframe(df_filtered)
-                else:
-                    st.write("Aucune information disponible pour ce fournisseur.")
+            # --- Sélection des analyses ---
+            analyses = [
+                "Filtrer par Fournisseur",
+                "Filtrer par Désignation",
+                "Stock Négatif",
+                "Anita Tailles",
+                "Sidas Niveaux",
+                "Valeur Totale du Stock par Fournisseur",
+                "Stock par Famille"
+            ]
+            selected_analyses = st.sidebar.multiselect(
+                "Sélectionnez les analyses à afficher :", analyses
+            )
 
-            if afficher_designation:
-                st.header("Filtrer par Désignation")
-                designation = st.text_input("Entrez la désignation du produit:")
-                df_filtered = display_designation_info(df, designation)
-                if not df_filtered.empty:
-                    st.dataframe(df_filtered)
-                else:
-                    st.write("Aucune information disponible pour cette désignation.")
+            # --- Affichage des analyses sélectionnées ---
+            for analyse in selected_analyses:
+                if analyse == "Filtrer par Fournisseur":
+                    st.header("Filtrer par Fournisseur")
+                    fournisseur = st.text_input("Entrez le nom du fournisseur:")
+                    df_filtered = display_supplier_info(df, fournisseur)
+                    if not df_filtered.empty:
+                        st.dataframe(df_filtered)
+                    else:
+                        st.write("Aucune information disponible pour ce fournisseur.")
 
-            if afficher_stock_negatif:
-                st.header("Stock Négatif")
-                df_negative_stock = filter_negative_stock(df)
-                if not df_negative_stock.empty:
-                    st.dataframe(df_negative_stock)
-                else:
-                    st.write("Aucun stock négatif trouvé.")
+                elif analyse == "Filtrer par Désignation":
+                    st.header("Filtrer par Désignation")
+                    designation = st.text_input("Entrez la désignation du produit:")
+                    df_filtered = display_designation_info(df, designation)
+                    if not df_filtered.empty:
+                        st.dataframe(df_filtered)
+                    else:
+                        st.write("Aucune information disponible pour cette désignation.")
 
-            if afficher_anita_tailles:
-                st.header("Anita Tailles")
-                df_anita_sizes = display_anita_sizes(df)
-                st.write("Quantités disponibles pour Anita par taille:")
-                st.dataframe(df_anita_sizes)
+                elif analyse == "Stock Négatif":
+                    st.header("Stock Négatif")
+                    df_negative_stock = filter_negative_stock(df)
+                    if not df_negative_stock.empty:
+                        st.dataframe(df_negative_stock)
+                    else:
+                        st.write("Aucun stock négatif trouvé.")
 
-            if afficher_sidas_niveaux:
-                st.header("Sidas Niveaux")
-                sidas_results = display_sidas_levels(df)
-                for level, df_level in sidas_results.items():
-                    st.write(f"Quantités disponibles pour SIDAS niveau {level}:")
-                    st.dataframe(df_level)
+                elif analyse == "Anita Tailles":
+                    st.header("Anita Tailles")
+                    df_anita_sizes = display_anita_sizes(df)
+                    st.write("Quantités disponibles pour Anita par taille:")
+                    st.dataframe(df_anita_sizes)
 
-            if afficher_valeur_totale:
-                st.header("Valeur Totale du Stock par Fournisseur")
-                df_total_value_by_supplier = total_stock_value_by_supplier(df)
-                st.dataframe(df_total_value_by_supplier)
-                total_value = df_total_value_by_supplier['Valeur Totale HT'].sum()
-                st.write(f"**Valeur Totale du Stock pour tous les fournisseurs : {total_value:.2f}**")
-            
-            if afficher_stock_famille:
-                st.header("Stock par Famille")
-                display_stock_by_family(df)
+                elif analyse == "Sidas Niveaux":
+                    st.header("Sidas Niveaux")
+                    sidas_results = display_sidas_levels(df)
+                    for level, df_level in sidas_results.items():
+                        st.write(f"Quantités disponibles pour SIDAS niveau {level}:")
+                        st.dataframe(df_level)
+
+                elif analyse == "Valeur Totale du Stock par Fournisseur":
+                    st.header("Valeur Totale du Stock par Fournisseur")
+                    df_total_value_by_supplier = total_stock_value_by_supplier(df)
+                    st.dataframe(df_total_value_by_supplier)
+                    total_value = df_total_value_by_supplier['Valeur Totale HT'].sum()
+                    st.write(f"**Valeur Totale du Stock pour tous les fournisseurs : {total_value:.2f}**")
+                
+                elif analyse == "Stock par Famille":
+                    st.header("Stock par Famille")
+                    display_stock_by_family(df)
 
     except Exception as e:
         st.error(f"Erreur lors du traitement du fichier: {str(e)}")
