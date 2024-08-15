@@ -102,63 +102,98 @@ def display_stock_by_family(df):
                      f"dans la catégorie {rayon_filter}.")
 
 # --- Configuration de l'application Streamlit ---
-st.set_page_config(page_title="Application d'Analyse TDR", layout="wide")
+st.set_page_config(
+    page_title="Application d'Analyse TDR", 
+    layout="wide",
+    initial_sidebar_state="expanded" 
+)
 
-# --- CSS Personnalisé ---
+# --- CSS Personnalisé pour un style moderne (Material Design) ---
 st.markdown(
     """
     <style>
-        /* Styles globaux */
+        /* --- Importation de la police Roboto (Google Fonts) --- */
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
+        /* --- Styles globaux --- */
         body {
-            font-family: 'Arial', sans-serif;
+            font-family: 'Roboto', sans-serif;
+            background-color: #f5f5f5; /* Gris très clair */
         }
 
-        /* Styles pour les titres */
+        /* --- Titres --- */
         h1, h2, h3 {
-            color: #337ab7;
+            color: #212121; /* Gris foncé */
         }
 
-        /* Styles pour les tableaux de données */
+        /* --- Tableaux de données --- */
         table {
             border-collapse: collapse;
             width: 100%;
+            background-color: white;
+            box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1); /* Ombre subtile */
         }
         th, td {
             text-align: left;
-            padding: 8px;
-            border: 1px solid #ddd; 
+            padding: 12px 16px;
+            border-bottom: 1px solid #EEEEEE; /* Gris très clair */
         }
         th {
-            background-color: #f5f5f5;
+            font-weight: bold;
         }
 
-        /* Styles pour les messages d'état */
+        /* --- Messages d'état --- */
         .st-success {
-            color: green;
+            color: #448a50; /* Vert */
         }
         .st-warning {
-            color: orange;
+            color: #f0ad4e; /* Orange */
         }
         .st-error {
-            color: red;
+            color: #d9534f; /* Rouge */
         }
 
-        /* Styles pour les onglets */
+        /* --- Onglets (style Material Design) --- */
+        .stTabs [data-baseweb="tab-list"] {
+            border-bottom: 2px solid #EEEEEE; /* Gris très clair */
+        }
         .stTabs [data-baseweb="tab-list"] button {
-            background-color: #f0f0f0;
-            border: 1px solid #ccc;
-            margin-right: 5px;
-            padding: 10px 15px;
-            border-radius: 5px 5px 0 0;
+            background-color: transparent;
+            border: none;
+            color: #757575; /* Gris moyen */
+            font-size: 16px;
+            margin-right: 32px;
+            padding: 12px 16px;
+            border-top-left-radius: 4px;
+            border-top-right-radius: 4px;
         }
         .stTabs [data-baseweb="tab-list"] button:hover {
-            background-color: #e0e0e0;
+            color: #212121; /* Gris foncé */
         }
         .stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {
-            background-color: white;
-            border-bottom: none; 
+            color: #2196f3; /* Bleu Material Design */
+            border-bottom: 2px solid #2196f3; /* Bleu Material Design */
         }
 
+        /* --- Boutons --- */
+        .stButton>button {
+            background-color: #2196f3; /* Bleu Material Design */
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .stButton>button:hover {
+            background-color: #1976d2; /* Bleu Material Design plus foncé */
+        }
+
+        /* --- Autres éléments --- */
+        .stSelectbox [data-baseweb="select"] {
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #bdbdbd; /* Gris clair */
+        }
     </style>
     """,
     unsafe_allow_html=True,
