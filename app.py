@@ -17,13 +17,13 @@ def clean_size_column(df):
 
 # Function to filter by supplier and display corresponding data
 def display_supplier_info(df, fournisseur):
-    fournisseur = fournisseur.strip().upper()  # Convert user input supplier to uppercase
+    fournisseur = fournisseur.strip().upper() 
     df_filtered = df[df['fournisseur'].str.upper() == fournisseur] if fournisseur else pd.DataFrame()
     return df_filtered
 
 # Function to filter by designation and display corresponding data
 def display_designation_info(df, designation):
-    designation = designation.strip().upper()  # Convert user input designation to uppercase
+    designation = designation.strip().upper()  
     df_filtered = df[df['designation'].str.upper().str.contains(designation)] if designation else pd.DataFrame()
     return df_filtered
 
@@ -118,12 +118,61 @@ def display_stock_by_family(df):
             st.write(f"Aucune information disponible pour {famille} "
                      f"dans la catégorie {rayon_filter}.")
 
-
 # Streamlit Application
 st.set_page_config(page_title="Application d'Analyse TDR", layout="wide")
 
-# Custom CSS for futuristic design (same as before)
-# ... (rest of your CSS code)
+# Custom CSS for futuristic design
+st.markdown("""
+    <style>
+        body {
+            background: linear-gradient(135deg, #1E1E1E, #2D2D2D);
+            color: #F5F5F5;
+            font-family: 'Arial', sans-serif;
+        }
+        .stButton>button {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .stButton>button:hover {
+            background-color: #0056b3;
+        }
+        .stTextInput>div>input {
+            border: 2px solid #007BFF;
+            border-radius: 5px;
+            padding: 10px;
+            background-color: #1E1E1E;
+            color: #F5F5F5;
+        }
+        .stTextInput>div>input:focus {
+            border-color: #0056b3;
+            outline: none.
+        }
+        .stMultiSelect>div>div {
+            border: 2px solid #007BFF;
+            border-radius: 5px;
+            background-color: #1E1E1E;
+            color: #F5F5F5.
+        }
+        .stMultiSelect>div>div>div>div {
+            color: #F5F5F5.
+        }
+        .stExpander>div>div {
+            background-color: #2D2D2D;
+            color: #F5F5F5;
+            border-radius: 5px;
+            padding: 10px.
+        }
+        .stExpander>div>div>div {
+            color: #F5F5F5.
+        }
+    </style>
+    """, unsafe_allow_html=True)
 
 st.title("Application d'Analyse TDR")
 
@@ -138,7 +187,6 @@ if fichier_telecharge is not None:
     try:
         with st.spinner("Chargement des données..."):
             if extension_fichier == 'csv':
-                # Read CSV with proper encoding and separator
                 df = pd.read_csv(fichier_telecharge, encoding='ISO-8859-1', sep=';')
             elif extension_fichier == 'xlsx':
                 df = pd.read_excel(fichier_telecharge)
@@ -147,40 +195,68 @@ if fichier_telecharge is not None:
                 df = None
 
         if df is not None:
-            # Clean data
             df = clean_numeric_columns(df)
-            df = clean_size_column(df)  # Clean size column
+            df = clean_size_column(df)  
 
             st.success("Données chargées avec succès!")
 
-            # Tabs for different analyses
+            # Separate tabs for "Valeur Totale du Stock par Fournisseur" and "Stock par Famille"
             tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["Filtrer par Fournisseur", 
-                                                          "Filtrer par Désignation", 
-                                                          "Stock Négatif", 
-                                                          "Anita Tailles", 
-                                                          "Sidas Niveaux", 
-                                                          "Valeur Totale du Stock par Fournisseur",
-                                                          "Stock par Famille"])
+                                                              "Filtrer par Désignation", 
+                                                              "Stock Négatif", 
+                                                              "Anita Tailles", 
+                                                              "Sidas Niveaux", 
+                                                              "Valeur Totale du Stock par Fournisseur",
+                                                              "Stock par Famille"])
 
-            # ... (Tab contents for tab1 to tab5 - same as before)
+            with tab1:
+                fournisseur = st.text_input("Entrez le nom du fournisseur:")
+                df_filtered = display_supplier_info(df, fournisseur)
+                if not df_filtered.empty:
+                    st.dataframe(df_filtered)
+                else:
+                    st.write("Aucune information disponible pour ce fournisseur.")
+
+            with tab2:
+                designation = st.text_input("Entrez la désignation du produit:")
+                df_filtered = display_designation_info(df, designation)
+                if not df_filtered.empty:
+                    st.dataframe(df_filtered)
+                else:
+                    st.write("Aucune information disponible pour cette désignation.")
+
+            with tab3:
+                df_negative_stock = filter_negative_stock(df)
+                if not df_negative_stock.empty:
+                    st.dataframe(df_negative_stock)
+                else:
+                    st.write("Aucun stock négatif trouvé.")
+
+            with tab4:
+                df_anita_sizes = display_anita_sizes(df)
+                st.write("Quantités disponibles pour Anita par taille:")
+                st.dataframe(df_anita_sizes)
+
+            with tab5:
+                sidas_results = display_sidas_levels(df)
+                for level, df_level in sidas_results.items():
+                    st.write(f"Quantités disponibles pour SIDAS niveau {level}:")
+                    st.dataframe(df_level)
 
             # Total Stock Value by Supplier Tab
             with tab6:
                 st.subheader("Valeur Totale du Stock par Fournisseur")
                 df_total_value_by_supplier = total_stock_value_by_supplier(df)
-
-                # Display the sorted table
                 st.dataframe(df_total_value_by_supplier)
-
-                # Calculate and display the total sum of all suppliers
                 total_value = df_total_value_by_supplier['Valeur Totale HT'].sum()
                 st.write(f"**Valeur Totale du Stock pour tous les fournisseurs : {total_value:.2f}**")
-
-            # Stock by Family Section
+            
+            # Stock by Family Tab
             with tab7:
                 st.header("Stock par Famille")
                 display_stock_by_family(df)
+
     except Exception as e:
         st.error(f"Erreur lors du traitement du fichier: {str(e)}")
 else:
-    st.warning("Veuillez télécharger un fichier pour commencer l'analyse.") 
+    st.warning("Veuillez télécharger un fichier pour commencer l'analyse.")
