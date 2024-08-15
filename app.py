@@ -70,17 +70,23 @@ def sort_sizes(df):
     df = df.sort_values('taille')
     return df
 
-# Function to filter by family and rayon, and display stock quantities for men and women
 def display_stock_by_family(df):
     familles = ["CHAUSSURES RANDO", "CHAUSSURES RUNN", "CHAUSSURE TRAIL"]
     
     # Filter the DataFrame for the specified families
     df_filtered = df[df['famille'].str.upper().isin(familles)]
+
+    # Create separate DataFrames for Homme, Femme, and other rayons
+    df_homme = df_filtered[df_filtered['rayon'].str.upper() == 'HOMME']
+    df_femme = df_filtered[df_filtered['rayon'].str.upper() == 'FEMME']
+    df_autres = df_filtered[~df_filtered['rayon'].str.upper().isin(['HOMME', 'FEMME'])]
+
+    # Group each DataFrame by 'famille' and sum the stock quantities
+    df_homme_grouped = df_homme.groupby('famille')['Qté stock dispo'].sum().reset_index()
+    df_femme_grouped = df_femme.groupby('famille')['Qté stock dispo'].sum().reset_index()
+    df_autres_grouped = df_autres.groupby('famille')['Qté stock dispo'].sum().reset_index()
     
-    # Group by 'rayon' and 'famille', then sum the stock quantities
-    df_grouped = df_filtered.groupby(['rayon', 'famille'])['Qté stock dispo'].sum().reset_index()
-    
-    return df_grouped
+    return df_homme_grouped, df_femme_grouped, df_autres_grouped
 
 # Streamlit Application
 st.set_page_config(page_title="Application d'Analyse TDR", layout="wide")
@@ -300,16 +306,28 @@ if fichier_telecharge is not None:
                 except Exception as e:
                     st.error(f"Erreur lors du calcul de la valeur totale du stock: {e}")
 
-            with tab7:
-                st.subheader("Quantité de Stock par Homme et Femme pour CHAUSSURES RANDO, CHAUSSURES RUNN, CHAUSSURE TRAIL")
+           with tab7:
+                st.subheader("Quantité de Stock par Famille")
                 try:
-                    df_stock_by_family = display_stock_by_family(df)
-                    if not df_stock_by_family.empty:
-                        st.dataframe(df_stock_by_family)
+                    df_homme_grouped, df_femme_grouped, df_autres_grouped = display_stock_by_family(df)
+
+                    if not df_homme_grouped.empty:
+                        st.write("**Stock Homme:**")
+                        st.dataframe(df_homme_grouped)
                     else:
-                        st.write("Aucune information disponible pour les familles spécifiées.")
+                        st.write("Aucune information disponible pour le rayon Homme.")
+
+                    if not df_femme_grouped.empty:
+                        st.write("**Stock Femme:**")
+                        st.dataframe(df_femme_grouped)
+                    else:
+                        st.write("Aucune information disponible pour le rayon Femme.")
+
+                    if not df_autres_grouped.empty:
+                        st.write("**Stock Autres Rayons:**")
+                        st.dataframe(df_autres_grouped)
+                    else:
+                        st.write("Aucune information disponible pour les autres rayons.")
+
                 except Exception as e:
                     st.error(f"Erreur lors de l'affichage du stock par famille: {e}")
-
-    except Exception as e:
-        st.error(f"Erreur lors du traitement du fichier: {e}")
