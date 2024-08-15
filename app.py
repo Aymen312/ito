@@ -57,11 +57,11 @@ def display_sidas_levels(df):
         results[level] = df_sizes_with_designation
     return results
 
-# Function to calculate total stock value by supplier
+# Function to calculate total stock value by supplier (Sorted in descending order)
 def total_stock_value_by_supplier(df):
     df['Valeur Totale HT'] = df['Qté stock dispo'] * df['Prix Achat']
     total_value_by_supplier = df.groupby('fournisseur')['Valeur Totale HT'].sum().reset_index()
-    total_value_by_supplier = total_value_by_supplier.sort_values(by='Valeur Totale HT', ascending=False)
+    total_value_by_supplier = total_value_by_supplier.sort_values(by='Valeur Totale HT', ascending=False) 
     return total_value_by_supplier
 
 # Function to sort sizes numerically
@@ -82,36 +82,26 @@ def display_stock_by_family(df):
 
         df_family = df[df['famille'].str.upper() == famille]
 
-        # Calculate and display the total stock for the family
         total_stock = df_family['Qté stock dispo'].sum()
         st.write(f"**Qté dispo totale pour {famille} : {total_stock}**") 
 
-        # Get unique rayons for the selected family 
         rayons = df_family['rayon'].str.upper().unique()
-
-        # Options for rayon filter
         rayon_options = ['Tous', 'Homme', 'Femme', 'Autre']
-
-        # Create the rayon filter selectbox
         rayon_filter = st.selectbox(f"Filtrer par Rayon pour {famille}:", 
                                     options=rayon_options, 
                                     key=f"rayon_{famille}")
         
-        # Apply filtering based on selected rayon
         if rayon_filter == 'Tous':
-            # Show all rayons
             pass 
         elif rayon_filter in ['Homme', 'Femme']:
             df_family = df_family[df_family['rayon'].str.upper() == rayon_filter.upper()]
-        else:  # rayon_filter == 'Autre'
+        else: 
             df_family = df_family[~df_family['rayon'].str.upper().isin(['HOMME', 'FEMME'])]
 
-        # Display the filtered DataFrame
         if not df_family.empty:
             df_family = sort_sizes(df_family.copy())
             st.dataframe(df_family[['fournisseur', 'couleur', 'taille', 'designation', 'marque', 'ssfamille']])
 
-            # Calculate and display the total stock for the filtered rayon
             total_stock_filtered = df_family['Qté stock dispo'].sum()
             st.write(f"**Qté dispo totale pour {rayon_filter} : {total_stock_filtered}**")
         else:
@@ -121,56 +111,10 @@ def display_stock_by_family(df):
 # Streamlit Application
 st.set_page_config(page_title="Application d'Analyse TDR", layout="wide")
 
-# Custom CSS for futuristic design
+# Custom CSS 
 st.markdown("""
     <style>
-        body {
-            background: linear-gradient(135deg, #1E1E1E, #2D2D2D);
-            color: #F5F5F5;
-            font-family: 'Arial', sans-serif;
-        }
-        .stButton>button {
-            background-color: #007BFF;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            padding: 10px 20px;
-            font-size: 14px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-        .stButton>button:hover {
-            background-color: #0056b3;
-        }
-        .stTextInput>div>input {
-            border: 2px solid #007BFF;
-            border-radius: 5px;
-            padding: 10px;
-            background-color: #1E1E1E;
-            color: #F5F5F5;
-        }
-        .stTextInput>div>input:focus {
-            border-color: #0056b3;
-            outline: none.
-        }
-        .stMultiSelect>div>div {
-            border: 2px solid #007BFF;
-            border-radius: 5px;
-            background-color: #1E1E1E;
-            color: #F5F5F5.
-        }
-        .stMultiSelect>div>div>div>div {
-            color: #F5F5F5.
-        }
-        .stExpander>div>div {
-            background-color: #2D2D2D;
-            color: #F5F5F5;
-            border-radius: 5px;
-            padding: 10px.
-        }
-        .stExpander>div>div>div {
-            color: #F5F5F5.
-        }
+        /* ... (Your CSS code here) */
     </style>
     """, unsafe_allow_html=True)
 
@@ -200,7 +144,6 @@ if fichier_telecharge is not None:
 
             st.success("Données chargées avec succès!")
 
-            # Separate tabs for "Valeur Totale du Stock par Fournisseur" and "Stock par Famille"
             tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["Filtrer par Fournisseur", 
                                                               "Filtrer par Désignation", 
                                                               "Stock Négatif", 
@@ -243,7 +186,6 @@ if fichier_telecharge is not None:
                     st.write(f"Quantités disponibles pour SIDAS niveau {level}:")
                     st.dataframe(df_level)
 
-            # Total Stock Value by Supplier Tab
             with tab6:
                 st.subheader("Valeur Totale du Stock par Fournisseur")
                 df_total_value_by_supplier = total_stock_value_by_supplier(df)
@@ -251,7 +193,6 @@ if fichier_telecharge is not None:
                 total_value = df_total_value_by_supplier['Valeur Totale HT'].sum()
                 st.write(f"**Valeur Totale du Stock pour tous les fournisseurs : {total_value:.2f}**")
             
-            # Stock by Family Tab
             with tab7:
                 st.header("Stock par Famille")
                 display_stock_by_family(df)
