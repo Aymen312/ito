@@ -70,6 +70,7 @@ def sort_sizes(df):
     df = df.sort_values('taille')
     return df
 
+# Function to filter by family and rayon, and display stock quantities for men, women, and others
 def display_stock_by_family(df):
     familles = ["CHAUSSURES RANDO", "CHAUSSURES RUNN", "CHAUSSURE TRAIL"]
     
@@ -87,6 +88,7 @@ def display_stock_by_family(df):
     df_autres_grouped = df_autres.groupby('famille')['Qté stock dispo'].sum().reset_index()
     
     return df_homme_grouped, df_femme_grouped, df_autres_grouped
+
 
 # Streamlit Application
 st.set_page_config(page_title="Application d'Analyse TDR", layout="wide")
@@ -306,7 +308,7 @@ if fichier_telecharge is not None:
                 except Exception as e:
                     st.error(f"Erreur lors du calcul de la valeur totale du stock: {e}")
 
-           with tab7:
+            with tab7:
                 st.subheader("Quantité de Stock par Famille")
                 try:
                     df_homme_grouped, df_femme_grouped, df_autres_grouped = display_stock_by_family(df)
@@ -331,3 +333,6 @@ if fichier_telecharge is not None:
 
                 except Exception as e:
                     st.error(f"Erreur lors de l'affichage du stock par famille: {e}")
+
+    except Exception as e:
+        st.error(f"Erreur lors du traitement du fichier: {e}") 
