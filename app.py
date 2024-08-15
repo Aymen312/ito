@@ -88,7 +88,8 @@ def display_stock_by_family(df):
     # then sum the stock quantities
     df_homme_grouped = df_homme.groupby(['famille'] + additional_columns)['Qté stock dispo'].sum().reset_index()
     df_femme_grouped = df_femme.groupby(['famille'] + additional_columns)['Qté stock dispo'].sum().reset_index()
-    df_autres_grouped = df_autres.groupby(['famille'] + additional_columns)['Qté stock dispo'].sum().reset_index()
+    # Include 'rayon' in the grouping for df_autres_grouped
+    df_autres_grouped = df_autres.groupby(['rayon', 'famille'] + additional_columns)['Qté stock dispo'].sum().reset_index()
     
     return df_homme_grouped, df_femme_grouped, df_autres_grouped
 
@@ -334,11 +335,20 @@ if fichier_telecharge is not None:
 
                     if not df_autres_grouped.empty:
                         st.write("**Stock Autres Rayons:**")
-                        st.dataframe(df_autres_grouped)
-                        total_autres = df_autres_grouped['Qté stock dispo'].sum()
-                        st.write(f"**Total Stock Autres Rayons: {total_autres}**")
+                        
+                        # Group by 'rayon' to calculate and display totals for each
+                        for rayon, rayon_df in df_autres_grouped.groupby('rayon'):
+                            st.write(f"**Rayon: {rayon}**")
+                            st.dataframe(rayon_df)
+                            total_rayon = rayon_df['Qté stock dispo'].sum()
+                            st.write(f"**Total Stock {rayon}: {total_rayon}**")
+                            
                     else:
                         st.write("Aucune information disponible pour les autres rayons.")
+
+                    # Calculate and display the grand total quantity from the original DataFrame
+                    total_global = df['Qté stock dispo'].sum()
+                    st.write(f"**Total Stock Global: {total_global}**")
 
                 except Exception as e:
                     st.error(f"Erreur lors de l'affichage du stock par famille: {e}")
