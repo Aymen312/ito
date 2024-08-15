@@ -92,6 +92,7 @@ def display_stock_by_family(df):
     
     return df_homme_grouped, df_femme_grouped, df_autres_grouped
 
+
 # Streamlit Application
 st.set_page_config(page_title="Application d'Analyse TDR", layout="wide")
 
@@ -318,18 +319,24 @@ if fichier_telecharge is not None:
                     if not df_homme_grouped.empty:
                         st.write("**Stock Homme:**")
                         st.dataframe(df_homme_grouped)
+                        total_homme = df_homme_grouped['Qté stock dispo'].sum()
+                        st.write(f"**Total Stock Homme: {total_homme}**")
                     else:
                         st.write("Aucune information disponible pour le rayon Homme.")
 
                     if not df_femme_grouped.empty:
                         st.write("**Stock Femme:**")
                         st.dataframe(df_femme_grouped)
+                        total_femme = df_femme_grouped['Qté stock dispo'].sum()
+                        st.write(f"**Total Stock Femme: {total_femme}**")
                     else:
                         st.write("Aucune information disponible pour le rayon Femme.")
 
                     if not df_autres_grouped.empty:
                         st.write("**Stock Autres Rayons:**")
                         st.dataframe(df_autres_grouped)
+                        total_autres = df_autres_grouped['Qté stock dispo'].sum()
+                        st.write(f"**Total Stock Autres Rayons: {total_autres}**")
                     else:
                         st.write("Aucune information disponible pour les autres rayons.")
 
