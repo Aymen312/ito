@@ -8,6 +8,7 @@ def clean_numeric_columns(df):
     for col in numeric_columns:
         df[col] = df[col].astype(str).str.replace(',', '.').astype(float)
     return df
+    
 
 # Function to strip leading and trailing spaces from sizes
 def clean_size_column(df):
@@ -57,6 +58,28 @@ def display_sidas_levels(df):
         df_sizes_with_designation = df_sizes_grouped.stack().reset_index().rename(columns={0: 'Qté stock dispo'})
         results[level] = df_sizes_with_designation
     return results
+
+# Function to calculate total trail and running shoes
+def count_shoes_by_type(df):
+    # Convert the designation column to uppercase for consistency
+    df['designation'] = df['designation'].str.upper()
+    
+    # Filter for trail and running shoes
+    df_trail = df[df['designation'].str.contains('TRAIL')]
+    df_running = df[df['designation'].str.contains('RUNNING')]
+    
+    # Calculate totals for men and women
+    trail_homme = df_trail[df_trail['rayon'].str.upper() == 'HOMME']['Qté stock dispo'].sum()
+    trail_femme = df_trail[df_trail['rayon'].str.upper() == 'FEMME']['Qté stock dispo'].sum()
+    running_homme = df_running[df_running['rayon'].str.upper() == 'HOMME']['Qté stock dispo'].sum()
+    running_femme = df_running[df_running['rayon'].str.upper() == 'FEMME']['Qté stock dispo'].sum()
+    
+    return {
+        'trail_homme': trail_homme,
+        'trail_femme': trail_femme,
+        'running_homme': running_homme,
+        'running_femme': running_femme
+    }
 
 # Function to calculate total stock value by supplier
 def total_stock_value_by_supplier(df):
@@ -158,8 +181,15 @@ if fichier_telecharge is not None:
             df_femme = df[df['rayon'].str.upper() == 'FEMME']
             df_unisexe = df[df['rayon'].str.upper() == 'UNISEXE']
             
-            # Tab selection
-            tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["Analyse ANITA", "Analyse par Fournisseur", "Analyse par Désignation", "Stock Négatif", "Analyse SIDAS", "Valeur Totale du Stock par Fournisseur"])
+            tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+    "Analyse ANITA", 
+    "Analyse par Fournisseur", 
+    "Analyse par Désignation", 
+    "Stock Négatif", 
+    "Analyse SIDAS", 
+    "Valeur Totale du Stock par Fournisseur", 
+    "Total Chaussures Trail et Running"
+])
             
             with tab1:
                 st.subheader("Quantités Disponibles pour chaque Taille - Fournisseur ANITA")
@@ -289,3 +319,15 @@ if fichier_telecharge is not None:
         st.error(f"Erreur lors du chargement des données: {e}")
 else:
     st.write("Veuillez télécharger un fichier CSV ou Excel pour commencer l'analyse.")
+
+with tab7:
+    st.subheader("Nombre Total des Chaussures Trail et Running")
+    try:
+        shoe_counts = count_shoes_by_type(df)
+        
+        st.write(f"**Trail Homme :** {shoe_counts['trail_homme']}")
+        st.write(f"**Trail Femme :** {shoe_counts['trail_femme']}")
+        st.write(f"**Running Homme :** {shoe_counts['running_homme']}")
+        st.write(f"**Running Femme :** {shoe_counts['running_femme']}")
+    except Exception as e:
+        st.error(f"Erreur lors du calcul des totaux pour les chaussures Trail et Running: {e}")
