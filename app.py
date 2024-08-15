@@ -20,7 +20,10 @@ def display_supplier_info(df, fournisseur):
     fournisseur = fournisseur.strip().upper()  # Convert user input supplier to uppercase
     df_filtered = df[df['fournisseur'].str.upper() == fournisseur] if fournisseur else pd.DataFrame()
     return df_filtered
-
+# Calculate total trail and running shoes
+df['type'] = df['designation'].apply(lambda x: 'Trail' if 'Trail' in x.upper() else 'Running')  # Categorize based on designation
+total_trail_shoes = df.groupby(['type', 'rayon'])['designation'].count().unstack(fill_value=0)
+total_running_shoes = df.groupby(['type', 'rayon'])['designation'].count().unstack(fill_value=0)
 # Function to filter by designation and display corresponding data
 def display_designation_info(df, designation):
     designation = designation.strip().upper()  # Convert user input designation to uppercase
@@ -279,6 +282,13 @@ if fichier_telecharge is not None:
                     st.error(f"Erreur lors de l'analyse des niveaux SIDAS: {e}")
 
             with tab6:
+    # ... (Existing code) ...
+    st.subheader("Total Trail Shoes")
+    st.dataframe(total_trail_shoes)
+    st.subheader("Total Running Shoes")
+    st.dataframe(total_running_shoes)
+
+            with tab7:
                 st.subheader("Valeur Totale du Stock par Fournisseur")
                 try:
                     total_value_by_supplier = total_stock_value_by_supplier(df)
