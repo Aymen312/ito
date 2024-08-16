@@ -2,6 +2,10 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 
+# Colonnes à afficher dans tous les tableaux de données
+COLONNES_A_AFFICHER = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 
+                     'rayon', 'marque', 'famille', 'Qté stock dispo']
+
 # --- Fonctions pour le traitement des données ---
 
 def clean_numeric_columns(df):
@@ -18,12 +22,12 @@ def clean_size_column(df):
 def display_supplier_info(df, fournisseur):
     fournisseur = fournisseur.strip().upper()
     df_filtered = df[df['fournisseur'].str.upper() == fournisseur] if fournisseur else pd.DataFrame()
-    return df_filtered
+    return df_filtered[COLONNES_A_AFFICHER]
 
 def display_designation_info(df, designation):
     designation = designation.strip().upper()
     df_filtered = df[df['designation'].str.upper().str.contains(designation)] if designation else pd.DataFrame()
-    return df_filtered
+    return df_filtered[COLONNES_A_AFFICHER]
 
 def filter_negative_stock(df):
     rayons = df['rayon'].str.upper().unique()
@@ -32,7 +36,7 @@ def filter_negative_stock(df):
         df_filtered = df[df['Qté stock dispo'] < 0]
     else:
         df_filtered = df[(df['rayon'].str.upper() == selected_rayon) & (df['Qté stock dispo'] < 0)]
-    return df_filtered
+    return df_filtered[COLONNES_A_AFFICHER]
 
 def display_anita_sizes(df):
     df_anita = df[df['fournisseur'].str.upper() == "ANITA"]
@@ -40,7 +44,7 @@ def display_anita_sizes(df):
     df_anita_sizes = df_anita[df_anita['taille'].isin(tailles)]
     df_anita_sizes = df_anita_sizes.groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
     df_anita_sizes = df_anita_sizes.replace(0, "Nul")
-    return df_anita_sizes
+    return df_anita_sizes.to_frame().reset_index()
 
 def display_sidas_levels(df):
     df_sidas = df[df['fournisseur'].str.upper().str.contains("SIDAS", na=False)]
@@ -54,7 +58,7 @@ def display_sidas_levels(df):
         df_sizes_grouped = df_sizes.groupby(['taille', 'designation'])['Qté stock dispo'].sum().unstack(fill_value=0)
         df_sizes_grouped = df_sizes_grouped.replace(0, "Nul")
         df_sizes_with_designation = df_sizes_grouped.stack().reset_index().rename(columns={0: 'Qté stock dispo'})
-        results[level] = df_sizes_with_designation
+        results[level] = df_sizes_with_designation[COLONNES_A_AFFICHER + ['taille']] # Sélection des colonnes + 'taille'
     return results
 
 def total_stock_value_by_supplier(df):
@@ -77,9 +81,7 @@ def display_stock_by_family(df):
         st.subheader(f"Stock pour {famille}")
         df_family = df[df['famille'].str.upper() == famille]
         total_stock = df_family['Qté stock dispo'].sum()
-
-        # Afficher la quantité totale en gras
-        st.markdown(f"**Qté dispo totale pour {famille} : {total_stock}**") 
+        st.markdown(f"**Qté dispo totale pour {famille} : {total_stock}**")
 
         rayon_options = ['Tous', 'Homme', 'Femme', 'Autre']
         rayon_filter = st.selectbox(f"Filtrer par Rayon pour {famille}:", 
@@ -95,8 +97,7 @@ def display_stock_by_family(df):
 
         if not df_family.empty:
             df_family = sort_sizes(df_family.copy())
-            st.dataframe(df_family[['rayon', 'fournisseur', 'couleur', 'taille', 'designation', 'marque', 'ssfamille']])
-
+            st.dataframe(df_family[COLONNES_A_AFFICHER]) 
             total_stock_filtered = df_family['Qté stock dispo'].sum()
             st.markdown(f"**Qté dispo totale pour {rayon_filter} : {total_stock_filtered}**")
         else:
