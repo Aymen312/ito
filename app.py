@@ -101,32 +101,37 @@ def display_stock_by_family(df):
         st.markdown(f"**Qté dispo totale pour {famille} : {total_stock}**")
         st.markdown(f"**Valeur totale du stock pour {famille} : {total_stock_value:.2f}**")
 
+        # --- Filtres par Rayon (Homme, Femme, Autre) ---
         rayon_options = ['Tous', 'Homme', 'Femme', 'Autre']
         rayon_filter = st.selectbox(f"Filtrer par Rayon pour {famille}:",
                                     options=rayon_options,
                                     key=f"rayon_{famille}")
 
         if rayon_filter == 'Tous':
-            pass
-        elif rayon_filter in ['Homme', 'Femme']:
-            # Gérer les NaN dans la colonne 'rayon'
-            df_family['rayon'] = df_family['rayon'].fillna('')
-            df_family = df_family[df_family['rayon'].str.upper() == rayon_filter.upper()]
+            df_filtered = df_family.copy()  # Afficher toutes les données
         else:
-            df_family['rayon'] = df_family['rayon'].fillna('')
-            df_family = df_family[~df_family['rayon'].str.upper().isin(['HOMME', 'FEMME'])]
+            df_filtered = df_family[df_family['rayon'].str.upper() == rayon_filter.upper()]
 
-        if not df_family.empty:
-            df_family = sort_sizes(df_family.copy())
-            st.dataframe(df_family[['rayon', 'fournisseur', 'couleur', 'taille', 'designation', 'marque', 'ssfamille', 'Qté stock dispo', 'Valeur Stock']])
+        # --- Affichage des tableaux ---
+        if not df_filtered.empty:
+            # --- Tri des tailles ---
+            df_filtered = sort_sizes(df_filtered.copy())
+            
+            if rayon_filter == 'Homme':
+                st.subheader("Tableau Homme")
+            elif rayon_filter == 'Femme':
+                st.subheader("Tableau Femme")
+            elif rayon_filter == 'Autre':
+                st.subheader("Tableau Autre")
 
-            total_stock_filtered = df_family['Qté stock dispo'].sum()
-            total_stock_value_filtered = df_family['Valeur Stock'].sum()
+            st.dataframe(df_filtered[['rayon', 'fournisseur', 'couleur', 'taille', 'designation', 'marque', 'ssfamille', 'Qté stock dispo', 'Valeur Stock']])
+
+            total_stock_filtered = df_filtered['Qté stock dispo'].sum()
+            total_stock_value_filtered = df_filtered['Valeur Stock'].sum()
             st.markdown(f"**Qté dispo totale pour {rayon_filter} : {total_stock_filtered}**")
             st.markdown(f"**Valeur totale du stock pour {rayon_filter} : {total_stock_value_filtered:.2f}**")
         else:
-            st.write(f"Aucune information disponible pour {famille} "
-                     f"dans la catégorie {rayon_filter}.")
+            st.write(f"Aucune information disponible pour {famille} dans la catégorie {rayon_filter}.")
 
 # --- Configuration de l'application Streamlit ---
 st.set_page_config(
