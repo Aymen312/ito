@@ -6,6 +6,7 @@ from io import BytesIO
 def clean_numeric_columns(df):
     numeric_columns = ['Prix Achat', 'Qté stock dispo', 'Valeur Stock']
     for col in numeric_columns:
+        # Remplacer les virgules par des points pour les colonnes numériques
         df[col] = df[col].astype(str).str.replace(',', '.').astype(float)
     return df
 
@@ -18,21 +19,26 @@ def clean_size_column(df):
 def display_supplier_info(df, fournisseur):
     colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
     fournisseur = fournisseur.strip().upper()
+    # Gérer les NaN dans la colonne 'fournisseur'
+    df['fournisseur'] = df['fournisseur'].fillna('')  
     df_filtered = df[df['fournisseur'].str.upper() == fournisseur] if fournisseur else pd.DataFrame(columns=colonnes_affichier)
     return df_filtered[colonnes_affichier]
 
 def display_designation_info(df, designation):
     colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
     designation = designation.strip().upper()
+    # Gérer les NaN dans la colonne 'designation'
+    df['designation'] = df['designation'].fillna('') 
     df_filtered = df[df['designation'].str.upper().str.contains(designation)] if designation else pd.DataFrame(columns=colonnes_affichier)
     return df_filtered[colonnes_affichier]
 
-# --- Fonction modifiée pour supprimer le filtre dans "Stock Négatif" ---
+# --- Fonction modifiée pour "Stock Négatif"  ---
 def filter_negative_stock(df):
     colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
+    # Gérer les NaN dans la colonne 'Qté stock dispo'
+    df['Qté stock dispo'] = df['Qté stock dispo'].fillna(0)
     df_filtered = df[df['Qté stock dispo'] < 0]
     return df_filtered[colonnes_affichier]
-
 
 def display_anita_sizes(df):
     df_anita = df[df['fournisseur'].str.upper() == "ANITA"]
@@ -43,8 +49,10 @@ def display_anita_sizes(df):
     return df_anita_sizes
 
 def display_sidas_levels(df):
-    df_sidas = df[df['fournisseur'].str.upper().str.contains("SIDAS", na=False)]
-    df_sidas = df_sidas.dropna(subset=['couleur', 'taille'])
+    # Gérer les NaN dans les colonnes 'fournisseur', 'couleur' et 'taille'
+    df['fournisseur'] = df['fournisseur'].fillna('')
+    df = df.dropna(subset=['couleur', 'taille']) 
+    df_sidas = df[df['fournisseur'].str.upper().str.contains("SIDAS")]
     levels = ['LOW', 'MID', 'HIGH']
     sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL']
     results = {}
@@ -57,11 +65,17 @@ def display_sidas_levels(df):
         results[level] = df_sizes_with_designation
     return results
 
+
 def total_stock_value_by_supplier(df):
+    # S'assurer que 'Qté stock dispo' et 'Prix Achat' sont numériques
+    df['Qté stock dispo'] = pd.to_numeric(df['Qté stock dispo'], errors='coerce').fillna(0)
+    df['Prix Achat'] = pd.to_numeric(df['Prix Achat'], errors='coerce').fillna(0)
+
     df['Valeur Totale HT'] = df['Qté stock dispo'] * df['Prix Achat']
     total_value_by_supplier = df.groupby('fournisseur')['Valeur Totale HT'].sum().reset_index()
     total_value_by_supplier = total_value_by_supplier.sort_values(by='Valeur Totale HT', ascending=False)
     return total_value_by_supplier
+
 
 def sort_sizes(df):
     df['taille'] = pd.Categorical(df['taille'],
@@ -75,9 +89,10 @@ def display_stock_by_family(df):
     familles = ["CHAUSSURES RANDO", "CHAUSSURES RUNN", "CHAUSSURE TRAIL"]
     for famille in familles:
         st.subheader(f"Stock pour {famille}")
+        # Gérer les NaN dans la colonne 'famille'
+        df['famille'] = df['famille'].fillna('') 
         df_family = df[df['famille'].str.upper() == famille]
         total_stock = df_family['Qté stock dispo'].sum()
-        # Afficher la quantité totale en gras
         st.markdown(f"**Qté dispo totale pour {famille} : {total_stock}**")
 
         rayon_options = ['Tous', 'Homme', 'Femme', 'Autre']
@@ -88,8 +103,11 @@ def display_stock_by_family(df):
         if rayon_filter == 'Tous':
             pass
         elif rayon_filter in ['Homme', 'Femme']:
+            # Gérer les NaN dans la colonne 'rayon'
+            df_family['rayon'] = df_family['rayon'].fillna('')
             df_family = df_family[df_family['rayon'].str.upper() == rayon_filter.upper()]
         else:
+            df_family['rayon'] = df_family['rayon'].fillna('')
             df_family = df_family[~df_family['rayon'].str.upper().isin(['HOMME', 'FEMME'])]
 
         if not df_family.empty:
@@ -232,7 +250,7 @@ if fichier_telecharge is not None:
 
                 with tab1:
                     fournisseur = st.text_input("Entrez le nom du fournisseur:")
-                    df_filtered = display_supplier_info(df.copy(), fournisseur)  # Utilisation de copy() pour éviter les warnings
+                    df_filtered = display_supplier_info(df.copy(), fournisseur)
                     if not df_filtered.empty:
                         st.dataframe(df_filtered)
                     else:
@@ -240,14 +258,14 @@ if fichier_telecharge is not None:
 
                 with tab2:
                     designation = st.text_input("Entrez la désignation du produit:")
-                    df_filtered = display_designation_info(df.copy(), designation)  # Utilisation de copy() pour éviter les warnings
+                    df_filtered = display_designation_info(df.copy(), designation)
                     if not df_filtered.empty:
                         st.dataframe(df_filtered)
                     else:
                         st.write("Aucune information disponible pour cette désignation.")
 
                 with tab3:
-                    st.dataframe(filter_negative_stock(df.copy()))  # Utilisation de copy() pour éviter les warnings 
+                    st.dataframe(filter_negative_stock(df.copy()))
 
                 with tab4:
                     df_anita_sizes = display_anita_sizes(df)
