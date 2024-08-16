@@ -20,7 +20,7 @@ def display_supplier_info(df, fournisseur):
     colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
     fournisseur = fournisseur.strip().upper()
     # Gérer les NaN dans la colonne 'fournisseur'
-    df['fournisseur'] = df['fournisseur'].fillna('')  
+    df['fournisseur'] = df['fournisseur'].fillna('')
     df_filtered = df[df['fournisseur'].str.upper() == fournisseur] if fournisseur else pd.DataFrame(columns=colonnes_affichier)
     return df_filtered[colonnes_affichier]
 
@@ -28,11 +28,11 @@ def display_designation_info(df, designation):
     colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
     designation = designation.strip().upper()
     # Gérer les NaN dans la colonne 'designation'
-    df['designation'] = df['designation'].fillna('') 
+    df['designation'] = df['designation'].fillna('')
     df_filtered = df[df['designation'].str.upper().str.contains(designation)] if designation else pd.DataFrame(columns=colonnes_affichier)
     return df_filtered[colonnes_affichier]
 
-# --- Fonction modifiée pour "Stock Négatif"  ---
+# --- Fonction modifiée pour "Stock Négatif" ---
 def filter_negative_stock(df):
     colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
     # Gérer les NaN dans la colonne 'Qté stock dispo'
@@ -51,7 +51,7 @@ def display_anita_sizes(df):
 def display_sidas_levels(df):
     # Gérer les NaN dans les colonnes 'fournisseur', 'couleur' et 'taille'
     df['fournisseur'] = df['fournisseur'].fillna('')
-    df = df.dropna(subset=['couleur', 'taille']) 
+    df = df.dropna(subset=['couleur', 'taille'])
     df_sidas = df[df['fournisseur'].str.upper().str.contains("SIDAS")]
     levels = ['LOW', 'MID', 'HIGH']
     sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL']
@@ -65,17 +65,14 @@ def display_sidas_levels(df):
         results[level] = df_sizes_with_designation
     return results
 
-
 def total_stock_value_by_supplier(df):
     # S'assurer que 'Qté stock dispo' et 'Prix Achat' sont numériques
     df['Qté stock dispo'] = pd.to_numeric(df['Qté stock dispo'], errors='coerce').fillna(0)
     df['Prix Achat'] = pd.to_numeric(df['Prix Achat'], errors='coerce').fillna(0)
-
     df['Valeur Totale HT'] = df['Qté stock dispo'] * df['Prix Achat']
     total_value_by_supplier = df.groupby('fournisseur')['Valeur Totale HT'].sum().reset_index()
     total_value_by_supplier = total_value_by_supplier.sort_values(by='Valeur Totale HT', ascending=False)
     return total_value_by_supplier
-
 
 def sort_sizes(df):
     df['taille'] = pd.Categorical(df['taille'],
@@ -90,9 +87,8 @@ def display_stock_by_family(df):
     for famille in familles:
         st.subheader(f"Stock pour {famille}")
         # Gérer les NaN dans la colonne 'famille'
-        df['famille'] = df['famille'].fillna('') 
+        df['famille'] = df['famille'].fillna('')
         df_family = df[df['famille'].str.upper() == famille]
-        
         # Calculer la valeur du stock pour chaque ligne
         df_family['Valeur Stock'] = df_family['Qté stock dispo'] * df_family['Prix Achat']
 
@@ -101,29 +97,25 @@ def display_stock_by_family(df):
         st.markdown(f"**Qté dispo totale pour {famille} : {total_stock}**")
         st.markdown(f"**Valeur totale du stock pour {famille} : {total_stock_value:.2f}**")
 
-        # --- Filtres par Rayon (Homme, Femme, Autre) ---
+        # --- Filtres par rayon ---
         rayon_options = ['Tous', 'Homme', 'Femme', 'Autre']
         rayon_filter = st.selectbox(f"Filtrer par Rayon pour {famille}:",
                                     options=rayon_options,
                                     key=f"rayon_{famille}")
 
         if rayon_filter == 'Tous':
-            df_filtered = df_family.copy()  # Afficher toutes les données
+            df_filtered = df_family
         else:
-            df_filtered = df_family[df_family['rayon'].str.upper() == rayon_filter.upper()]
+            # Gérer les NaN dans la colonne 'rayon'
+            df_family['rayon'] = df_family['rayon'].fillna('')
+            if rayon_filter in ['Homme', 'Femme']:
+                df_filtered = df_family[df_family['rayon'].str.upper() == rayon_filter.upper()]
+            else:  # Filtrer 'Autre'
+                df_filtered = df_family[~df_family['rayon'].str.upper().isin(['HOMME', 'FEMME'])]
 
-        # --- Affichage des tableaux ---
+        # Afficher les données filtrées
         if not df_filtered.empty:
-            # --- Tri des tailles ---
             df_filtered = sort_sizes(df_filtered.copy())
-            
-            if rayon_filter == 'Homme':
-                st.subheader("Tableau Homme")
-            elif rayon_filter == 'Femme':
-                st.subheader("Tableau Femme")
-            elif rayon_filter == 'Autre':
-                st.subheader("Tableau Autre")
-
             st.dataframe(df_filtered[['rayon', 'fournisseur', 'couleur', 'taille', 'designation', 'marque', 'ssfamille', 'Qté stock dispo', 'Valeur Stock']])
 
             total_stock_filtered = df_filtered['Qté stock dispo'].sum()
@@ -131,7 +123,8 @@ def display_stock_by_family(df):
             st.markdown(f"**Qté dispo totale pour {rayon_filter} : {total_stock_filtered}**")
             st.markdown(f"**Valeur totale du stock pour {rayon_filter} : {total_stock_value_filtered:.2f}**")
         else:
-            st.write(f"Aucune information disponible pour {famille} dans la catégorie {rayon_filter}.")
+            st.write(f"Aucune information disponible pour {famille} "
+                     f"dans la catégorie {rayon_filter}.")
 
 # --- Configuration de l'application Streamlit ---
 st.set_page_config(
@@ -146,88 +139,89 @@ st.markdown(
     <style>
     /* --- Importation de la police Roboto (Google Fonts) --- */
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
     /* --- Styles globaux --- */
-        body {
-            font-family: 'Roboto', sans-serif;
-            background-color: #f5f5f5; /* Gris très clair */
-        }
+    body {
+        font-family: 'Roboto', sans-serif;
+        background-color: #f5f5f5; /* Gris très clair */
+    }
 
-        /* --- Titres --- */
-        h1, h2, h3 {
-            color: #212121; /* Gris foncé */
-        }
+    /* --- Titres --- */
+    h1, h2, h3 {
+        color: #212121; /* Gris foncé */
+    }
 
-        /* --- Tableaux de données --- */
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            background-color: white;
-            box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1); /* Ombre subtile */
-        }
-        th, td {
-            text-align: left;
-            padding: 12px 16px;
-            border-bottom: 1px solid #EEEEEE; /* Gris très clair */
-        }
-        th {
-            font-weight: bold;
-        }
+    /* --- Tableaux de données --- */
+    table {
+        border-collapse: collapse;
+        width: 100%;
+        background-color: white;
+        box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1); /* Ombre subtile */
+    }
+    th, td {
+        text-align: left;
+        padding: 12px 16px;
+        border-bottom: 1px solid #EEEEEE; /* Gris très clair */
+    }
+    th {
+        font-weight: bold;
+    }
 
-        /* --- Messages d'état --- */
-        .st-success {
-            color: #448a50; /* Vert */
-        }
-        .st-warning {
-            color: #f0ad4e; /* Orange */
-        }
-        .st-error {
-            color: #d9534f; /* Rouge */
-        }
+    /* --- Messages d'état --- */
+    .st-success {
+        color: #448a50; /* Vert */
+    }
+    .st-warning {
+        color: #f0ad4e; /* Orange */
+    }
+    .st-error {
+        color: #d9534f; /* Rouge */
+    }
 
-        /* --- Onglets (style Material Design) --- */
-        .stTabs [data-baseweb="tab-list"] {
-            border-bottom: 2px solid #EEEEEE; /* Gris très clair */
-        }
-        .stTabs [data-baseweb="tab-list"] button {
-            background-color: transparent;
-            border: none;
-            color: #757575; /* Gris moyen */
-            font-size: 16px;
-            margin-right: 32px;
-            padding: 12px 16px;
-            border-top-left-radius: 4px;
-            border-top-right-radius: 4px;
-        }
-        .stTabs [data-baseweb="tab-list"] button:hover {
-            color: #212121; /* Gris foncé */
-        }
-        .stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {
-            color: #2196f3; /* Bleu Material Design */
-            border-bottom: 2px solid #2196f3; /* Bleu Material Design */
-        }
+    /* --- Onglets (style Material Design) --- */
+    .stTabs [data-baseweb="tab-list"] {
+        border-bottom: 2px solid #EEEEEE; /* Gris très clair */
+    }
+    .stTabs [data-baseweb="tab-list"] button {
+        background-color: transparent;
+        border: none;
+        color: #757575; /* Gris moyen */
+        font-size: 16px;
+        margin-right: 32px;
+        padding: 12px 16px;
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+    }
+    .stTabs [data-baseweb="tab-list"] button:hover {
+        color: #212121; /* Gris foncé */
+    }
+    .stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {
+        color: #2196f3; /* Bleu Material Design */
+        border-bottom: 2px solid #2196f3; /* Bleu Material Design */
+    }
 
-        /* --- Boutons --- */
-        .stButton>button {
-            background-color: #2196f3; /* Bleu Material Design */
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .stButton>button:hover {
-            background-color: #1976d2; /* Bleu Material Design plus foncé */
-        }
+    /* --- Boutons --- */
+    .stButton>button {
+        background-color: #2196f3; /* Bleu Material Design */
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    .stButton>button:hover {
+        background-color: #1976d2; /* Bleu Material Design plus foncé */
+    }
 
-        /* --- Autres éléments --- */
-        .stSelectbox [data-baseweb="select"] {
-            padding: 8px 12px;
-            border-radius: 4px;
-            border: 1px solid #bdbdbd; /* Gris clair */
-        }
+    /* --- Autres éléments --- */
+    .stSelectbox [data-baseweb="select"] {
+        padding: 8px 12px;
+        border-radius: 4px;
+        border: 1px solid #bdbdbd; /* Gris clair */
+    }
     </style>
     """,
-    unsafe_allow_html=True,
+    unsafe_allow_html=True
 )
 
 # --- Interface principale de l'application ---
@@ -247,10 +241,10 @@ if fichier_telecharge is not None:
             else:
                 st.error("Format de fichier non supporté")
                 df = None
+
             if df is not None:
                 df = clean_numeric_columns(df)
                 df = clean_size_column(df)
-
                 st.success("Données chargées avec succès!")
 
                 tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["Filtrer par Fournisseur",
