@@ -60,7 +60,7 @@ def display_sidas_levels(df):
 def total_stock_value_by_supplier(df):
     df['Valeur Totale HT'] = df['Qté stock dispo'] * df['Prix Achat']
     total_value_by_supplier = df.groupby('fournisseur')['Valeur Totale HT'].sum().reset_index()
-    total_value_by_supplier = total_value_by_supplier.sort_values(by='Valeur Totale HT', ascending=False) 
+    total_value_by_supplier = total_value_by_supplier.sort_values(by='Valeur Totale HT', ascending=False)
     return total_value_by_supplier
 
 def sort_sizes(df):
@@ -77,7 +77,9 @@ def display_stock_by_family(df):
         st.subheader(f"Stock pour {famille}")
         df_family = df[df['famille'].str.upper() == famille]
         total_stock = df_family['Qté stock dispo'].sum()
-        st.write(f"*Qté dispo totale pour {famille} : {total_stock}*") 
+
+        # Afficher la quantité totale en gras
+        st.markdown(f"**Qté dispo totale pour {famille} : {total_stock}**") 
 
         rayon_options = ['Tous', 'Homme', 'Femme', 'Autre']
         rayon_filter = st.selectbox(f"Filtrer par Rayon pour {famille}:", 
@@ -93,11 +95,10 @@ def display_stock_by_family(df):
 
         if not df_family.empty:
             df_family = sort_sizes(df_family.copy())
-            # Affichage de la colonne 'rayon' dans le DataFrame
             st.dataframe(df_family[['rayon', 'fournisseur', 'couleur', 'taille', 'designation', 'marque', 'ssfamille']])
 
             total_stock_filtered = df_family['Qté stock dispo'].sum()
-            st.write(f"*Qté dispo totale pour {rayon_filter} : {total_stock_filtered}*")
+            st.markdown(f"**Qté dispo totale pour {rayon_filter} : {total_stock_filtered}**")
         else:
             st.write(f"Aucune information disponible pour {famille} "
                      f"dans la catégorie {rayon_filter}.")
@@ -273,7 +274,7 @@ if fichier_telecharge is not None:
                 df_total_value_by_supplier = total_stock_value_by_supplier(df)
                 st.dataframe(df_total_value_by_supplier)
                 total_value = df_total_value_by_supplier['Valeur Totale HT'].sum()
-                st.write(f"*Valeur Totale du Stock pour tous les fournisseurs : {total_value:.2f}*")
+                st.markdown(f"**Valeur Totale du Stock pour tous les fournisseurs : {total_value:.2f}**")
             
             with tab7:
                 st.header("Stock par Famille")
@@ -282,4 +283,4 @@ if fichier_telecharge is not None:
     except Exception as e:
         st.error(f"Erreur lors du traitement du fichier: {str(e)}")
 else:
-    st.warning("Veuillez télécharger un fichier pour commencer l'analyse.")
+    st.warning("Veuillez télécharger un fichier pour commencer l'analyse.")
