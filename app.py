@@ -14,24 +14,29 @@ def clean_size_column(df):
         df['taille'] = df['taille'].astype(str).str.strip()
     return df
 
+# --- Fonctions modifiées pour afficher les colonnes spécifiques ---
 def display_supplier_info(df, fournisseur):
+    colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
     fournisseur = fournisseur.strip().upper()
-    df_filtered = df[df['fournisseur'].str.upper() == fournisseur] if fournisseur else pd.DataFrame()
-    return df_filtered
+    df_filtered = df[df['fournisseur'].str.upper() == fournisseur] if fournisseur else pd.DataFrame(columns=colonnes_affichier)
+    return df_filtered[colonnes_affichier]
 
 def display_designation_info(df, designation):
+    colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
     designation = designation.strip().upper()
-    df_filtered = df[df['designation'].str.upper().str.contains(designation)] if designation else pd.DataFrame()
-    return df_filtered
+    df_filtered = df[df['designation'].str.upper().str.contains(designation)] if designation else pd.DataFrame(columns=colonnes_affichier)
+    return df_filtered[colonnes_affichier]
 
 def filter_negative_stock(df):
+    colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
     rayons = df['rayon'].str.upper().unique()
     selected_rayon = st.selectbox("Filtrer par Rayon:", ['Tous'] + list(rayons))
     if selected_rayon == 'Tous':
         df_filtered = df[df['Qté stock dispo'] < 0]
     else:
         df_filtered = df[(df['rayon'].str.upper() == selected_rayon) & (df['Qté stock dispo'] < 0)]
-    return df_filtered
+    return df_filtered[colonnes_affichier]
+
 
 def display_anita_sizes(df):
     df_anita = df[df['fournisseur'].str.upper() == "ANITA"]
@@ -100,12 +105,6 @@ def display_stock_by_family(df):
         else:
             st.write(f"Aucune information disponible pour {famille} "
                      f"dans la catégorie {rayon_filter}.")
-
-# --- Fonction modifiée pour afficher les colonnes spécifiques dans "Stock Négatif" ---
-def display_filtered_data(df):
-    df_filtered = df[df['Qté stock dispo'] < 0]
-    columns_to_display = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo']
-    st.dataframe(df_filtered[columns_to_display])
 
 # --- Configuration de l'application Streamlit ---
 st.set_page_config(
@@ -237,7 +236,7 @@ if fichier_telecharge is not None:
 
                 with tab1:
                     fournisseur = st.text_input("Entrez le nom du fournisseur:")
-                    df_filtered = display_supplier_info(df, fournisseur)
+                    df_filtered = display_supplier_info(df.copy(), fournisseur)  # Utilisation de copy() pour éviter les warnings
                     if not df_filtered.empty:
                         st.dataframe(df_filtered)
                     else:
@@ -245,15 +244,14 @@ if fichier_telecharge is not None:
 
                 with tab2:
                     designation = st.text_input("Entrez la désignation du produit:")
-                    df_filtered = display_designation_info(df, designation)
+                    df_filtered = display_designation_info(df.copy(), designation)  # Utilisation de copy() pour éviter les warnings
                     if not df_filtered.empty:
                         st.dataframe(df_filtered)
                     else:
                         st.write("Aucune information disponible pour cette désignation.")
 
                 with tab3:
-                    # Appeler la fonction modifiée pour afficher les colonnes spécifiques
-                    display_filtered_data(df) 
+                    st.dataframe(filter_negative_stock(df.copy()))  # Utilisation de copy() pour éviter les warnings 
 
                 with tab4:
                     df_anita_sizes = display_anita_sizes(df)
