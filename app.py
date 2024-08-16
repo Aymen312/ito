@@ -92,8 +92,14 @@ def display_stock_by_family(df):
         # Gérer les NaN dans la colonne 'famille'
         df['famille'] = df['famille'].fillna('') 
         df_family = df[df['famille'].str.upper() == famille]
+        
+        # Calculer la valeur du stock pour chaque ligne
+        df_family['Valeur Stock'] = df_family['Qté stock dispo'] * df_family['Prix Achat']
+
         total_stock = df_family['Qté stock dispo'].sum()
+        total_stock_value = df_family['Valeur Stock'].sum()
         st.markdown(f"**Qté dispo totale pour {famille} : {total_stock}**")
+        st.markdown(f"**Valeur totale du stock pour {famille} : {total_stock_value:.2f}**")
 
         rayon_options = ['Tous', 'Homme', 'Femme', 'Autre']
         rayon_filter = st.selectbox(f"Filtrer par Rayon pour {famille}:",
@@ -112,10 +118,12 @@ def display_stock_by_family(df):
 
         if not df_family.empty:
             df_family = sort_sizes(df_family.copy())
-            st.dataframe(df_family[['rayon', 'fournisseur', 'couleur', 'taille', 'designation', 'marque', 'ssfamille']])
+            st.dataframe(df_family[['rayon', 'fournisseur', 'couleur', 'taille', 'designation', 'marque', 'ssfamille', 'Qté stock dispo', 'Valeur Stock']])
 
             total_stock_filtered = df_family['Qté stock dispo'].sum()
+            total_stock_value_filtered = df_family['Valeur Stock'].sum()
             st.markdown(f"**Qté dispo totale pour {rayon_filter} : {total_stock_filtered}**")
+            st.markdown(f"**Valeur totale du stock pour {rayon_filter} : {total_stock_value_filtered:.2f}**")
         else:
             st.write(f"Aucune information disponible pour {famille} "
                      f"dans la catégorie {rayon_filter}.")
