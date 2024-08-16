@@ -6,7 +6,6 @@ from io import BytesIO
 def clean_numeric_columns(df):
     numeric_columns = ['Prix Achat', 'Qté stock dispo', 'Valeur Stock']
     for col in numeric_columns:
-        # Remplacer les virgules par des points pour les colonnes numériques
         df[col] = df[col].astype(str).str.replace(',', '.').astype(float)
     return df
 
@@ -19,23 +18,38 @@ def clean_size_column(df):
 def display_supplier_info(df, fournisseur):
     colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
     fournisseur = fournisseur.strip().upper()
-    # Gérer les NaN dans la colonne 'fournisseur'
     df['fournisseur'] = df['fournisseur'].fillna('')
     df_filtered = df[df['fournisseur'].str.upper() == fournisseur] if fournisseur else pd.DataFrame(columns=colonnes_affichier)
     return df_filtered[colonnes_affichier]
 
+
 def display_designation_info(df, designation):
     colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
     designation = designation.strip().upper()
-    # Gérer les NaN dans la colonne 'designation'
     df['designation'] = df['designation'].fillna('')
-    df_filtered = df[df['designation'].str.upper().str.contains(designation)] if designation else pd.DataFrame(columns=colonnes_affichier)
-    return df_filtered[colonnes_affichier]
+    df_filtered = df[df['designation'].str.upper().str.contains(designation)] if designation else pd.DataFrame(
+        columns=colonnes_affichier)
+
+    # --- Filtrage par rayon ---
+    df_homme = df_filtered[df_filtered['rayon'].str.upper() == 'HOMME']
+    df_femme = df_filtered[df_filtered['rayon'].str.upper() == 'FEMME']
+    df_autre = df_filtered[~df_filtered['rayon'].str.upper().isin(['HOMME', 'FEMME'])]
+
+    # --- Affichage des tableaux ---
+    st.subheader("Rayon Homme:")
+    st.dataframe(df_homme[colonnes_affichier])
+
+    st.subheader("Rayon Femme:")
+    st.dataframe(df_femme[colonnes_affichier])
+
+    st.subheader("Autres Rayons:")
+    st.dataframe(df_autre[colonnes_affichier])
+
 
 # --- Fonction modifiée pour "Stock Négatif" ---
 def filter_negative_stock(df):
-    colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
-    # Gérer les NaN dans la colonne 'Qté stock dispo'
+    colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille',
+                         'Qté stock dispo', 'Valeur Stock']
     df['Qté stock dispo'] = df['Qté stock dispo'].fillna(0)
     df_filtered = df[df['Qté stock dispo'] < 0]
     return df_filtered[colonnes_affichier]
@@ -49,7 +63,6 @@ def display_anita_sizes(df):
     return df_anita_sizes
 
 def display_sidas_levels(df):
-    # Gérer les NaN dans les colonnes 'fournisseur', 'couleur' et 'taille'
     df['fournisseur'] = df['fournisseur'].fillna('')
     df = df.dropna(subset=['couleur', 'taille'])
     df_sidas = df[df['fournisseur'].str.upper().str.contains("SIDAS")]
@@ -66,7 +79,6 @@ def display_sidas_levels(df):
     return results
 
 def total_stock_value_by_supplier(df):
-    # S'assurer que 'Qté stock dispo' et 'Prix Achat' sont numériques
     df['Qté stock dispo'] = pd.to_numeric(df['Qté stock dispo'], errors='coerce').fillna(0)
     df['Prix Achat'] = pd.to_numeric(df['Prix Achat'], errors='coerce').fillna(0)
     df['Valeur Totale HT'] = df['Qté stock dispo'] * df['Prix Achat']
@@ -77,7 +89,8 @@ def total_stock_value_by_supplier(df):
 def sort_sizes(df):
     df['taille'] = pd.Categorical(df['taille'],
                                  categories=sorted(df['taille'].unique(),
-                                                   key=lambda x: (int(x[:-1]), x[-1]) if x[:-1].isdigit() else (float('inf'), x)),
+                                                   key=lambda x: (int(x[:-1]), x[-1]) if x[:-1].isdigit() else (
+                                                       float('inf'), x)),
                                  ordered=True)
     df = df.sort_values('taille')
     return df
@@ -86,10 +99,8 @@ def display_stock_by_family(df):
     familles = ["CHAUSSURES RANDO", "CHAUSSURES RUNN", "CHAUSSURE TRAIL"]
     for famille in familles:
         st.subheader(f"Stock pour {famille}")
-        # Gérer les NaN dans la colonne 'famille'
         df['famille'] = df['famille'].fillna('')
         df_family = df[df['famille'].str.upper() == famille]
-        # Calculer la valeur du stock pour chaque ligne
         df_family['Valeur Stock'] = df_family['Qté stock dispo'] * df_family['Prix Achat']
 
         total_stock = df_family['Qté stock dispo'].sum()
@@ -97,34 +108,34 @@ def display_stock_by_family(df):
         st.markdown(f"**Qté dispo totale pour {famille} : {total_stock}**")
         st.markdown(f"**Valeur totale du stock pour {famille} : {total_stock_value:.2f}**")
 
-        # --- Filtres par rayon ---
         rayon_options = ['Tous', 'Homme', 'Femme', 'Autre']
         rayon_filter = st.selectbox(f"Filtrer par Rayon pour {famille}:",
                                     options=rayon_options,
                                     key=f"rayon_{famille}")
 
         if rayon_filter == 'Tous':
-            df_filtered = df_family
-        else:
-            # Gérer les NaN dans la colonne 'rayon'
+            pass
+        elif rayon_filter in ['Homme', 'Femme']:
             df_family['rayon'] = df_family['rayon'].fillna('')
-            if rayon_filter in ['Homme', 'Femme']:
-                df_filtered = df_family[df_family['rayon'].str.upper() == rayon_filter.upper()]
-            else:  # Filtrer 'Autre'
-                df_filtered = df_family[~df_family['rayon'].str.upper().isin(['HOMME', 'FEMME'])]
+            df_family = df_family[df_family['rayon'].str.upper() == rayon_filter.upper()]
+        else:
+            df_family['rayon'] = df_family['rayon'].fillna('')
+            df_family = df_family[~df_family['rayon'].str.upper().isin(['HOMME', 'FEMME'])]
 
-        # Afficher les données filtrées
-        if not df_filtered.empty:
-            df_filtered = sort_sizes(df_filtered.copy())
-            st.dataframe(df_filtered[['rayon', 'fournisseur', 'couleur', 'taille', 'designation', 'marque', 'ssfamille', 'Qté stock dispo', 'Valeur Stock']])
+        if not df_family.empty:
+            df_family = sort_sizes(df_family.copy())
+            st.dataframe(df_family[
+                             ['rayon', 'fournisseur', 'couleur', 'taille', 'designation', 'marque', 'ssfamille',
+                              'Qté stock dispo', 'Valeur Stock']])
 
-            total_stock_filtered = df_filtered['Qté stock dispo'].sum()
-            total_stock_value_filtered = df_filtered['Valeur Stock'].sum()
+            total_stock_filtered = df_family['Qté stock dispo'].sum()
+            total_stock_value_filtered = df_family['Valeur Stock'].sum()
             st.markdown(f"**Qté dispo totale pour {rayon_filter} : {total_stock_filtered}**")
             st.markdown(f"**Valeur totale du stock pour {rayon_filter} : {total_stock_value_filtered:.2f}**")
         else:
             st.write(f"Aucune information disponible pour {famille} "
                      f"dans la catégorie {rayon_filter}.")
+
 
 # --- Configuration de l'application Streamlit ---
 st.set_page_config(
@@ -265,11 +276,7 @@ if fichier_telecharge is not None:
 
                 with tab2:
                     designation = st.text_input("Entrez la désignation du produit:")
-                    df_filtered = display_designation_info(df.copy(), designation)
-                    if not df_filtered.empty:
-                        st.dataframe(df_filtered)
-                    else:
-                        st.write("Aucune information disponible pour cette désignation.")
+                    display_designation_info(df.copy(), designation)
 
                 with tab3:
                     st.dataframe(filter_negative_stock(df.copy()))
