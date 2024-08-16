@@ -40,7 +40,12 @@ def display_anita_sizes(df):
     df_anita_sizes = df_anita[df_anita['taille'].isin(tailles)]
     df_anita_sizes = df_anita_sizes.groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
     df_anita_sizes = df_anita_sizes.replace(0, "Nul")
-    return df_anita_sizes
+
+    # Créer un DataFrame pour l'affichage horizontal
+    df_sizes_horizontal = pd.DataFrame(df_anita_sizes).T
+    st.write("Quantités disponibles pour Anita par taille:")
+    st.dataframe(df_sizes_horizontal)  # Afficher le DataFrame transposé
+
 
 def display_sidas_levels(df):
     df_sidas = df[df['fournisseur'].str.upper().str.contains("SIDAS", na=False)]
@@ -260,8 +265,6 @@ if fichier_telecharge is not None:
 
             with tab4:
                 df_anita_sizes = display_anita_sizes(df)
-                st.write("Quantités disponibles pour Anita par taille:")
-                st.dataframe(df_anita_sizes)
 
             with tab5:
                 sidas_results = display_sidas_levels(df)
