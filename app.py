@@ -16,12 +16,12 @@ def clean_size_column(df):
     return df
 
 def display_supplier_info(df, fournisseur):
-    fournisseur = fournisseur.strip().upper() 
+    fournisseur = fournisseur.strip().upper()
     df_filtered = df[df['fournisseur'].str.upper() == fournisseur] if fournisseur else pd.DataFrame()
     return df_filtered
 
 def display_designation_info(df, designation):
-    designation = designation.strip().upper()  
+    designation = designation.strip().upper()
     df_filtered = df[df['designation'].str.upper().str.contains(designation)] if designation else pd.DataFrame()
     return df_filtered
 
@@ -40,8 +40,7 @@ def display_anita_sizes(df):
     df_anita_sizes = df_anita[df_anita['taille'].isin(tailles)]
     df_anita_sizes = df_anita_sizes.groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
     df_anita_sizes = df_anita_sizes.replace(0, "Nul")
-    st.write("Quantités disponibles pour Anita par taille:")
-    st.dataframe(df_anita_sizes)  # Afficher le DataFrame directement 
+    return df_anita_sizes
 
 def display_sidas_levels(df):
     df_sidas = df[df['fournisseur'].str.upper().str.contains("SIDAS", na=False)]
@@ -65,9 +64,9 @@ def total_stock_value_by_supplier(df):
     return total_value_by_supplier
 
 def sort_sizes(df):
-    df['taille'] = pd.Categorical(df['taille'], 
-                                  categories=sorted(df['taille'].unique(), 
-                                                    key=lambda x: (int(x[:-1]), x[-1]) if x[:-1].isdigit() else (float('inf'), x)), 
+    df['taille'] = pd.Categorical(df['taille'],
+                                  categories=sorted(df['taille'].unique(),
+                                                    key=lambda x: (int(x[:-1]), x[-1]) if x[:-1].isdigit() else (float('inf'), x)),
                                   ordered=True)
     df = df.sort_values('taille')
     return df
@@ -106,9 +105,9 @@ def display_stock_by_family(df):
 
 # --- Configuration de l'application Streamlit ---
 st.set_page_config(
-    page_title="Application d'Analyse TDR", 
+    page_title="Application d'Analyse TDR",
     layout="wide",
-    initial_sidebar_state="expanded" 
+    initial_sidebar_state="expanded"
 )
 
 # --- CSS Personnalisé pour un style moderne (Material Design) ---
@@ -204,12 +203,9 @@ st.markdown(
 
 # --- Interface principale de l'application ---
 st.title("Application d'Analyse TDR")
-
 st.sidebar.markdown("### Menu")
 st.sidebar.info("Téléchargez un fichier CSV ou Excel pour commencer l'analyse.")
-
 fichier_telecharge = st.file_uploader("Téléchargez un fichier CSV ou Excel", type=['csv', 'xlsx'])
-
 if fichier_telecharge is not None:
     extension_fichier = fichier_telecharge.name.split('.')[-1]
     try:
@@ -229,12 +225,12 @@ if fichier_telecharge is not None:
             st.success("Données chargées avec succès!")
 
             tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["Filtrer par Fournisseur", 
-                                                              "Filtrer par Désignation", 
-                                                              "Stock Négatif", 
-                                                              "Anita Tailles", 
-                                                              "Sidas Niveaux", 
-                                                              "Valeur Totale du Stock par Fournisseur",
-                                                              "Stock par Famille"])
+                                                            "Filtrer par Désignation", 
+                                                            "Stock Négatif", 
+                                                            "Anita Tailles", 
+                                                            "Sidas Niveaux", 
+                                                            "Valeur Totale du Stock par Fournisseur",
+                                                            "Stock par Famille"])
 
             with tab1:
                 fournisseur = st.text_input("Entrez le nom du fournisseur:")
@@ -261,6 +257,8 @@ if fichier_telecharge is not None:
 
             with tab4:
                 df_anita_sizes = display_anita_sizes(df)
+                st.write("Quantités disponibles pour Anita par taille:")
+                st.dataframe(df_anita_sizes)
 
             with tab5:
                 sidas_results = display_sidas_levels(df)
