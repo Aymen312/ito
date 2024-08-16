@@ -27,14 +27,10 @@ def display_designation_info(df, designation):
     df_filtered = df[df['designation'].str.upper().str.contains(designation)] if designation else pd.DataFrame(columns=colonnes_affichier)
     return df_filtered[colonnes_affichier]
 
+# --- Fonction modifiée pour supprimer le filtre dans "Stock Négatif" ---
 def filter_negative_stock(df):
     colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
-    rayons = df['rayon'].str.upper().unique()
-    selected_rayon = st.selectbox("Filtrer par Rayon:", ['Tous'] + list(rayons))
-    if selected_rayon == 'Tous':
-        df_filtered = df[df['Qté stock dispo'] < 0]
-    else:
-        df_filtered = df[(df['rayon'].str.upper() == selected_rayon) & (df['Qté stock dispo'] < 0)]
+    df_filtered = df[df['Qté stock dispo'] < 0]
     return df_filtered[colonnes_affichier]
 
 
