@@ -14,6 +14,13 @@ def clean_size_column(df):
         df['taille'] = df['taille'].astype(str).str.strip()
     return df
 
+def highlight_row_if_one(row):
+    """Met en surbrillance la ligne en rouge si 'Qté stock dispo' est égale à 1."""
+    if row['Qté stock dispo'] == 1:
+        return ['background-color: red' for _ in row]
+    else:
+        return [''] * len(row)
+
 # --- Fonctions modifiées pour afficher les colonnes spécifiques ---
 def display_supplier_info(df, fournisseur):
     colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
@@ -37,13 +44,13 @@ def display_designation_info(df, designation):
 
     # --- Affichage des tableaux ---
     st.subheader("Rayon Homme:")
-    st.dataframe(df_homme[colonnes_affichier].style.applymap(lambda x: 'color:red;' if x == 1 else '', subset=['Qté stock dispo']))
+    st.dataframe(df_homme[colonnes_affichier].style.apply(highlight_row_if_one, axis=1))
 
     st.subheader("Rayon Femme:")
-    st.dataframe(df_femme[colonnes_affichier].style.applymap(lambda x: 'color:red;' if x == 1 else '', subset=['Qté stock dispo']))
+    st.dataframe(df_femme[colonnes_affichier].style.apply(highlight_row_if_one, axis=1))
 
     st.subheader("Autres Rayons:")
-    st.dataframe(df_autre[colonnes_affichier].style.applymap(lambda x: 'color:red;' if x == 1 else '', subset=['Qté stock dispo']))
+    st.dataframe(df_autre[colonnes_affichier].style.apply(highlight_row_if_one, axis=1))
 
 # --- Fonction modifiée pour "Stock Négatif" ---
 def filter_negative_stock(df):
@@ -125,7 +132,7 @@ def display_stock_by_family(df):
             df_family = sort_sizes(df_family.copy())
             st.dataframe(df_family[
                              ['rayon', 'fournisseur', 'couleur', 'taille', 'designation', 'marque', 'ssfamille',
-                              'Qté stock dispo', 'Valeur Stock']])
+                              'Qté stock dispo', 'Valeur Stock']].style.apply(highlight_row_if_one, axis=1))
 
             total_stock_filtered = df_family['Qté stock dispo'].sum()
             total_stock_value_filtered = df_family['Valeur Stock'].sum()
@@ -269,7 +276,7 @@ if fichier_telecharge is not None:
                     fournisseur = st.text_input("Entrez le nom du fournisseur:")
                     df_filtered = display_supplier_info(df.copy(), fournisseur)
                     if not df_filtered.empty:
-                        st.dataframe(df_filtered.style.applymap(lambda x: 'color:red;' if x == 1 else '', subset=['Qté stock dispo']))
+                        st.dataframe(df_filtered.style.apply(highlight_row_if_one, axis=1))
                     else:
                         st.write("Aucune information disponible pour ce fournisseur.")
 
@@ -278,7 +285,7 @@ if fichier_telecharge is not None:
                     display_designation_info(df.copy(), designation)
 
                 with tab3:
-                    st.dataframe(filter_negative_stock(df.copy()).style.applymap(lambda x: 'color:red;' if x == 1 else '', subset=['Qté stock dispo']))
+                    st.dataframe(filter_negative_stock(df.copy()).style.apply(highlight_row_if_one, axis=1))
 
                 with tab4:
                     df_anita_sizes = display_anita_sizes(df)
