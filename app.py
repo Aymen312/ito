@@ -296,7 +296,7 @@ if fichier_telecharge is not None:
                     sidas_results = display_sidas_levels(df)
                     for level, df_level in sidas_results.items():
                         st.write(f"Quantités disponibles pour SIDAS niveau {level}:")
-                        st.dataframe(df_level)
+                        st.dataframe(df_level.style.apply(highlight_row_if_one, axis=1))  # Appliquer le style ici
 
                 with tab6:
                     st.subheader("Valeur Totale du Stock par Fournisseur")
