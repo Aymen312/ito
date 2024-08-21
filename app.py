@@ -37,14 +37,13 @@ def display_designation_info(df, designation):
 
     # --- Affichage des tableaux ---
     st.subheader("Rayon Homme:")
-    st.dataframe(df_homme[colonnes_affichier])
+    st.dataframe(df_homme[colonnes_affichier].style.applymap(lambda x: 'color:red;' if x == 1 else '', subset=['Qté stock dispo']))
 
     st.subheader("Rayon Femme:")
-    st.dataframe(df_femme[colonnes_affichier])
+    st.dataframe(df_femme[colonnes_affichier].style.applymap(lambda x: 'color:red;' if x == 1 else '', subset=['Qté stock dispo']))
 
     st.subheader("Autres Rayons:")
-    st.dataframe(df_autre[colonnes_affichier])
-
+    st.dataframe(df_autre[colonnes_affichier].style.applymap(lambda x: 'color:red;' if x == 1 else '', subset=['Qté stock dispo']))
 
 # --- Fonction modifiée pour "Stock Négatif" ---
 def filter_negative_stock(df):
@@ -270,7 +269,7 @@ if fichier_telecharge is not None:
                     fournisseur = st.text_input("Entrez le nom du fournisseur:")
                     df_filtered = display_supplier_info(df.copy(), fournisseur)
                     if not df_filtered.empty:
-                        st.dataframe(df_filtered)
+                        st.dataframe(df_filtered.style.applymap(lambda x: 'color:red;' if x == 1 else '', subset=['Qté stock dispo']))
                     else:
                         st.write("Aucune information disponible pour ce fournisseur.")
 
@@ -279,7 +278,7 @@ if fichier_telecharge is not None:
                     display_designation_info(df.copy(), designation)
 
                 with tab3:
-                    st.dataframe(filter_negative_stock(df.copy()))
+                    st.dataframe(filter_negative_stock(df.copy()).style.applymap(lambda x: 'color:red;' if x == 1 else '', subset=['Qté stock dispo']))
 
                 with tab4:
                     df_anita_sizes = display_anita_sizes(df)
