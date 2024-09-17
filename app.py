@@ -51,13 +51,30 @@ def display_designation_info(df, designation):
     st.subheader("Autres Rayons:")
     st.dataframe(df_autre[colonnes_affichier].style.apply(highlight_row_if_one, axis=1))
 
+    # --- Liste des tailles possibles ---
+    possible_sizes = [
+        '34', '36', '38', '40', '42', '44', '46', '48', '50',
+        '5US', '6US', '7US', '8US', '9US', '10US', '11US', '12US',
+        '5UK', '6UK', '7UK', '8UK', '9UK', '10UK', '11UK', '12UK'
+    ]
+
+    # Ajout des tailles avec .5
+    for size in ['5', '6', '7', '8', '9', '10', '11', '12']:
+        possible_sizes.append(f'{size}.5US')
+        possible_sizes.append(f'{size}.5UK')
+
     # --- Affichage des tailles indisponibles ---
     st.subheader("Tailles indisponibles pour la désignation sélectionnée:")
-    unavailable_sizes = df_filtered[df_filtered['Qté stock dispo'] == 0]
-    unavailable_sizes = unavailable_sizes[['fournisseur', 'couleur', 'taille', 'designation', 'rayon']]
     
-    if not unavailable_sizes.empty:
-        st.dataframe(unavailable_sizes)
+    # Récupérer les tailles disponibles pour cette désignation
+    available_sizes = df_filtered['taille'].unique()
+
+    # Trouver les tailles manquantes
+    unavailable_sizes = [size for size in possible_sizes if size not in available_sizes]
+
+    if unavailable_sizes:
+        st.write("Les tailles suivantes ne sont pas disponibles :")
+        st.write(unavailable_sizes)
     else:
         st.write("Toutes les tailles sont disponibles pour cette désignation.")
 
