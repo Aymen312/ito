@@ -60,8 +60,8 @@ def display_designation_info(df, designation):
 
     # Ajout des tailles avec .5
     for size in ['5', '6', '7', '8', '9', '10', '11', '12']:
-        possible_sizes.append(f'{size}.4US')
-        possible_sizes.append(f'{size}.4UK')
+        possible_sizes.append(f'{size}.5US')
+        possible_sizes.append(f'{size}.5UK')
 
     # --- Affichage des tailles indisponibles ---
     st.subheader("Tailles indisponibles pour la désignation sélectionnée:")
