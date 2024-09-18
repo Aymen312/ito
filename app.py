@@ -30,7 +30,9 @@ def display_supplier_info(df, fournisseur):
     return df_filtered[colonnes_affichier]
 
 
-def display_designation_info(df, designation):
+
+
+    def display_designation_info(df, designation):
     colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
     designation = designation.strip().upper()
     df['designation'] = df['designation'].fillna('')
@@ -52,27 +54,30 @@ def display_designation_info(df, designation):
     st.dataframe(df_autre[colonnes_affichier].style.apply(highlight_row_if_one, axis=1))
 
     # --- Liste des tailles possibles ---
-    possible_sizes = [
-        '5US', '6US', '7US', '8US', '9US', '10US', '11US', '12US',
-        '4UK', '5UK', '6UK', '7UK', '8UK', '9UK', '10UK', '11UK', '12UK'
-    ]
-    for size in ['5', '6', '7', '8', '9', '10', '11', '12']:
-        possible_sizes.append(f'{size}.5US')
-        possible_sizes.append(f'{size}.5UK')
-
-    # Add sizes 36 to 47.5 for specific designations
     specific_designations = [
         'PRODIGIO', 'PRODIGIO WOMAN', 'AKASHA II', 'AKASHA II WOMAN', 'JACKAL',
         'ULTRA RAPTOR II MID LEATHER GTX', 'ULTRA RAPTOR II MID GTX',
         'ULTRA RAPTOR II LEATHER W GTX', 'ULTRA RAPTOR II LEATHER WOMAN',
         'ULTRA RAPTOR II GTX'
     ]
-    
+
+    possible_sizes = []
+
     if any(desig in designation for desig in specific_designations):
+        # Add European sizes (36 to 47.5) for specific designations
         for size in range(36, 48):
             possible_sizes.append(f'{size}')
             if size != 47:
                 possible_sizes.append(f'{size}.5')
+    else:
+        # Add US and UK sizes for other designations
+        possible_sizes = [
+            '5US', '6US', '7US', '8US', '9US', '10US', '11US', '12US',
+            '4UK', '5UK', '6UK', '7UK', '8UK', '9UK', '10UK', '11UK', '12UK'
+        ]
+        for size in ['5', '6', '7', '8', '9', '10', '11', '12']:
+            possible_sizes.append(f'{size}.5US')
+            possible_sizes.append(f'{size}.5UK')
 
     # --- Affichage des tailles indisponibles ---
     st.subheader("Tailles indisponibles pour la désignation sélectionnée:")
@@ -89,6 +94,9 @@ def display_designation_info(df, designation):
     else:
         st.write("Toutes les tailles sont disponibles pour cette désignation.")
 
+       
+           
+   
 
 # --- Fonction modifiée pour "Stock Négatif" ---
 def filter_negative_stock(df):
