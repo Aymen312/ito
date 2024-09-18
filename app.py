@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 
-## --- Fonctions pour le traitement des données ---
+#### --- Fonctions pour le traitement des données ---
 def clean_numeric_columns(df):
     numeric_columns = ['Prix Achat', 'Qté stock dispo', 'Valeur Stock']
     for col in numeric_columns:
@@ -21,7 +21,7 @@ def highlight_row_if_one(row):
     else:
         return [''] * len(row)
 
-## --- Fonctions modifiées pour afficher les colonnes spécifiques ---
+#### --- Fonctions modifiées pour afficher les colonnes spécifiques ---
 def display_supplier_info(df, fournisseur):
     colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
     fournisseur = fournisseur.strip().upper()
@@ -70,10 +70,8 @@ def display_designation_info(df, designation):
     else:
         # # Add US and UK sizes for other designations
         for size in ['4', '5', '6', '7', '8', '9', '10', '11', '12']:
-          
             possible_sizes_us.append(f'{size}.0US')
             possible_sizes_us.append(f'{size}.5US')
-        
             possible_sizes_uk.append(f'{size}.0UK')
             possible_sizes_uk.append(f'{size}.5UK')
 
@@ -103,10 +101,9 @@ def display_designation_info(df, designation):
         else:
             st.write("Toutes les tailles UK sont disponibles pour cette désignation.")
 
-## --- Fonction modifiée pour "Stock Négatif" ---
+#### --- Fonction modifiée pour "Stock Négatif" ---
 def filter_negative_stock(df):
-    colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille',
-                         'Qté stock dispo', 'Valeur Stock']
+    colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
     df['Qté stock dispo'] = df['Qté stock dispo'].fillna(0)
     df_filtered = df[df['Qté stock dispo'] < 0]
     return df_filtered[colonnes_affichier]
@@ -193,15 +190,14 @@ def display_stock_by_family(df):
             st.write(f"Aucune information disponible pour {famille} "
                      f"dans la catégorie {rayon_filter}.")
 
-
-## --- Configuration de l'application Streamlit ---
+#### --- Configuration de l'application Streamlit ---
 st.set_page_config(
     page_title="Application d'Analyse TDR",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-## --- CSS Personnalisé pour un style moderne (Material Design) ---
+#### --- CSS Personnalisé pour un style moderne (Material Design) ---
 st.markdown(
     """
     <style>
@@ -292,9 +288,9 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-## --- Interface principale de l'application ---
+#### --- Interface principale de l'application ---
 st.title("Application d'Analyse TDR")
-st.sidebar.markdown("###### Menu")
+st.sidebar.markdown("############ Menu")
 st.sidebar.info("Téléchargez un fichier CSV ou Excel pour commencer l'analyse.")
 fichier_telecharge = st.file_uploader("Téléchargez un fichier CSV ou Excel", type=['csv', 'xlsx'])
 
