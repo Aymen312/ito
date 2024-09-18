@@ -72,8 +72,10 @@ def display_designation_info(df, designation):
             '5US', '6US', '7US', '8US', '9US', '10US', '11US', '12US',
             '4UK', '5UK', '6UK', '7UK', '8UK', '9UK', '10UK', '11UK', '12UK'
         ]
-        for size in ['5', '6', '7', '8', '9', '10', '11', '12']:
+        for size in ['4', '5', '6', '7', '8', '9', '10', '11', '12']:
+            possible_sizes.append(f'{size}.0US')
             possible_sizes.append(f'{size}.5US')
+            possible_sizes.append(f'{size}.0UK')
             possible_sizes.append(f'{size}.5UK')
 
     # # --- Affichage des tailles indisponibles ---
