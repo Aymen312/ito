@@ -70,10 +70,10 @@ def display_designation_info(df, designation):
     else:
         # # Add US and UK sizes for other designations
         for size in ['4', '5', '6', '7', '8', '9', '10', '11', '12']:
-          
+            possible_sizes_us.append(f'{size}US')
             possible_sizes_us.append(f'{size}.0US')
             possible_sizes_us.append(f'{size}.5US')
-        
+            possible_sizes_uk.append(f'{size}UK')
             possible_sizes_uk.append(f'{size}.0UK')
             possible_sizes_uk.append(f'{size}.5UK')
 
@@ -133,6 +133,14 @@ def display_sidas_levels(df):
         df_sizes_grouped = df_sizes_grouped.replace(0, "Nul")
         df_sizes_with_designation = df_sizes_grouped.stack().reset_index().rename(columns={0: 'Qté stock dispo'})
         results[level] = df_sizes_with_designation
+
+        # # Affichage des tailles indisponibles
+        st.subheader(f"Quantités disponibles pour SIDAS niveau {level}:")
+        st.dataframe(df_sizes_with_designation.style.apply(highlight_row_if_one, axis=1))
+
+        unavailable_sizes = [size for size in sizes if size not in df_sizes['taille'].unique()]
+        st.write(f"Tailles indisponibles pour SIDAS niveau {level}: {unavailable_sizes}")
+
     return results
 
 def total_stock_value_by_supplier(df):
