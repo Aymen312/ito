@@ -70,10 +70,10 @@ def display_designation_info(df, designation):
     else:
         # # Add US and UK sizes for other designations
         for size in ['4', '5', '6', '7', '8', '9', '10', '11', '12']:
-            possible_sizes_us.append(f'{size}US')
+          
             possible_sizes_us.append(f'{size}.0US')
             possible_sizes_us.append(f'{size}.5US')
-            possible_sizes_uk.append(f'{size}UK')
+        
             possible_sizes_uk.append(f'{size}.0UK')
             possible_sizes_uk.append(f'{size}.5UK')
 
