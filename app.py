@@ -53,19 +53,30 @@ def display_designation_info(df, designation):
 
     # --- Liste des tailles possibles ---
     possible_sizes = [
-        '34', '36', '38', '40', '42', '44', '46', '48', '50','4US',
-        '5US', '6US', '7US', '8US', '9US', '10US', '11US', '12US','4UK',
-        '5UK', '6UK', '7UK', '8UK', '9UK', '10UK', '11UK', '12UK'
+        '5US', '6US', '7US', '8US', '9US', '10US', '11US', '12US',
+        '4UK', '5UK', '6UK', '7UK', '8UK', '9UK', '10UK', '11UK', '12UK'
     ]
-
-    # Ajout des tailles avec .5
     for size in ['5', '6', '7', '8', '9', '10', '11', '12']:
         possible_sizes.append(f'{size}.5US')
         possible_sizes.append(f'{size}.5UK')
 
+    # Add sizes 36 to 47.5 for specific designations
+    specific_designations = [
+        'PRODIGIO', 'PRODIGIO WOMAN', 'AKASHA II', 'AKASHA II WOMAN', 'JACKAL',
+        'ULTRA RAPTOR II MID LEATHER GTX', 'ULTRA RAPTOR II MID GTX',
+        'ULTRA RAPTOR II LEATHER W GTX', 'ULTRA RAPTOR II LEATHER WOMAN',
+        'ULTRA RAPTOR II GTX'
+    ]
+    
+    if any(desig in designation for desig in specific_designations):
+        for size in range(36, 48):
+            possible_sizes.append(f'{size}')
+            if size != 47:
+                possible_sizes.append(f'{size}.5')
+
     # --- Affichage des tailles indisponibles ---
     st.subheader("Tailles indisponibles pour la désignation sélectionnée:")
-    
+
     # Récupérer les tailles disponibles pour cette désignation
     available_sizes = df_filtered['taille'].unique()
 
