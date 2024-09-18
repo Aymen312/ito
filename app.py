@@ -138,21 +138,14 @@ def display_sidas_levels(df):
 
     return results
 
-def total_stock_veric(df['Qté stock dispo'], errors='coerce').fillna(0)
+def total_stock_value_by_supplier(df):
+    df['Qté stock dispo'] = pd.to_numeric(df['Qté stock dispo'], errors='coerce').fillna(0)
     df['Prix Achat'] = pd.to_numeric(df['Prix Achat'], errors='coerce').fillna(0)
     df['Valeur Totale HT'] = df['Qté stock dispo'] * df['Prix Achat']
     total_value_by_supplier = df.groupby('fournisseur')['Valeur Totale HT'].sum().reset_index()
     total_value_by_supplier = total_value_by_supplier.sort_values(by='Valeur Totale HT', ascending=False)
     return total_value_by_supplier
 
-def sort_sizes(df):
-    df['taille'] = pd.Categorical(df['taille'],
-                                 categories=sorted(df['taille'].unique(),
-                                                   key=lambda x: (int(x[:-1]), x[-1]) if x[:-1].isdigit() else (
-                                                       float('inf'), x)),
-                                 ordered=True)
-    df = df.sort_values('taille')
-    return df
 
 def display_stock_by_family(df):
     familles = ["CHAUSSURES RANDO", "CHAUSSURES RUNN", "CHAUSSURE TRAIL"]
