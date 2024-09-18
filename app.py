@@ -357,6 +357,9 @@ if fichier_telecharge is not None:
                         st.write(f"Quantités disponibles pour SIDAS niveau {level}:")
                         st.dataframe(df_level.style.apply(highlight_row_if_one, axis=1))  # # Appliquer le style ici
 
+                        unavailable_sizes = [size for size in ['XS', 'S', 'M', 'L', 'XL', 'XXL'] if size not in df_level['taille'].unique()]
+                        st.write(f"Tailles indisponibles pour SIDAS niveau {level}: {unavailable_sizes}")
+
                 with tab6:
                     st.subheader("Valeur Totale du Stock par Fournisseur")
                     df_total_value_by_supplier = total_stock_value_by_supplier(df)
