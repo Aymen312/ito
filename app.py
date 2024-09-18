@@ -55,7 +55,7 @@ def display_designation_info(df, designation):
         'PRODIGIO', 'PRODIGIO WOMAN', 'AKASHA II', 'AKASHA II WOMAN', 'JACKAL',
         'ULTRA RAPTOR II MID LEATHER GTX', 'ULTRA RAPTOR II MID GTX',
         'ULTRA RAPTOR II LEATHER W GTX', 'ULTRA RAPTOR II LEATHER WOMAN',
-        'ULTRA RAPTOR II GTX', 'AKASHA '
+        'ULTRA RAPTOR II GTX', 'AKASHA'
     ]
 
     possible_sizes_us = []
