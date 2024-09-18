@@ -32,7 +32,11 @@ def display_supplier_info(df, fournisseur):
 
 
 
-    def display_designation_info(df, designation):
+ 
+   
+   
+
+ def display_designation_info(df, designation):
     colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
     designation = designation.strip().upper()
     df['designation'] = df['designation'].fillna('')
@@ -94,6 +98,7 @@ def display_supplier_info(df, fournisseur):
     else:
         st.write("Toutes les tailles sont disponibles pour cette désignation.")
 
+  
        
            
    
