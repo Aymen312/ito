@@ -130,10 +130,15 @@ def display_sidas_levels(df):
         df_sizes_grouped = df_sizes_grouped.replace(0, "Nul")
         df_sizes_with_designation = df_sizes_grouped.stack().reset_index().rename(columns={0: 'Qté stock dispo'})
         results[level] = df_sizes_with_designation
+
+        # # Affichage des tailles indisponibles
+        available_sizes = df_sidas_level['taille'].unique()
+        unavailable_sizes = [size for size in sizes if size not in available_sizes]
+        st.write(f"Tailles indisponibles pour SIDAS niveau {level}: {', '.join(unavailable_sizes) if unavailable_sizes else 'Aucune'}")
+
     return results
 
-def total_stock_value_by_supplier(df):
-    df['Qté stock dispo'] = pd.to_numeric(df['Qté stock dispo'], errors='coerce').fillna(0)
+def total_stock_veric(df['Qté stock dispo'], errors='coerce').fillna(0)
     df['Prix Achat'] = pd.to_numeric(df['Prix Achat'], errors='coerce').fillna(0)
     df['Valeur Totale HT'] = df['Qté stock dispo'] * df['Prix Achat']
     total_value_by_supplier = df.groupby('fournisseur')['Valeur Totale HT'].sum().reset_index()
@@ -359,4 +364,4 @@ if fichier_telecharge is not None:
     except Exception as e:
         st.error(f"Erreur lors du traitement du fichier: {str(e)}")
 else:
-    st.warning("Veuillez télécharger un fichier pour commencer l'analyse.")
+    st.warning("Veuillez télécharger un fichier pour commencer l'analyse.")
