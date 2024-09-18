@@ -146,6 +146,14 @@ def total_stock_value_by_supplier(df):
     total_value_by_supplier = total_value_by_supplier.sort_values(by='Valeur Totale HT', ascending=False)
     return total_value_by_supplier
 
+def sort_sizes(df):
+    df['taille'] = pd.Categorical(df['taille'],
+                                 categories=sorted(df['taille'].unique(),
+                                                   key=lambda x: (int(x[:-1]), x[-1]) if x[:-1].isdigit() else (
+                                                       float('inf'), x)),
+                                 ordered=True)
+    df = df.sort_values('taille')
+    return df
 
 def display_stock_by_family(df):
     familles = ["CHAUSSURES RANDO", "CHAUSSURES RUNN", "CHAUSSURE TRAIL"]
@@ -309,37 +317,52 @@ if fichier_telecharge is not None:
                 df = clean_size_column(df)
                 st.success("Données chargées avec succès!")
 
-                                # Création des onglets pour la navigation
-                tab1, tab2, tab3, tab4 = st.tabs(["Info Fournisseur", "Info Désignation", "Stock Négatif", "Analyse Anita"])
+                tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["Filtrer par Fournisseur",
+                                                                    "Filtrer par Désignation",
+                                                                    "Stock Négatif",
+                                                                    "Anita Tailles",
+                                                                    "Sidas Niveaux",
+                                                                    "Valeur Totale du Stock par Fournisseur",
+                                                                    "Stock par Famille"])
 
-                # Onglet 1 : Information par Fournisseur
                 with tab1:
                     fournisseur = st.text_input("Entrez le nom du fournisseur:")
-                    if fournisseur:
-                        df_fournisseur = display_supplier_info(df, fournisseur)
-                        st.dataframe(df_fournisseur.style.apply(highlight_row_if_one, axis=1))
+                    df_filtered = display_supplier_info(df.copy(), fournisseur)
+                    if not df_filtered.empty:
+                        st.dataframe(df_filtered.style.apply(highlight_row_if_one, axis=1))
                     else:
-                        st.write("Veuillez entrer un fournisseur pour afficher les données.")
+                        st.write("Aucune information disponible pour ce fournisseur.")
 
-                # Onglet 2 : Information par Désignation
                 with tab2:
-                    designation = st.text_input("Entrez la désignation de produit:")
-                    if designation:
-                        display_designation_info(df, designation)
-                    else:
-                        st.write("Veuillez entrer une désignation pour afficher les données.")
+                    designation = st.text_input("Entrez la désignation du produit:")
+                    display_designation_info(df.copy(), designation)
 
-                # Onglet 3 : Stock Négatif
                 with tab3:
-                    st.subheader("Produits avec Stock Négatif")
-                    df_negative_stock = filter_negative_stock(df)
-                    st.dataframe(df_negative_stock.style.apply(highlight_row_if_one, axis=1))
+                    st.dataframe(filter_negative_stock(df.copy()).style.apply(highlight_row_if_one, axis=1))
 
-                # Onglet 4 : Analyse des tailles Anita
                 with tab4:
-                    st.subheader("Analyse des tailles - Fournisseur ANITA")
                     df_anita_sizes = display_anita_sizes(df)
-                    st.table(df_anita_sizes)
+                    st.write("Quantités disponibles pour Anita par taille:")
+                    st.dataframe(df_anita_sizes)
+
+                with tab5:
+                    sidas_results = display_sidas_levels(df)
+                    for level, df_level in sidas_results.items():
+                        st.write(f"Quantités disponibles pour SIDAS niveau {level}:")
+                        st.dataframe(df_level.style.apply(highlight_row_if_one, axis=1))  # # Appliquer le style ici
+
+                with tab6:
+                    st.subheader("Valeur Totale du Stock par Fournisseur")
+                    df_total_value_by_supplier = total_stock_value_by_supplier(df)
+                    st.dataframe(df_total_value_by_supplier)
+                    total_value = df_total_value_by_supplier['Valeur Totale HT'].sum()
+                    st.markdown(f"Valeur Totale du Stock pour tous les fournisseurs : {total_value:.2f}")
+
+                with tab7:
+                    st.header("Stock par Famille")
+                    display_stock_by_family(df)
 
     except Exception as e:
-        st.error(f"Erreur lors du chargement du fichier: {e}")
+        st.error(f"Erreur lors du traitement du fichier: {str(e)}")
+else:
+    st.warning("Veuillez télécharger un fichier pour commencer l'analyse.")
