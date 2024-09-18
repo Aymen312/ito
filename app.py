@@ -351,9 +351,7 @@ if fichier_telecharge is not None:
 
                 with tab6:
                     st.subheader("Valeur Totale du Stock par Fournisseur")
-                    df_total_value_by_supplier = total_stock_value_by_supplie
-
-
+                    df_total_value_by_supplier = total_stock_value_by_supplier(df)
                     st.dataframe(df_total_value_by_supplier)
                     total_value = df_total_value_by_supplier['Valeur Totale HT'].sum()
                     st.markdown(f"*Valeur Totale du Stock pour tous les fournisseurs : {total_value:.2f}*")
