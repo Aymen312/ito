@@ -58,22 +58,24 @@ def display_designation_info(df, designation):
         'ULTRA RAPTOR II GTX'
     ]
 
-    possible_sizes = []
+    possible_sizes_us = []
+    possible_sizes_uk = []
 
     if any(desig in designation for desig in specific_designations):
         # # Add European sizes (36 to 47.5) for specific designations
         for size in range(36, 48):
-            possible_sizes.append(f'{size}')
+            possible_sizes_us.append(f'{size}')
             if size != 47:
-                possible_sizes.append(f'{size}.5')
+                possible_sizes_us.append(f'{size}.5')
     else:
         # # Add US and UK sizes for other designations
-      
         for size in ['4', '5', '6', '7', '8', '9', '10', '11', '12']:
-            possible_sizes.append(f'{size}.0US')
-            possible_sizes.append(f'{size}.5US')
-            possible_sizes.append(f'{size}.0UK')
-            possible_sizes.append(f'{size}.5UK')
+            possible_sizes_us.append(f'{size}US')
+            possible_sizes_us.append(f'{size}.0US')
+            possible_sizes_us.append(f'{size}.5US')
+            possible_sizes_uk.append(f'{size}UK')
+            possible_sizes_uk.append(f'{size}.0UK')
+            possible_sizes_uk.append(f'{size}.5UK')
 
     # # --- Affichage des tailles indisponibles ---
     st.subheader("Tailles indisponibles pour la désignation sélectionnée:")
@@ -82,13 +84,24 @@ def display_designation_info(df, designation):
     available_sizes = df_filtered['taille'].unique()
 
     # # Trouver les tailles manquantes
-    unavailable_sizes = [size for size in possible_sizes if size not in available_sizes]
+    unavailable_sizes_us = [size for size in possible_sizes_us if size not in available_sizes]
+    unavailable_sizes_uk = [size for size in possible_sizes_uk if size not in available_sizes]
 
-    if unavailable_sizes:
-        st.write("Les tailles suivantes ne sont pas disponibles :")
-        st.write(unavailable_sizes)
-    else:
-        st.write("Toutes les tailles sont disponibles pour cette désignation.")
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.write("Tailles US indisponibles :")
+        if unavailable_sizes_us:
+            st.write(unavailable_sizes_us)
+        else:
+            st.write("Toutes les tailles US sont disponibles pour cette désignation.")
+
+    with col2:
+        st.write("Tailles UK indisponibles :")
+        if unavailable_sizes_uk:
+            st.write(unavailable_sizes_uk)
+        else:
+            st.write("Toutes les tailles UK sont disponibles pour cette désignation.")
 
 ## --- Fonction modifiée pour "Stock Négatif" ---
 def filter_negative_stock(df):
@@ -338,7 +351,9 @@ if fichier_telecharge is not None:
 
                 with tab6:
                     st.subheader("Valeur Totale du Stock par Fournisseur")
-                    df_total_value_by_supplier = total_stock_value_by_supplier(df)
+                    df_total_value_by_supplier = total_stock_value_by_supplie
+
+
                     st.dataframe(df_total_value_by_supplier)
                     total_value = df_total_value_by_supplier['Valeur Totale HT'].sum()
                     st.markdown(f"*Valeur Totale du Stock pour tous les fournisseurs : {total_value:.2f}*")
