@@ -26,7 +26,17 @@ def display_supplier_info(df, fournisseur):
     colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
     fournisseur = fournisseur.strip().upper()
     df['fournisseur'] = df['fournisseur'].fillna('')
-    df_filtered = df[df['fournisseur'].str.upper() == fournisseur] if fournisseur else pd.DataFrame(columns=colonnes_affichier)
+
+    # Filtrer le dataframe par fournisseur
+    if fournisseur:
+        df_filtered = df[df['fournisseur'].str.upper() == fournisseur]
+    else:
+        df_filtered = pd.DataFrame(columns=colonnes_affichier)
+
+    # --- Vérification si df_filtered n'est pas vide ---
+    if df_filtered.empty:
+        st.write("Aucune donnée disponible pour ce fournisseur.")
+        return
 
     # --- Affichage des données filtrées par fournisseur ---
     st.dataframe(df_filtered[colonnes_affichier])
