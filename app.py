@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 
-# --- Fonctions pour le traitement des données ---
+## --- Fonctions pour le traitement des données ---
 def clean_numeric_columns(df):
     numeric_columns = ['Prix Achat', 'Qté stock dispo', 'Valeur Stock']
     for col in numeric_columns:
@@ -21,7 +21,7 @@ def highlight_row_if_one(row):
     else:
         return [''] * len(row)
 
-# --- Fonctions modifiées pour afficher les colonnes spécifiques ---
+## --- Fonctions modifiées pour afficher les colonnes spécifiques ---
 def display_supplier_info(df, fournisseur):
     colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
     fournisseur = fournisseur.strip().upper()
@@ -29,25 +29,18 @@ def display_supplier_info(df, fournisseur):
     df_filtered = df[df['fournisseur'].str.upper() == fournisseur] if fournisseur else pd.DataFrame(columns=colonnes_affichier)
     return df_filtered[colonnes_affichier]
 
-
-
-
- 
-   
-   
-
- def display_designation_info(df, designation):
+def display_designation_info(df, designation):
     colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
     designation = designation.strip().upper()
     df['designation'] = df['designation'].fillna('')
     df_filtered = df[df['designation'].str.upper().str.contains(designation)] if designation else pd.DataFrame(columns=colonnes_affichier)
 
-    # --- Filtrage par rayon ---
+    # # --- Filtrage par rayon ---
     df_homme = df_filtered[df_filtered['rayon'].str.upper() == 'HOMME']
     df_femme = df_filtered[df_filtered['rayon'].str.upper() == 'FEMME']
     df_autre = df_filtered[~df_filtered['rayon'].str.upper().isin(['HOMME', 'FEMME'])]
 
-    # --- Affichage des tableaux par rayon ---
+    # # --- Affichage des tableaux par rayon ---
     st.subheader("Rayon Homme:")
     st.dataframe(df_homme[colonnes_affichier].style.apply(highlight_row_if_one, axis=1))
 
@@ -57,7 +50,7 @@ def display_supplier_info(df, fournisseur):
     st.subheader("Autres Rayons:")
     st.dataframe(df_autre[colonnes_affichier].style.apply(highlight_row_if_one, axis=1))
 
-    # --- Liste des tailles possibles ---
+    # # --- Liste des tailles possibles ---
     specific_designations = [
         'PRODIGIO', 'PRODIGIO WOMAN', 'AKASHA II', 'AKASHA II WOMAN', 'JACKAL',
         'ULTRA RAPTOR II MID LEATHER GTX', 'ULTRA RAPTOR II MID GTX',
@@ -68,13 +61,13 @@ def display_supplier_info(df, fournisseur):
     possible_sizes = []
 
     if any(desig in designation for desig in specific_designations):
-        # Add European sizes (36 to 47.5) for specific designations
+        # # Add European sizes (36 to 47.5) for specific designations
         for size in range(36, 48):
             possible_sizes.append(f'{size}')
             if size != 47:
                 possible_sizes.append(f'{size}.5')
     else:
-        # Add US and UK sizes for other designations
+        # # Add US and UK sizes for other designations
         possible_sizes = [
             '5US', '6US', '7US', '8US', '9US', '10US', '11US', '12US',
             '4UK', '5UK', '6UK', '7UK', '8UK', '9UK', '10UK', '11UK', '12UK'
@@ -83,13 +76,13 @@ def display_supplier_info(df, fournisseur):
             possible_sizes.append(f'{size}.5US')
             possible_sizes.append(f'{size}.5UK')
 
-    # --- Affichage des tailles indisponibles ---
+    # # --- Affichage des tailles indisponibles ---
     st.subheader("Tailles indisponibles pour la désignation sélectionnée:")
 
-    # Récupérer les tailles disponibles pour cette désignation
+    # # Récupérer les tailles disponibles pour cette désignation
     available_sizes = df_filtered['taille'].unique()
 
-    # Trouver les tailles manquantes
+    # # Trouver les tailles manquantes
     unavailable_sizes = [size for size in possible_sizes if size not in available_sizes]
 
     if unavailable_sizes:
@@ -98,12 +91,7 @@ def display_supplier_info(df, fournisseur):
     else:
         st.write("Toutes les tailles sont disponibles pour cette désignation.")
 
-  
-       
-           
-   
-
-# --- Fonction modifiée pour "Stock Négatif" ---
+## --- Fonction modifiée pour "Stock Négatif" ---
 def filter_negative_stock(df):
     colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille',
                          'Qté stock dispo', 'Valeur Stock']
@@ -194,14 +182,14 @@ def display_stock_by_family(df):
                      f"dans la catégorie {rayon_filter}.")
 
 
-# --- Configuration de l'application Streamlit ---
+## --- Configuration de l'application Streamlit ---
 st.set_page_config(
     page_title="Application d'Analyse TDR",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# --- CSS Personnalisé pour un style moderne (Material Design) ---
+## --- CSS Personnalisé pour un style moderne (Material Design) ---
 st.markdown(
     """
     <style>
@@ -211,12 +199,12 @@ st.markdown(
     /* --- Styles globaux --- */
     body {
         font-family: 'Roboto', sans-serif;
-        background-color: #f5f5f5; /* Gris très clair */
+        background-color: # #f5f5f5; /* Gris très clair */
     }
 
     /* --- Titres --- */
     h1, h2, h3 {
-        color: #212121; /* Gris foncé */
+        color: # #212121; /* Gris foncé */
     }
 
     /* --- Tableaux de données --- */
@@ -229,7 +217,7 @@ st.markdown(
     th, td {
         text-align: left;
         padding: 12px 16px;
-        border-bottom: 1px solid #EEEEEE; /* Gris très clair */
+        border-bottom: 1px solid # #EEEEEE; /* Gris très clair */
     }
     th {
         font-weight: bold;
@@ -237,23 +225,23 @@ st.markdown(
 
     /* --- Messages d'état --- */
     .st-success {
-        color: #448a50; /* Vert */
+        color: # #448a50; /* Vert */
     }
     .st-warning {
-        color: #f0ad4e; /* Orange */
+        color: # #f0ad4e; /* Orange */
     }
     .st-error {
-        color: #d9534f; /* Rouge */
+        color: # #d9534f; /* Rouge */
     }
 
     /* --- Onglets (style Material Design) --- */
     .stTabs [data-baseweb="tab-list"] {
-        border-bottom: 2px solid #EEEEEE; /* Gris très clair */
+        border-bottom: 2px solid # #EEEEEE; /* Gris très clair */
     }
     .stTabs [data-baseweb="tab-list"] button {
         background-color: transparent;
         border: none;
-        color: #757575; /* Gris moyen */
+        color: # #757575; /* Gris moyen */
         font-size: 16px;
         margin-right: 32px;
         padding: 12px 16px;
@@ -261,16 +249,16 @@ st.markdown(
         border-top-right-radius: 4px;
     }
     .stTabs [data-baseweb="tab-list"] button:hover {
-        color: #212121; /* Gris foncé */
+        color: # #212121; /* Gris foncé */
     }
     .stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {
-        color: #2196f3; /* Bleu Material Design */
-        border-bottom: 2px solid #2196f3; /* Bleu Material Design */
+        color: # #2196f3; /* Bleu Material Design */
+        border-bottom: 2px solid # #2196f3; /* Bleu Material Design */
     }
 
     /* --- Boutons --- */
     .stButton>button {
-        background-color: #2196f3; /* Bleu Material Design */
+        background-color: # #2196f3; /* Bleu Material Design */
         color: white;
         border: none;
         padding: 8px 16px;
@@ -278,23 +266,23 @@ st.markdown(
         cursor: pointer;
     }
     .stButton>button:hover {
-        background-color: #1976d2; /* Bleu Material Design plus foncé */
+        background-color: # #1976d2; /* Bleu Material Design plus foncé */
     }
 
     /* --- Autres éléments --- */
     .stSelectbox [data-baseweb="select"] {
         padding: 8px 12px;
         border-radius: 4px;
-        border: 1px solid #bdbdbd; /* Gris clair */
+        border: 1px solid # #bdbdbd; /* Gris clair */
     }
     </style>
     """,
     unsafe_allow_html=True
 )
 
-# --- Interface principale de l'application ---
+## --- Interface principale de l'application ---
 st.title("Application d'Analyse TDR")
-st.sidebar.markdown("### Menu")
+st.sidebar.markdown("###### Menu")
 st.sidebar.info("Téléchargez un fichier CSV ou Excel pour commencer l'analyse.")
 fichier_telecharge = st.file_uploader("Téléchargez un fichier CSV ou Excel", type=['csv', 'xlsx'])
 
@@ -347,7 +335,7 @@ if fichier_telecharge is not None:
                     sidas_results = display_sidas_levels(df)
                     for level, df_level in sidas_results.items():
                         st.write(f"Quantités disponibles pour SIDAS niveau {level}:")
-                        st.dataframe(df_level.style.apply(highlight_row_if_one, axis=1))  # Appliquer le style ici
+                        st.dataframe(df_level.style.apply(highlight_row_if_one, axis=1))  # # Appliquer le style ici
 
                 with tab6:
                     st.subheader("Valeur Totale du Stock par Fournisseur")
