@@ -13,6 +13,12 @@ if uploaded_file is not None:
         # Lire le fichier CSV dans un DataFrame avec encodage adaptatif
         data = pd.read_csv(uploaded_file, encoding_errors='ignore')
         
+        # Nettoyer les noms de colonnes en supprimant les espaces
+        data.columns = data.columns.str.strip()
+        
+        # Afficher les noms de colonnes pour débogage
+        st.write("Noms des colonnes dans le fichier :", data.columns.tolist())
+        
         # Afficher les premières lignes du fichier
         st.write("Aperçu des données :")
         st.write(data.head())
