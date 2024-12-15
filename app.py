@@ -10,8 +10,8 @@ uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
 
 if uploaded_file is not None:
     try:
-        # Lire le fichier CSV dans un DataFrame avec encodage adaptatif
-        data = pd.read_csv(uploaded_file, encoding_errors='ignore')
+        # Lire le fichier CSV dans un DataFrame avec encodage adaptatif et séparateur ';'
+        data = pd.read_csv(uploaded_file, sep=';', encoding_errors='ignore')
         
         # Nettoyer les noms de colonnes en supprimant les espaces
         data.columns = data.columns.str.strip()
