@@ -23,7 +23,7 @@ if uploaded_file is not None:
         if date_livraison:
             try:
                 # Filtrer les données pour afficher celles correspondant à la date
-                filtered_data = data[data['datelivraison'] == date_livraison]
+                filtered_data = data[data['DateLivraison'] == date_livraison]
                 
                 if not filtered_data.empty:
                     st.write("Données correspondantes :")
@@ -31,7 +31,7 @@ if uploaded_file is not None:
                 else:
                     st.warning("Aucune donnée trouvée pour cette date de livraison.")
             except KeyError:
-                st.error("La colonne 'datelivraison' n'existe pas dans le fichier.")
+                st.error("La colonne 'DateLivraison' n'existe pas dans le fichier.")
             except Exception as e:
                 st.error(f"Erreur : {e}")
     except Exception as e:
