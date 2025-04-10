@@ -105,7 +105,7 @@ def display_designation_info(df, designation):
                 possible_sizes_us.append(f'{size}.5')
                 possible_sizes_us.append(f'0{size}.5')
     else:
-        for size in ['4', '5', '6', '7', '8', '9', '10', '11', '12']:
+        for size in ['4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14']:
             possible_sizes_us.append(f'{size}.0US')
             possible_sizes_us.append(f'0{size}.0US')
             possible_sizes_us.append(f'{size}.5US')
