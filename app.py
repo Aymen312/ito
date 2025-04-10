@@ -35,10 +35,23 @@ def display_designation_info(df, designation):
     df['designation'] = df['designation'].fillna('')
     df_filtered = df[df['designation'].str.upper().str.contains(designation)] if designation else pd.DataFrame(columns=colonnes_affichier)
 
-    # Normalisation des tailles pour le filtrage
+    # Normalisation des tailles pour la comparaison
+    def normalize_size(size):
+        if pd.isna(size):
+            return ''
+        size_str = str(size).strip()
+        # Supprimer les zéros en tête avant le point (04.0US -> 4.0US)
+        if '.' in size_str:
+            int_part, dec_part = size_str.split('.', 1)
+            int_part = int_part.lstrip('0') or '0'  # Garder '0' si tout est supprimé
+            size_str = f"{int_part}.{dec_part}"
+        else:
+            size_str = size_str.lstrip('0') or '0'
+        return size_str
+
+    # Créer une colonne avec les tailles normalisées
     if 'taille' in df_filtered.columns:
-        df_filtered['taille_normalisee'] = df_filtered['taille'].astype(str).str.replace(r'^0+', '', regex=True)  # Supprime les zéros en tête
-        df_filtered['taille_normalisee'] = df_filtered['taille_normalisee'].str.replace(r'\.0+$', '', regex=True)  # Supprime .0 à la fin
+        df_filtered['taille_normalisee'] = df_filtered['taille'].apply(normalize_size)
 
     # --- Filtrage par rayon ---
     df_homme = df_filtered[df_filtered['rayon'].str.upper() == 'HOMME']
@@ -67,52 +80,81 @@ def display_designation_info(df, designation):
     possible_sizes_uk = []
 
     if any(desig in designation for desig in specific_designations):
-        # Add European sizes (36 to 47.5) for specific designations
+        # Tailles européennes (36 à 47.5)
         for size in range(36, 48):
             possible_sizes_us.append(f'{size}')
-            possible_sizes_us.append(f'0{size}')  # Ajout des versions avec 0
+            possible_sizes_us.append(f'{size}.0')
+            possible_sizes_us.append(f'0{size}')
+            possible_sizes_us.append(f'0{size}.0')
             if size != 47:
                 possible_sizes_us.append(f'{size}.5')
-                possible_sizes_us.append(f'0{size}.5')  # Ajout des versions avec 0
+                possible_sizes_us.append(f'0{size}.5')
     else:
-        # Add US and UK sizes for other designations
+        # Tailles US/UK
         for size in ['4', '5', '6', '7', '8', '9', '10', '11', '12']:
+            # US sizes
             possible_sizes_us.append(f'{size}.0US')
-            possible_sizes_us.append(f'0{size}.0US')  # Ajout des versions avec 0
+            possible_sizes_us.append(f'0{size}.0US')
             possible_sizes_us.append(f'{size}.5US')
-            possible_sizes_us.append(f'0{size}.5US')  # Ajout des versions avec 0
+            possible_sizes_us.append(f'0{size}.5US')
+            
+            # UK sizes
             possible_sizes_uk.append(f'{size}.0UK')
-            possible_sizes_uk.append(f'0{size}.0UK')  # Ajout des versions avec 0
+            possible_sizes_uk.append(f'0{size}.0UK')
             possible_sizes_uk.append(f'{size}.5UK')
-            possible_sizes_uk.append(f'0{size}.5UK')  # Ajout des versions avec 0
+            possible_sizes_uk.append(f'0{size}.5UK')
 
     # --- Affichage des tailles indisponibles ---
     st.subheader("Tailles indisponibles pour la désignation sélectionnée:")
 
-    # Récupérer les tailles disponibles pour cette désignation (en utilisant la version normalisée)
-    available_sizes = df_filtered['taille_normalisee'].unique() if 'taille_normalisee' in df_filtered.columns else []
+    # Récupérer les tailles disponibles (normalisées)
+    available_sizes_normalized = df_filtered['taille_normalisee'].unique() if 'taille_normalisee' in df_filtered.columns else []
 
-    # Trouver les tailles manquantes
-    # On normalise aussi les tailles possibles pour la comparaison
-    possible_sizes_us_normalized = [size.replace('0', '', 1).replace('.0', '') if size.startswith('0') else size for size in possible_sizes_us]
-    possible_sizes_uk_normalized = [size.replace('0', '', 1).replace('.0', '') if size.startswith('0') else size for size in possible_sizes_uk]
-    
-    unavailable_sizes_us = [possible_sizes_us[i] for i, size in enumerate(possible_sizes_us_normalized) if size not in available_sizes]
-    unavailable_sizes_uk = [possible_sizes_uk[i] for i, size in enumerate(possible_sizes_uk_normalized) if size not in available_sizes]
+    # Fonction pour trouver les tailles manquantes en tenant compte des équivalences
+    def find_unavailable_sizes(possible_sizes, available_normalized):
+        unavailable = []
+        for size in possible_sizes:
+            normalized = normalize_size(size)
+            if normalized not in available_normalized:
+                unavailable.append(size)
+        return unavailable
+
+    unavailable_sizes_us = find_unavailable_sizes(possible_sizes_us, available_sizes_normalized)
+    unavailable_sizes_uk = find_unavailable_sizes(possible_sizes_uk, available_sizes_normalized)
 
     col1, col2 = st.columns(2)
 
     with col1:
         st.write("Tailles US indisponibles :")
         if unavailable_sizes_us:
-            st.write(unavailable_sizes_us)
+            # Regrouper les tailles équivalentes
+            grouped_sizes = {}
+            for size in unavailable_sizes_us:
+                norm_size = normalize_size(size)
+                if norm_size not in grouped_sizes:
+                    grouped_sizes[norm_size] = []
+                grouped_sizes[norm_size].append(size)
+            
+            # Afficher les groupes
+            for norm_size, equivalents in grouped_sizes.items():
+                st.write(f"{norm_size} → {', '.join(equivalents)}")
         else:
             st.write("Toutes les tailles US sont disponibles pour cette désignation.")
 
     with col2:
         st.write("Tailles UK indisponibles :")
         if unavailable_sizes_uk:
-            st.write(unavailable_sizes_uk)
+            # Regrouper les tailles équivalentes
+            grouped_sizes = {}
+            for size in unavailable_sizes_uk:
+                norm_size = normalize_size(size)
+                if norm_size not in grouped_sizes:
+                    grouped_sizes[norm_size] = []
+                grouped_sizes[norm_size].append(size)
+            
+            # Afficher les groupes
+            for norm_size, equivalents in grouped_sizes.items():
+                st.write(f"{norm_size} → {', '.join(equivalents)}")
         else:
             st.write("Toutes les tailles UK sont disponibles pour cette désignation.")
 
