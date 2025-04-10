@@ -84,7 +84,7 @@ def display_designation_info(df, designation):
         styled_sum = sum_by_size.style.applymap(highlight_total_if_one, subset=['Total Qté dispo'])
         st.dataframe(styled_sum)
 
-    # --- Le reste du code reste inchangé ---
+    # --- Tailles possibles ---
     specific_designations = [
         'PRODIGIO', 'PRODIGIO WOMAN', 'AKASHA II', 'AKASHA II WOMAN', 'JACKAL',
         'ULTRA RAPTOR II MID LEATHER GTX', 'ULTRA RAPTOR II MID GTX',
@@ -105,6 +105,7 @@ def display_designation_info(df, designation):
                 possible_sizes_us.append(f'{size}.5')
                 possible_sizes_us.append(f'0{size}.5')
     else:
+        # Tailles étendues jusqu'au 14 comme demandé
         for size in ['4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14']:
             possible_sizes_us.append(f'{size}.0US')
             possible_sizes_us.append(f'0{size}.0US')
