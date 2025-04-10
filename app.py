@@ -31,19 +31,24 @@ def display_supplier_info(df, fournisseur):
 
 
 def display_designation_info(df, designation):
-    # Colonnes à afficher dans le tableau principal
+    # Colonnes à afficher
     colonnes_a_afficher = ['barcode', 'taille', 'designation', 'Qté stock dispo']
-    designation = designation.strip().upper()
-    df['designation'] = df['designation'].fillna('')
     
-    # Filtre exact sur la désignation
-    df_filtered = df[df['designation'].str.upper() == designation] if designation else pd.DataFrame(columns=colonnes_a_afficher)
+    # Préparation des données
+    designation = designation.strip().upper()
+    df['designation'] = df['designation'].fillna('').str.upper()
+    
+    # Filtrage
+    df_filtered = df[df['designation'] == designation] if designation else pd.DataFrame(columns=colonnes_a_afficher)
 
     # Normalisation des tailles
     def normalize_size(size):
         if pd.isna(size):
             return ''
-        size_str = str(size).strip()
+        size_str = str(size).strip().upper()
+        # Supprimer US/UK/autres suffixes
+        size_str = size_str.replace('US', '').replace('UK', '').strip()
+        # Gérer les formats avec/sans point
         if '.' in size_str:
             int_part, dec_part = size_str.split('.', 1)
             int_part = int_part.lstrip('0') or '0'
@@ -55,14 +60,14 @@ def display_designation_info(df, designation):
     if 'taille' in df_filtered.columns:
         df_filtered['taille_normalisee'] = df_filtered['taille'].apply(normalize_size)
 
-    # Calculer la somme des quantités par taille normalisée
+    # Calcul des stocks par taille
     sum_by_size = pd.DataFrame()
     if not df_filtered.empty and 'taille_normalisee' in df_filtered.columns:
         sum_by_size = df_filtered.groupby('taille_normalisee')['Qté stock dispo'].sum().reset_index()
         sum_by_size.columns = ['Taille', 'Total Qté dispo']
         sum_by_size = sum_by_size.sort_values('Taille')
 
-    # Fonction de mise en forme conditionnelle
+    # Affichage tableau principal
     def highlight_row_if_one(row):
         if 'taille_normalisee' in row and row['taille_normalisee'] in sum_by_size['Taille'].values:
             total = sum_by_size.loc[sum_by_size['Taille'] == row['taille_normalisee'], 'Total Qté dispo'].values[0]
@@ -70,21 +75,16 @@ def display_designation_info(df, designation):
                 return ['background-color: red'] * len(row)
         return [''] * len(row)
 
-    # --- Affichage du tableau principal ---
     st.dataframe(df_filtered[colonnes_a_afficher].style.apply(highlight_row_if_one, axis=1))
 
-    # --- Affichage du tableau des sommes par taille ---
+    # Affichage somme par taille
     if not sum_by_size.empty:
-        st.subheader("Somme des quantités disponibles par taille")
-        
+        st.subheader("Stock par taille")
         def highlight_total_if_one(val):
-            color = 'red' if val == 1 else ''
-            return f'background-color: {color}'
-        
-        styled_sum = sum_by_size.style.applymap(highlight_total_if_one, subset=['Total Qté dispo'])
-        st.dataframe(styled_sum)
+            return 'background-color: red' if val == 1 else ''
+        st.dataframe(sum_by_size.style.applymap(highlight_total_if_one, subset=['Total Qté dispo']))
 
-    # --- Configuration des tailles possibles ---
+    # Configuration tailles possibles
     specific_designations = [
         'PRODIGIO', 'PRODIGIO WOMAN', 'AKASHA II', 'AKASHA II WOMAN', 'JACKAL',
         'ULTRA RAPTOR II MID LEATHER GTX', 'ULTRA RAPTOR II MID GTX',
@@ -92,78 +92,48 @@ def display_designation_info(df, designation):
         'ULTRA RAPTOR II GTX', 'AKASHA'
     ]
 
-    possible_sizes_us = []
-    possible_sizes_uk = []
+    # Génération des tailles attendues
+    def generate_expected_sizes():
+        if any(desig in designation for desig in specific_designations):
+            # Tailles spécifiques 36-47 avec demi-pointures
+            sizes = []
+            for size in range(36, 48):
+                sizes.append(str(size))
+                if size != 47:
+                    sizes.append(f"{size}.5")
+            return sizes
+        else:
+            # Tailles standard 4-14 avec demi-pointures
+            return [str(num) for num in range(4, 15)] + [f"{num}.5" for num in range(4, 15)]
 
-    if any(desig in designation for desig in specific_designations):
-        # Tailles spécifiques (36-47)
-        for size in range(36, 48):
-            possible_sizes_us.append(f'{size}')
-            possible_sizes_us.append(f'0{size}')
-            possible_sizes_us.append(f'{size}.0')
-            possible_sizes_us.append(f'0{size}.0')
-            if size != 47:
-                possible_sizes_us.append(f'{size}.5')
-                possible_sizes_us.append(f'0{size}.5')
-    else:
-        # Tailles standard US/UK (4-14)
-        base_sizes = []
-        for num in range(4, 15):  # De 4 à 14 inclus
-            base_sizes.append(str(num))
-            base_sizes.append(f'{num}.5')
-        
-        for size in base_sizes:
-            # Format US
-            possible_sizes_us.append(f'{size}US')
-            possible_sizes_us.append(f'0{size}US')
-            # Format UK
-            possible_sizes_uk.append(f'{size}UK')
-            possible_sizes_uk.append(f'0{size}UK')
+    expected_sizes = generate_expected_sizes()
 
-    # --- Tailles indisponibles ---
-    st.subheader("Tailles indisponibles:")
-    available_sizes_normalized = df_filtered['taille_normalisee'].unique() if 'taille_normalisee' in df_filtered.columns else []
+    # Détection tailles indisponibles
+    st.subheader("Tailles indisponibles")
+    
+    # Tailles normalisées avec stock > 0
+    available_sizes = set()
+    if not df_filtered.empty and 'taille_normalisee' in df_filtered.columns:
+        available_sizes = set(df_filtered[df_filtered['Qté stock dispo'] > 0]['taille_normalisee'])
 
-    def find_unavailable_sizes(possible_sizes, available_normalized):
-        # Normaliser toutes les tailles possibles
-        normalized_possible = [normalize_size(size.replace('US', '').replace('UK', '')) for size in possible_sizes]
-        
-        # Créer un ensemble des tailles disponibles
-        available_set = set(available_normalized)
-        
-        # Trouver les tailles possibles qui ne sont pas disponibles
-        unavailable = []
-        for size in set(normalized_possible):  # Utiliser set() pour éviter les doublons
-            if size not in available_set:
-                unavailable.append(size)
-        
-        # Trier les tailles
-        def size_to_float(s):
-            try:
-                return float(s)
-            except ValueError:
-                return float('inf')
-        
-        return sorted(unavailable, key=size_to_float)
-
-    unavailable_sizes_us = find_unavailable_sizes(possible_sizes_us, available_sizes_normalized)
-    unavailable_sizes_uk = find_unavailable_sizes(possible_sizes_uk, available_sizes_normalized)
+    # Trouver les tailles manquantes
+    missing_sizes = [size for size in expected_sizes if normalize_size(size) not in available_sizes]
 
     # Affichage en deux colonnes
     col1, col2 = st.columns(2)
     with col1:
-        st.write("Tailles US indisponibles :")
-        if unavailable_sizes_us:
-            st.write(unavailable_sizes_us)
+        st.write("Tailles US:")
+        if missing_sizes:
+            st.write(missing_sizes)
         else:
-            st.write("Toutes les tailles US sont disponibles pour cette désignation.")
-    
+            st.success("Toutes les tailles sont disponibles")
+
     with col2:
-        st.write("Tailles UK indisponibles :")
-        if unavailable_sizes_uk:
-            st.write(unavailable_sizes_uk)
+        st.write("Tailles UK:") 
+        if missing_sizes:
+            st.write(missing_sizes)
         else:
-            st.write("Toutes les tailles UK sont disponibles pour cette désignation.")
+            st.success("Toutes les tailles sont disponibles")
 #### --- Fonction modifiée pour "Stock Négatif" ---
 def filter_negative_stock(df):
     colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
