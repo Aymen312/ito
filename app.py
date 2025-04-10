@@ -30,7 +30,8 @@ def display_supplier_info(df, fournisseur):
     return df_filtered[colonnes_affichier]
 
 def display_designation_info(df, designation):
-    colonnes_a_afficher = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
+    # Colonnes à afficher dans le tableau
+    colonnes_a_afficher = ['barcode', 'taille', 'Qté stock dispo']
     designation = designation.strip().upper()
     df['designation'] = df['designation'].fillna('')
     
@@ -53,10 +54,10 @@ def display_designation_info(df, designation):
     if 'taille' in df_filtered.columns:
         df_filtered['taille_normalisee'] = df_filtered['taille'].apply(normalize_size)
 
-    # --- Affichage unique du tableau ---
+    # --- Affichage du tableau avec seulement les colonnes spécifiées ---
     st.dataframe(df_filtered[colonnes_a_afficher].style.apply(highlight_row_if_one, axis=1))
 
-    # --- Tailles possibles (même logique qu'avant) ---
+    # --- Le reste du code reste inchangé ---
     specific_designations = [
         'PRODIGIO', 'PRODIGIO WOMAN', 'AKASHA II', 'AKASHA II WOMAN', 'JACKAL',
         'ULTRA RAPTOR II MID LEATHER GTX', 'ULTRA RAPTOR II MID GTX',
