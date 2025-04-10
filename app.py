@@ -55,23 +55,23 @@ def display_designation_info(df, designation):
         df_filtered['taille_normalisee'] = df_filtered['taille'].apply(normalize_size)
 
     # Calculer la somme des quantités par taille
-    if not df_filtered.empty:
-        # Créer un dictionnaire pour stocker les sommes par taille normalisée
+    sum_by_size = {}
+    if not df_filtered.empty and 'taille_normalisee' in df_filtered.columns:
         sum_by_size = df_filtered.groupby('taille_normalisee')['Qté stock dispo'].sum().to_dict()
-        
-        # Appliquer la somme à chaque ligne
-        df_filtered['total_par_taille'] = df_filtered['taille_normalisee'].map(sum_by_size)
-    else:
-        df_filtered['total_par_taille'] = 0
-
+    
     # Fonction de mise en forme conditionnelle
     def highlight_row_if_one(row):
-        if row['total_par_taille'] == 1:
+        if 'taille_normalisee' in row and row['taille_normalisee'] in sum_by_size and sum_by_size[row['taille_normalisee']] == 1:
             return ['background-color: red'] * len(row)
         return [''] * len(row)
 
-    # --- Affichage du tableau avec seulement les colonnes spécifiées ---
+    # --- Affichage du tableau ---
     st.dataframe(df_filtered[colonnes_a_afficher].style.apply(highlight_row_if_one, axis=1))
+
+    # Compteur des tailles avec somme = 1
+    if sum_by_size:
+        count_sizes_with_one = sum(1 for size_sum in sum_by_size.values() if size_sum == 1)
+        st.write(f"Nombre de tailles avec quantité totale = 1: **{count_sizes_with_one}**")
 
     # --- Le reste du code reste inchangé ---
     specific_designations = [
