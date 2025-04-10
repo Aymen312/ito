@@ -54,6 +54,22 @@ def display_designation_info(df, designation):
     if 'taille' in df_filtered.columns:
         df_filtered['taille_normalisee'] = df_filtered['taille'].apply(normalize_size)
 
+    # Calculer la somme des quantités par taille
+    if not df_filtered.empty:
+        # Créer un dictionnaire pour stocker les sommes par taille normalisée
+        sum_by_size = df_filtered.groupby('taille_normalisee')['Qté stock dispo'].sum().to_dict()
+        
+        # Appliquer la somme à chaque ligne
+        df_filtered['total_par_taille'] = df_filtered['taille_normalisee'].map(sum_by_size)
+    else:
+        df_filtered['total_par_taille'] = 0
+
+    # Fonction de mise en forme conditionnelle
+    def highlight_row_if_one(row):
+        if row['total_par_taille'] == 1:
+            return ['background-color: red'] * len(row)
+        return [''] * len(row)
+
     # --- Affichage du tableau avec seulement les colonnes spécifiées ---
     st.dataframe(df_filtered[colonnes_a_afficher].style.apply(highlight_row_if_one, axis=1))
 
