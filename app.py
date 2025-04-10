@@ -30,22 +30,20 @@ def display_supplier_info(df, fournisseur):
     return df_filtered[colonnes_affichier]
 
 
-def display_designation_info(df, designation):
-  
-
+def display_designation_info(df):
     # Colonnes à afficher dans le tableau principal
     colonnes_a_afficher = ['barcode', 'taille', 'designation', 'Qté stock dispo']
     df['designation'] = df['designation'].fillna('')
-
-    # Si aucune désignation n'est fournie, on propose un selectbox
-    if not designation:
-        liste_designations = sorted(df['designation'].unique())
-        designation = st.selectbox("Sélectionnez la désignation souhaitée :", liste_designations)
     
-    designation = designation.strip().upper()
-
-    # Filtrer le DataFrame en fonction de la désignation choisie (filtre exact en majuscules)
-    df_filtered = df[df['designation'].str.upper() == designation] if designation else pd.DataFrame(columns=colonnes_a_afficher)
+    # Get all unique designations
+    all_designations = df['designation'].str.upper().unique()
+    all_designations = [d for d in all_designations if d]  # Remove empty strings
+    
+    # Let user select a designation from the list
+    selected_designation = st.selectbox("Sélectionnez une désignation:", sorted(all_designations))
+    
+    # Filter dataframe based on selected designation
+    df_filtered = df[df['designation'].str.upper() == selected_designation]
 
     # Normalisation des tailles
     def normalize_size(size):
@@ -70,7 +68,7 @@ def display_designation_info(df, designation):
         sum_by_size.columns = ['Taille', 'Total Qté dispo']
         sum_by_size = sum_by_size.sort_values('Taille')
 
-    # Fonction de mise en forme conditionnelle pour le tableau principal
+    # Fonction de mise en forme conditionnelle
     def highlight_row_if_one(row):
         if 'taille_normalisee' in row and row['taille_normalisee'] in sum_by_size['Taille'].values:
             total = sum_by_size.loc[sum_by_size['Taille'] == row['taille_normalisee'], 'Total Qté dispo'].values[0]
@@ -103,7 +101,7 @@ def display_designation_info(df, designation):
     possible_sizes_us = []
     possible_sizes_uk = []
 
-    if any(desig in designation for desig in specific_designations):
+    if any(desig in selected_designation for desig in specific_designations):
         # Tailles spécifiques (36-47)
         for size in range(36, 48):
             possible_sizes_us.append(f'{size}')
@@ -133,17 +131,18 @@ def display_designation_info(df, designation):
     available_sizes_normalized = df_filtered['taille_normalisee'].unique() if 'taille_normalisee' in df_filtered.columns else []
 
     def find_unavailable_canonical_sizes(possible_sizes, available_normalized):
-        # Prendre les tailles de base sans les formats avec zéro devant, ni suffixes US/UK
+        # On prend les tailles de base sans les formats avec zéro devant
         canonical_sizes = {size.replace('0', '').replace('US', '').replace('UK', '') 
-                           for size in possible_sizes if not size.startswith('0')}
+                         for size in possible_sizes if not size.startswith('0')}
         
-        # Conversion en float pour trier numériquement
+        # Conversion en float pour le tri numérique
         def size_to_float(s):
             try:
                 return float(s)
             except ValueError:
-                return float('inf')
+                return float('inf')  # Pour les tailles non numériques
         
+        # Tri des tailles en ordre croissant numérique
         sorted_sizes = sorted(canonical_sizes, key=size_to_float)
         
         unavailable = []
@@ -156,7 +155,7 @@ def display_designation_info(df, designation):
     unavailable_sizes_us = find_unavailable_canonical_sizes(possible_sizes_us, available_sizes_normalized)
     unavailable_sizes_uk = find_unavailable_canonical_sizes(possible_sizes_uk, available_sizes_normalized)
 
-    # Affichage en deux colonnes pour les tailles US et UK indisponibles
+    # Affichage en deux colonnes
     col1, col2 = st.columns(2)
     with col1:
         st.write("Tailles US indisponibles:")
