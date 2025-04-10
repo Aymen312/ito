@@ -55,15 +55,32 @@ def display_designation_info(df, designation):
 
     if 'taille' in df_filtered.columns:
         df_filtered['taille_normalisee'] = df_filtered['taille'].apply(normalize_size)
+        # Ajouter les symboles UK/US dans une colonne séparée pour l'affichage
+        df_filtered['taille_affichage'] = df_filtered['taille'].apply(lambda x: str(x).strip().upper())
 
     # --- Affichage du tableau principal ---
     st.dataframe(df_filtered[colonnes_a_afficher])
 
     # --- Affichage du tableau des sommes par taille avec mise en forme ---
     if not df_filtered.empty and 'taille_normalisee' in df_filtered.columns:
-        sum_by_size = df_filtered.groupby('taille_normalisee')['Qté stock dispo'].sum().reset_index()
+        # Utiliser la colonne 'taille_affichage' pour le regroupement
+        sum_by_size = df_filtered.groupby('taille_affichage')['Qté stock dispo'].sum().reset_index()
         sum_by_size.columns = ['Taille', 'Total Qté dispo']
-        sum_by_size = sum_by_size.sort_values('Taille')
+        
+        # Trier les tailles de manière logique
+        def sort_key(size_str):
+            try:
+                # Extraire la partie numérique
+                num_part = size_str.split('.')[0]
+                num = float(num_part) if num_part else 0
+                # Extraire le suffixe (UK/US)
+                suffix = 'US' if 'US' in size_str else 'UK' if 'UK' in size_str else ''
+                return (suffix, num)
+            except:
+                return ('', 0)
+        
+        sum_by_size['sort_key'] = sum_by_size['Taille'].apply(sort_key)
+        sum_by_size = sum_by_size.sort_values('sort_key').drop('sort_key', axis=1)
         
         # Fonction pour colorer les cellules = 1 en rouge
         def highlight_qty(val):
@@ -104,15 +121,14 @@ def display_designation_info(df, designation):
     # --- Tailles indisponibles (affichées à la fin) ---
     st.subheader("Tailles indisponibles")
     
-    # Tailles disponibles (normalisées)
-    available_sizes = set(df_filtered['taille_normalisee'].unique()) if 'taille_normalisee' in df_filtered.columns else set()
+    # Tailles disponibles (originales, non normalisées)
+    available_sizes = set(df_filtered['taille_affichage'].unique()) if 'taille_affichage' in df_filtered.columns else set()
 
     # Fonction pour trouver les tailles manquantes
     def find_missing_sizes(possible_sizes):
         missing = []
         for size in possible_sizes:
-            norm_size = normalize_size(size)
-            if norm_size not in available_sizes:
+            if size not in available_sizes:
                 missing.append(size)
         return missing
 
