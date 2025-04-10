@@ -55,23 +55,34 @@ def display_designation_info(df, designation):
         df_filtered['taille_normalisee'] = df_filtered['taille'].apply(normalize_size)
 
     # Calculer la somme des quantités par taille
-    sum_by_size = {}
+    sum_by_size = pd.DataFrame()
     if not df_filtered.empty and 'taille_normalisee' in df_filtered.columns:
-        sum_by_size = df_filtered.groupby('taille_normalisee')['Qté stock dispo'].sum().to_dict()
-    
+        sum_by_size = df_filtered.groupby('taille_normalisee')['Qté stock dispo'].sum().reset_index()
+        sum_by_size.columns = ['Taille', 'Total Qté dispo']
+        sum_by_size = sum_by_size.sort_values('Taille')
+
     # Fonction de mise en forme conditionnelle
     def highlight_row_if_one(row):
-        if 'taille_normalisee' in row and row['taille_normalisee'] in sum_by_size and sum_by_size[row['taille_normalisee']] == 1:
-            return ['background-color: red'] * len(row)
+        if 'taille_normalisee' in row and row['taille_normalisee'] in sum_by_size['Taille'].values:
+            total = sum_by_size.loc[sum_by_size['Taille'] == row['taille_normalisee'], 'Total Qté dispo'].values[0]
+            if total == 1:
+                return ['background-color: red'] * len(row)
         return [''] * len(row)
 
-    # --- Affichage du tableau ---
+    # --- Affichage du tableau principal ---
     st.dataframe(df_filtered[colonnes_a_afficher].style.apply(highlight_row_if_one, axis=1))
 
-    # Compteur des tailles avec somme = 1
-    if sum_by_size:
-        count_sizes_with_one = sum(1 for size_sum in sum_by_size.values() if size_sum == 1)
-        st.write(f"Nombre de tailles avec quantité totale = 1: **{count_sizes_with_one}**")
+    # --- Affichage du tableau des sommes par taille ---
+    if not sum_by_size.empty:
+        st.subheader("Somme des quantités disponibles par taille")
+        
+        # Appliquer un style conditionnel pour les totaux égaux à 1
+        def highlight_total_if_one(val):
+            color = 'red' if val == 1 else ''
+            return f'background-color: {color}'
+        
+        styled_sum = sum_by_size.style.applymap(highlight_total_if_one, subset=['Total Qté dispo'])
+        st.dataframe(styled_sum)
 
     # --- Le reste du code reste inchangé ---
     specific_designations = [
