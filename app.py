@@ -35,12 +35,30 @@ def display_designation_info(df, designation):
     df['designation'] = df['designation'].fillna('')
     df_filtered = df[df['designation'].str.upper().str.contains(designation)] if designation else pd.DataFrame(columns=colonnes_affichier)
 
-    # # --- Filtrage par rayon ---
+    # Normalisation des tailles pour la comparaison
+    def normalize_size(size):
+        if pd.isna(size):
+            return ''
+        size_str = str(size).strip()
+        # Supprimer les zéros en tête avant le point (04.0US -> 4.0US)
+        if '.' in size_str:
+            int_part, dec_part = size_str.split('.', 1)
+            int_part = int_part.lstrip('0') or '0'  # Garder '0' si tout est supprimé
+            size_str = f"{int_part}.{dec_part}"
+        else:
+            size_str = size_str.lstrip('0') or '0'
+        return size_str
+
+    # Créer une colonne avec les tailles normalisées
+    if 'taille' in df_filtered.columns:
+        df_filtered['taille_normalisee'] = df_filtered['taille'].apply(normalize_size)
+
+    # --- Filtrage par rayon ---
     df_homme = df_filtered[df_filtered['rayon'].str.upper() == 'HOMME']
     df_femme = df_filtered[df_filtered['rayon'].str.upper() == 'FEMME']
     df_autre = df_filtered[~df_filtered['rayon'].str.upper().isin(['HOMME', 'FEMME'])]
 
-    # # --- Affichage des tableaux par rayon ---
+    # --- Affichage des tableaux par rayon ---
     st.subheader("Rayon Homme:")
     st.dataframe(df_homme[colonnes_affichier].style.apply(highlight_row_if_one, axis=1))
 
@@ -50,7 +68,7 @@ def display_designation_info(df, designation):
     st.subheader("Autres Rayons:")
     st.dataframe(df_autre[colonnes_affichier].style.apply(highlight_row_if_one, axis=1))
 
-    # # --- Liste des tailles possibles ---
+    # --- Liste des tailles possibles ---
     specific_designations = [
         'PRODIGIO', 'PRODIGIO WOMAN', 'AKASHA II', 'AKASHA II WOMAN', 'JACKAL',
         'ULTRA RAPTOR II MID LEATHER GTX', 'ULTRA RAPTOR II MID GTX',
@@ -62,28 +80,51 @@ def display_designation_info(df, designation):
     possible_sizes_uk = []
 
     if any(desig in designation for desig in specific_designations):
-        # # Add European sizes (36 to 47.5) for specific designations
+        # Tailles européennes (36 à 47.5)
         for size in range(36, 48):
-            possible_sizes_us.append(f'{size}')
+            possible_sizes_us.append(f'{size}')          # Format canonique
+            possible_sizes_us.append(f'0{size}')        # Format avec zéro
+            possible_sizes_us.append(f'{size}.0')       # Format avec .0
+            possible_sizes_us.append(f'0{size}.0')      # Format avec zéro et .0
             if size != 47:
-                possible_sizes_us.append(f'{size}.5')
+                possible_sizes_us.append(f'{size}.5')    # Format avec .5
+                possible_sizes_us.append(f'0{size}.5')   # Format avec zéro et .5
     else:
-        # # Add US and UK sizes for other designations
+        # Tailles US/UK
         for size in ['4', '5', '6', '7', '8', '9', '10', '11', '12']:
-            possible_sizes_us.append(f'{size}.0US')
-            possible_sizes_us.append(f'{size}.5US')
-            possible_sizes_uk.append(f'{size}.0UK')
-            possible_sizes_uk.append(f'{size}.5UK')
+            # US sizes - tous formats
+            possible_sizes_us.append(f'{size}.0US')      # Format canonique
+            possible_sizes_us.append(f'0{size}.0US')     # Format avec zéro
+            possible_sizes_us.append(f'{size}.5US')      # Format canonique avec .5
+            possible_sizes_us.append(f'0{size}.5US')     # Format avec zéro et .5
+            
+            # UK sizes - tous formats
+            possible_sizes_uk.append(f'{size}.0UK')      # Format canonique
+            possible_sizes_uk.append(f'0{size}.0UK')     # Format avec zéro
+            possible_sizes_uk.append(f'{size}.5UK')      # Format canonique avec .5
+            possible_sizes_uk.append(f'0{size}.5UK')     # Format avec zéro et .5
 
-    # # --- Affichage des tailles indisponibles ---
+    # --- Affichage des tailles indisponibles ---
     st.subheader("Tailles indisponibles pour la désignation sélectionnée:")
 
-    # # Récupérer les tailles disponibles pour cette désignation
-    available_sizes = df_filtered['taille'].unique()
+    # Récupérer les tailles disponibles (normalisées)
+    available_sizes_normalized = df_filtered['taille_normalisee'].unique() if 'taille_normalisee' in df_filtered.columns else []
 
-    # # Trouver les tailles manquantes
-    unavailable_sizes_us = [size for size in possible_sizes_us if size not in available_sizes]
-    unavailable_sizes_uk = [size for size in possible_sizes_uk if size not in available_sizes]
+    # Fonction pour trouver uniquement les tailles canoniques manquantes
+    def find_unavailable_canonical_sizes(possible_sizes, available_normalized):
+        # On ne garde que les tailles canoniques (sans zéro initial)
+        canonical_sizes = sorted({size for size in possible_sizes if not size.startswith('0')})
+        unavailable = []
+        
+        for size in canonical_sizes:
+            normalized = normalize_size(size)
+            if normalized not in available_normalized:
+                unavailable.append(size)
+        return unavailable
+
+    # Liste des tailles indisponibles (format canonique seulement)
+    unavailable_sizes_us = find_unavailable_canonical_sizes(possible_sizes_us, available_sizes_normalized)
+    unavailable_sizes_uk = find_unavailable_canonical_sizes(possible_sizes_uk, available_sizes_normalized)
 
     col1, col2 = st.columns(2)
 
