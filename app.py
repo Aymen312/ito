@@ -114,87 +114,38 @@ def display_designation_info(df, designation):
     df['designation'] = df['designation'].fillna('')
     df_filtered = df[df['designation'].str.upper().str.contains(designation)] if designation else pd.DataFrame(columns=colonnes_affichier)
 
-    # Normalisation des tailles
+    # Normalisation des tailles pour la comparaison
     def normalize_size(size):
         if pd.isna(size):
             return ''
         size_str = str(size).strip()
+        # Supprimer les zéros en tête avant le point (04.0US -> 4.0US)
         if '.' in size_str:
             int_part, dec_part = size_str.split('.', 1)
-            int_part = int_part.lstrip('0') or '0'
+            int_part = int_part.lstrip('0') or '0'  # Garder '0' si tout est supprimé
             size_str = f"{int_part}.{dec_part}"
         else:
             size_str = size_str.lstrip('0') or '0'
         return size_str
 
+    # Créer une colonne avec les tailles normalisées
     if 'taille' in df_filtered.columns:
         df_filtered['taille_normalisee'] = df_filtered['taille'].apply(normalize_size)
 
-    # --- Nouvelle fonctionnalité: Stock par taille ---
-    st.subheader("Stock total par taille")
-    
-    # Grouper par taille normalisée et faire la somme
-    df_grouped = df_filtered.groupby('taille_normalisee')['Qté stock dispo'].sum().reset_index()
-    df_grouped = df_grouped.rename(columns={'taille_normalisee': 'Taille', 'Qté stock dispo': 'Quantité totale'})
-    
-    # Fonction pour colorer les cellules
-    def color_critical_stock(val):
-        color = 'red' if val == 1 else ''
-        return f'background-color: {color}'
-    
-    # Afficher le tableau groupé avec mise en forme
-    st.dataframe(
-        df_grouped.style.applymap(color_critical_stock, subset=['Quantité totale']),
-        height=400
-    )
-    
-    # --- Fonctionnalité de clic ---
-    st.write("Cliquez sur une taille pour voir les détails")
-    
-    # Créer un selectbox avec les tailles
-    selected_size = st.selectbox(
-        "Sélectionnez une taille:",
-        options=sorted(df_grouped['Taille'].unique()),
-        key='size_selector'
-    )
-    
-    # Afficher les détails quand une taille est sélectionnée
-    if selected_size:
-        size_details = df_filtered[df_filtered['taille_normalisee'] == selected_size]
-        
-        st.subheader(f"Détails pour la taille {selected_size}")
-        
-        # Afficher les couleurs disponibles
-        if not size_details.empty:
-            st.write("Couleurs disponibles:")
-            colors_df = size_details[['couleur', 'Qté stock dispo']].groupby('couleur').sum().reset_index()
-            st.dataframe(colors_df.style.applymap(color_critical_stock, subset=['Qté stock dispo']))
-            
-            # Afficher les produits individuels
-            st.write("Produits correspondants:")
-            st.dataframe(size_details[['fournisseur', 'barcode', 'couleur', 'Qté stock dispo']]
-                        .style.apply(highlight_critical_stock, axis=None))
-        else:
-            st.write("Aucun détail disponible pour cette taille")
-
     # --- Filtrage par rayon ---
-    st.subheader("Détails par rayon")
-    
     df_homme = df_filtered[df_filtered['rayon'].str.upper() == 'HOMME']
     df_femme = df_filtered[df_filtered['rayon'].str.upper() == 'FEMME']
     df_autre = df_filtered[~df_filtered['rayon'].str.upper().isin(['HOMME', 'FEMME'])]
 
-    def display_rayon(df_rayon, rayon_name):
-        st.subheader(f"Rayon {rayon_name}:")
-        if not df_rayon.empty:
-            styled_df = df_rayon[colonnes_affichier].style.apply(highlight_critical_stock, axis=None)
-            st.dataframe(styled_df)
-        else:
-            st.write(f"Aucun produit trouvé dans le rayon {rayon_name}")
+    # --- Affichage des tableaux par rayon ---
+    st.subheader("Rayon Homme:")
+    st.dataframe(df_homme[colonnes_affichier].style.apply(highlight_row_if_one, axis=1))
 
-    display_rayon(df_homme, "Homme")
-    display_rayon(df_femme, "Femme")
-    display_rayon(df_autre, "Autres")
+    st.subheader("Rayon Femme:")
+    st.dataframe(df_femme[colonnes_affichier].style.apply(highlight_row_if_one, axis=1))
+
+    st.subheader("Autres Rayons:")
+    st.dataframe(df_autre[colonnes_affichier].style.apply(highlight_row_if_one, axis=1))
 
     # --- Liste des tailles possibles ---
     specific_designations = [
@@ -208,23 +159,39 @@ def display_designation_info(df, designation):
     possible_sizes_uk = []
 
     if any(desig in designation for desig in specific_designations):
+        # Tailles européennes (36 à 47.5)
         for size in range(36, 48):
-            possible_sizes_us.append(f'{size}')
+            possible_sizes_us.append(f'{size}')          # Format canonique
+            possible_sizes_us.append(f'0{size}')        # Format avec zéro
+            possible_sizes_us.append(f'{size}.0')       # Format avec .0
+            possible_sizes_us.append(f'0{size}.0')      # Format avec zéro et .0
             if size != 47:
-                possible_sizes_us.append(f'{size}.5')
+                possible_sizes_us.append(f'{size}.5')    # Format avec .5
+                possible_sizes_us.append(f'0{size}.5')   # Format avec zéro et .5
     else:
+        # Tailles US/UK
         for size in ['4', '5', '6', '7', '8', '9', '10', '11', '12']:
-            possible_sizes_us.append(f'{size}.0US')
-            possible_sizes_us.append(f'{size}.5US')
-            possible_sizes_uk.append(f'{size}.0UK')
-            possible_sizes_uk.append(f'{size}.5UK')
+            # US sizes - tous formats
+            possible_sizes_us.append(f'{size}.0US')      # Format canonique
+            possible_sizes_us.append(f'0{size}.0US')     # Format avec zéro
+            possible_sizes_us.append(f'{size}.5US')      # Format canonique avec .5
+            possible_sizes_us.append(f'0{size}.5US')     # Format avec zéro et .5
+            
+            # UK sizes - tous formats
+            possible_sizes_uk.append(f'{size}.0UK')      # Format canonique
+            possible_sizes_uk.append(f'0{size}.0UK')     # Format avec zéro
+            possible_sizes_uk.append(f'{size}.5UK')      # Format canonique avec .5
+            possible_sizes_uk.append(f'0{size}.5UK')     # Format avec zéro et .5
 
     # --- Affichage des tailles indisponibles ---
     st.subheader("Tailles indisponibles pour la désignation sélectionnée:")
 
+    # Récupérer les tailles disponibles (normalisées)
     available_sizes_normalized = df_filtered['taille_normalisee'].unique() if 'taille_normalisee' in df_filtered.columns else []
 
+    # Fonction pour trouver uniquement les tailles canoniques manquantes
     def find_unavailable_canonical_sizes(possible_sizes, available_normalized):
+        # On ne garde que les tailles canoniques (sans zéro initial)
         canonical_sizes = sorted({size for size in possible_sizes if not size.startswith('0')})
         unavailable = []
         
@@ -234,6 +201,7 @@ def display_designation_info(df, designation):
                 unavailable.append(size)
         return unavailable
 
+    # Liste des tailles indisponibles (format canonique seulement)
     unavailable_sizes_us = find_unavailable_canonical_sizes(possible_sizes_us, available_sizes_normalized)
     unavailable_sizes_uk = find_unavailable_canonical_sizes(possible_sizes_uk, available_sizes_normalized)
 
@@ -252,7 +220,6 @@ def display_designation_info(df, designation):
             st.write(unavailable_sizes_uk)
         else:
             st.write("Toutes les tailles UK sont disponibles pour cette désignation.")
-# ... [Le reste du code (autres fonctions et interface) reste inchangé] ...
 #### --- Fonctions restantes ---
 def filter_negative_stock(df):
     colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
