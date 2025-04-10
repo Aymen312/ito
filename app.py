@@ -29,14 +29,45 @@ def display_supplier_info(df, fournisseur):
     df_filtered = df[df['fournisseur'].str.upper() == fournisseur] if fournisseur else pd.DataFrame(columns=colonnes_affichier)
     return df_filtered[colonnes_affichier]
 
-def display_designation_info(df, designation):
-    # Colonnes à afficher dans le tableau principal
-    colonnes_a_afficher = ['barcode', 'taille', 'designation', 'Qté stock dispo']
-    designation = designation.strip().upper()
-    df['designation'] = df['designation'].fillna('')
+def display_designation_info(df):
+    # Nettoyer les désignations
+    df['designation'] = df['designation'].fillna('').str.strip().str.upper()
+    designations_uniques = sorted(df[df['designation'] != '']['designation'].unique())
     
-    # Filtre exact sur la désignation
-    df_filtered = df[df['designation'].str.upper() == designation] if designation else pd.DataFrame(columns=colonnes_a_afficher)
+    # Interface de sélection
+    st.sidebar.header("Recherche par désignation")
+    
+    # Option 1: Sélectionner dans une liste
+    selected_designation = st.sidebar.selectbox(
+        "Choisissez une désignation:",
+        options=[''] + designations_uniques,
+        format_func=lambda x: 'Sélectionnez...' if x == '' else x
+    )
+    
+    # Option 2: Recherche textuelle avec suggestions
+    search_term = st.sidebar.text_input("Ou recherchez une désignation:")
+    
+    if search_term:
+        search_term = search_term.strip().upper()
+        matching_designations = [d for d in designations_uniques if search_term in d]
+        
+        if matching_designations:
+            selected_designation = st.sidebar.selectbox(
+                "Désignations correspondantes:",
+                options=[''] + matching_designations,
+                format_func=lambda x: 'Sélectionnez...' if x == '' else x
+            )
+        else:
+            st.sidebar.warning("Aucune désignation trouvée")
+    
+    # Si aucune désignation sélectionnée
+    if not selected_designation:
+        st.info("Veuillez sélectionner une désignation dans le menu de gauche")
+        return
+    
+    # --- Le reste du code reste inchangé ---
+    colonnes_a_afficher = ['barcode', 'taille', 'designation', 'Qté stock dispo']
+    df_filtered = df[df['designation'] == selected_designation]
 
     # Normalisation des tailles
     def normalize_size(size):
@@ -54,14 +85,14 @@ def display_designation_info(df, designation):
     if 'taille' in df_filtered.columns:
         df_filtered['taille_normalisee'] = df_filtered['taille'].apply(normalize_size)
 
-    # Calculer la somme des quantités par taille normalisée
+    # Calcul des sommes par taille
     sum_by_size = pd.DataFrame()
     if not df_filtered.empty and 'taille_normalisee' in df_filtered.columns:
         sum_by_size = df_filtered.groupby('taille_normalisee')['Qté stock dispo'].sum().reset_index()
         sum_by_size.columns = ['Taille', 'Total Qté dispo']
         sum_by_size = sum_by_size.sort_values('Taille')
 
-    # Fonction de mise en forme conditionnelle
+    # Mise en forme conditionnelle
     def highlight_row_if_one(row):
         if 'taille_normalisee' in row and row['taille_normalisee'] in sum_by_size['Taille'].values:
             total = sum_by_size.loc[sum_by_size['Taille'] == row['taille_normalisee'], 'Total Qté dispo'].values[0]
@@ -69,21 +100,21 @@ def display_designation_info(df, designation):
                 return ['background-color: red'] * len(row)
         return [''] * len(row)
 
-    # --- Affichage du tableau principal ---
+    # Affichage du tableau principal
+    st.header(f"Désignation: {selected_designation}")
     st.dataframe(df_filtered[colonnes_a_afficher].style.apply(highlight_row_if_one, axis=1))
 
-    # --- Affichage du tableau des sommes par taille ---
+    # Tableau récapitulatif
     if not sum_by_size.empty:
-        st.subheader("Somme des quantités disponibles par taille")
+        st.subheader("Stock par taille")
         
         def highlight_total_if_one(val):
             color = 'red' if val == 1 else ''
             return f'background-color: {color}'
         
-        styled_sum = sum_by_size.style.applymap(highlight_total_if_one, subset=['Total Qté dispo'])
-        st.dataframe(styled_sum)
+        st.dataframe(sum_by_size.style.applymap(highlight_total_if_one, subset=['Total Qté dispo']))
 
-    # --- Configuration des tailles possibles ---
+    # Gestion des tailles
     specific_designations = [
         'PRODIGIO', 'PRODIGIO WOMAN', 'AKASHA II', 'AKASHA II WOMAN', 'JACKAL',
         'ULTRA RAPTOR II MID LEATHER GTX', 'ULTRA RAPTOR II MID GTX',
@@ -91,61 +122,28 @@ def display_designation_info(df, designation):
         'ULTRA RAPTOR II GTX', 'AKASHA'
     ]
 
-    possible_sizes_us = []
-    possible_sizes_uk = []
-
-    if any(desig in designation for desig in specific_designations):
+    # Génération des tailles possibles
+    if any(desig in selected_designation for desig in specific_designations):
         # Tailles spécifiques (36-47)
-        for size in range(36, 48):
-            possible_sizes_us.append(f'{size}')
-            possible_sizes_us.append(f'0{size}')
-            possible_sizes_us.append(f'{size}.0')
-            possible_sizes_us.append(f'0{size}.0')
-            if size != 47:
-                possible_sizes_us.append(f'{size}.5')
-                possible_sizes_us.append(f'0{size}.5')
+        base_sizes = [str(size) for size in range(36, 48)]
+        base_sizes += [f"{size}.5" for size in range(36, 47)]
     else:
         # Tailles standard US/UK (4-14)
-        base_sizes = []
-        for num in range(4, 15):  # De 4 à 14 inclus
-            base_sizes.append(str(num))
-            base_sizes.append(f'{num}.5')
-        
-        for size in base_sizes:
-            # Format US
-            possible_sizes_us.append(f'{size}US')
-            possible_sizes_us.append(f'0{size}US')
-            # Format UK
-            possible_sizes_uk.append(f'{size}UK')
-            possible_sizes_uk.append(f'0{size}UK')
+        base_sizes = [str(size) for size in range(4, 15)]
+        base_sizes += [f"{size}.5" for size in range(4, 15)]
 
-    # --- Tailles indisponibles ---
-    st.subheader("Tailles indisponibles:")
-    available_sizes_normalized = df_filtered['taille_normalisee'].unique() if 'taille_normalisee' in df_filtered.columns else []
+    # Détection des tailles indisponibles
+    available_sizes = df_filtered['taille_normalisee'].unique() if 'taille_normalisee' in df_filtered.columns else []
+    unavailable_sizes = sorted(set(normalize_size(size) for size in base_sizes) - set(available_sizes))
 
-    def find_unavailable_canonical_sizes(possible_sizes, available_normalized):
-        # On prend les tailles de base sans les formats avec zéro devant
-        canonical_sizes = sorted({size.replace('0', '').replace('US', '').replace('UK', '') 
-                               for size in possible_sizes if not size.startswith('0')})
-        unavailable = []
-        for size in canonical_sizes:
-            normalized = normalize_size(size)
-            if normalized not in available_normalized:
-                unavailable.append(size)
-        return unavailable
-
-    unavailable_sizes_us = find_unavailable_canonical_sizes(possible_sizes_us, available_sizes_normalized)
-    unavailable_sizes_uk = find_unavailable_canonical_sizes(possible_sizes_uk, available_sizes_normalized)
-
-    # Affichage en deux colonnes
-    col1, col2 = st.columns(2)
-    with col1:
-        st.write("Tailles US indisponibles:")
-        st.write(unavailable_sizes_us if unavailable_sizes_us else "Toutes disponibles")
-    
-    with col2:
-        st.write("Tailles UK indisponibles:")
-        st.write(unavailable_sizes_uk if unavailable_sizes_uk else "Toutes disponibles")
+    # Affichage
+    st.subheader("Tailles indisponibles")
+    if unavailable_sizes:
+        cols = st.columns(3)
+        for i, size in enumerate(sorted(unavailable_sizes)):
+            cols[i % 3].write(f"- {size}")
+    else:
+        st.success("Toutes les tailles sont disponibles")
 #### --- Fonction modifiée pour "Stock Négatif" ---
 def filter_negative_stock(df):
     colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
