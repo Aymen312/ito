@@ -124,30 +124,30 @@ def display_designation_info(df, designation):
     st.subheader("Tailles indisponibles:")
     available_sizes_normalized = df_filtered['taille_normalisee'].unique() if 'taille_normalisee' in df_filtered.columns else []
 
-    def find_unavailable_canonical_sizes(possible_sizes, available_normalized):
-        # On prend les tailles de base sans les formats avec zéro devant
-        canonical_sizes = {size.replace('0', '').replace('US', '').replace('UK', '') 
-                         for size in possible_sizes if not size.startswith('0')}
+    def find_unavailable_sizes(possible_sizes, available_normalized):
+        # Normaliser toutes les tailles possibles
+        normalized_possible = [normalize_size(size.replace('US', '').replace('UK', '')) for size in possible_sizes]
         
-        # Conversion en float pour le tri numérique
+        # Créer un ensemble des tailles disponibles
+        available_set = set(available_normalized)
+        
+        # Trouver les tailles possibles qui ne sont pas disponibles
+        unavailable = []
+        for size in set(normalized_possible):  # Utiliser set() pour éviter les doublons
+            if size not in available_set:
+                unavailable.append(size)
+        
+        # Trier les tailles
         def size_to_float(s):
             try:
                 return float(s)
             except ValueError:
-                return float('inf')  # Pour les tailles non numériques
+                return float('inf')
         
-        # Tri des tailles en ordre croissant numérique
-        sorted_sizes = sorted(canonical_sizes, key=size_to_float)
-        
-        unavailable = []
-        for size in sorted_sizes:
-            normalized = normalize_size(size)
-            if normalized not in available_normalized:
-                unavailable.append(size)
-        return unavailable
+        return sorted(unavailable, key=size_to_float)
 
-    unavailable_sizes_us = find_unavailable_canonical_sizes(possible_sizes_us, available_sizes_normalized)
-    unavailable_sizes_uk = find_unavailable_canonical_sizes(possible_sizes_uk, available_sizes_normalized)
+    unavailable_sizes_us = find_unavailable_sizes(possible_sizes_us, available_sizes_normalized)
+    unavailable_sizes_uk = find_unavailable_sizes(possible_sizes_uk, available_sizes_normalized)
 
     # Affichage en deux colonnes
     col1, col2 = st.columns(2)
@@ -158,6 +158,11 @@ def display_designation_info(df, designation):
     with col2:
         st.write("Tailles UK indisponibles:")
         st.write(unavailable_sizes_uk if unavailable_sizes_uk else "Toutes disponibles")
+
+    # --- Option pour afficher tout le DataFrame ---
+    if st.checkbox("Afficher tout le DataFrame"):
+        st.subheader("DataFrame complet")
+        st.dataframe(df)
 #### --- Fonction modifiée pour "Stock Négatif" ---
 def filter_negative_stock(df):
     colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
