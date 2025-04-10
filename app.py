@@ -33,7 +33,9 @@ def display_designation_info(df, designation):
     colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
     designation = designation.strip().upper()
     df['designation'] = df['designation'].fillna('')
-    df_filtered = df[df['designation'].str.upper().str.contains(designation)] if designation else pd.DataFrame(columns=colonnes_affichier)
+    
+    # Modification ici pour une correspondance exacte (en majuscules)
+    df_filtered = df[df['designation'].str.upper() == designation] if designation else pd.DataFrame(columns=colonnes_affichier)
 
     # Normalisation des tailles pour la comparaison
     def normalize_size(size):
@@ -141,7 +143,6 @@ def display_designation_info(df, designation):
             st.write(unavailable_sizes_uk)
         else:
             st.write("Toutes les tailles UK sont disponibles pour cette désignation.")
-
 #### --- Fonction modifiée pour "Stock Négatif" ---
 def filter_negative_stock(df):
     colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
