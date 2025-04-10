@@ -30,14 +30,25 @@ def display_supplier_info(df, fournisseur):
     return df_filtered[colonnes_affichier]
 
 
-def display_designation_info(df, designation):
+def display_designation_info(df):
     # Colonnes à afficher dans le tableau principal
     colonnes_a_afficher = ['barcode', 'taille', 'designation', 'Qté stock dispo']
-    designation = designation.strip().upper()
-    df['designation'] = df['designation'].fillna('')
     
-    # Filtre exact sur la désignation
-    df_filtered = df[df['designation'].str.upper() == designation] if designation else pd.DataFrame(columns=colonnes_a_afficher)
+    # Nettoyer les désignations
+    df['designation'] = df['designation'].fillna('').str.strip()
+    
+    # Obtenir toutes les désignations uniques et les trier
+    all_designations = sorted(df[df['designation'] != '']['designation'].unique())
+    
+    # Afficher un sélecteur de désignation
+    selected_designation = st.selectbox(
+        "Sélectionnez une désignation:",
+        options=all_designations,
+        index=0
+    )
+    
+    # Filtre exact sur la désignation sélectionnée
+    df_filtered = df[df['designation'].str.strip() == selected_designation.strip()]
 
     # Normalisation des tailles
     def normalize_size(size):
@@ -95,7 +106,7 @@ def display_designation_info(df, designation):
     possible_sizes_us = []
     possible_sizes_uk = []
 
-    if any(desig in designation for desig in specific_designations):
+    if any(desig in selected_designation for desig in specific_designations):
         # Tailles spécifiques (36-47)
         for size in range(36, 48):
             possible_sizes_us.append(f'{size}')
