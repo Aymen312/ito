@@ -152,17 +152,18 @@ def display_designation_info(df, designation):
     # Affichage en deux colonnes
     col1, col2 = st.columns(2)
     with col1:
-        st.write("Tailles US indisponibles:")
-        st.write(unavailable_sizes_us if unavailable_sizes_us else "Toutes disponibles")
+        st.write("Tailles US indisponibles :")
+        if unavailable_sizes_us:
+            st.write(unavailable_sizes_us)
+        else:
+            st.write("Toutes les tailles US sont disponibles pour cette désignation.")
     
     with col2:
-        st.write("Tailles UK indisponibles:")
-        st.write(unavailable_sizes_uk if unavailable_sizes_uk else "Toutes disponibles")
-
-    # --- Option pour afficher tout le DataFrame ---
-    if st.checkbox("Afficher tout le DataFrame"):
-        st.subheader("DataFrame complet")
-        st.dataframe(df)
+        st.write("Tailles UK indisponibles :")
+        if unavailable_sizes_uk:
+            st.write(unavailable_sizes_uk)
+        else:
+            st.write("Toutes les tailles UK sont disponibles pour cette désignation.")
 #### --- Fonction modifiée pour "Stock Négatif" ---
 def filter_negative_stock(df):
     colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
