@@ -35,14 +35,27 @@ def display_designation_info(df):
     colonnes_a_afficher = ['barcode', 'taille', 'designation', 'Qté stock dispo']
     df['designation'] = df['designation'].fillna('')
     
-    # Get all unique designations
-    all_designations = df['designation'].str.upper().unique()
-    all_designations = [d for d in all_designations if d]  # Remove empty strings
+    # Récupérer toutes les désignations uniques et les trier
+    all_designations = sorted(df['designation'].str.upper().dropna().unique())
     
-    # Let user select a designation from the list
-    selected_designation = st.selectbox("Sélectionnez une désignation:", sorted(all_designations))
+    # Afficher les désignations sous forme de boutons
+    st.subheader("Sélectionnez une désignation:")
     
-    # Filter dataframe based on selected designation
+    # Créer des colonnes pour organiser les boutons
+    cols = st.columns(3)  # 3 colonnes
+    selected_designation = None
+    
+    for i, designation in enumerate(all_designations):
+        with cols[i % 3]:  # Répartir les boutons sur les 3 colonnes
+            if st.button(designation):
+                selected_designation = designation
+    
+    # Si aucune désignation sélectionnée, afficher un message
+    if not selected_designation:
+        st.info("Veuillez cliquer sur une désignation pour afficher les détails")
+        return
+    
+    # Filtrer le dataframe selon la désignation sélectionnée
     df_filtered = df[df['designation'].str.upper() == selected_designation]
 
     # Normalisation des tailles
