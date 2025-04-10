@@ -82,27 +82,27 @@ def display_designation_info(df, designation):
     if any(desig in designation for desig in specific_designations):
         # Tailles européennes (36 à 47.5)
         for size in range(36, 48):
-            possible_sizes_us.append(f'{size}')
-            possible_sizes_us.append(f'{size}.0')
-            possible_sizes_us.append(f'0{size}')
-            possible_sizes_us.append(f'0{size}.0')
+            possible_sizes_us.append(f'{size}')          # Format canonique
+            possible_sizes_us.append(f'0{size}')        # Format avec zéro
+            possible_sizes_us.append(f'{size}.0')       # Format avec .0
+            possible_sizes_us.append(f'0{size}.0')      # Format avec zéro et .0
             if size != 47:
-                possible_sizes_us.append(f'{size}.5')
-                possible_sizes_us.append(f'0{size}.5')
+                possible_sizes_us.append(f'{size}.5')    # Format avec .5
+                possible_sizes_us.append(f'0{size}.5')   # Format avec zéro et .5
     else:
         # Tailles US/UK
         for size in ['4', '5', '6', '7', '8', '9', '10', '11', '12']:
-            # US sizes
-            possible_sizes_us.append(f'{size}.0US')
-            possible_sizes_us.append(f'0{size}.0US')
-            possible_sizes_us.append(f'{size}.5US')
-            possible_sizes_us.append(f'0{size}.5US')
+            # US sizes - tous formats
+            possible_sizes_us.append(f'{size}.0US')      # Format canonique
+            possible_sizes_us.append(f'0{size}.0US')     # Format avec zéro
+            possible_sizes_us.append(f'{size}.5US')      # Format canonique avec .5
+            possible_sizes_us.append(f'0{size}.5US')     # Format avec zéro et .5
             
-            # UK sizes
-            possible_sizes_uk.append(f'{size}.0UK')
-            possible_sizes_uk.append(f'0{size}.0UK')
-            possible_sizes_uk.append(f'{size}.5UK')
-            possible_sizes_uk.append(f'0{size}.5UK')
+            # UK sizes - tous formats
+            possible_sizes_uk.append(f'{size}.0UK')      # Format canonique
+            possible_sizes_uk.append(f'0{size}.0UK')     # Format avec zéro
+            possible_sizes_uk.append(f'{size}.5UK')      # Format canonique avec .5
+            possible_sizes_uk.append(f'0{size}.5UK')     # Format avec zéro et .5
 
     # --- Affichage des tailles indisponibles ---
     st.subheader("Tailles indisponibles pour la désignation sélectionnée:")
@@ -110,51 +110,35 @@ def display_designation_info(df, designation):
     # Récupérer les tailles disponibles (normalisées)
     available_sizes_normalized = df_filtered['taille_normalisee'].unique() if 'taille_normalisee' in df_filtered.columns else []
 
-    # Fonction pour trouver les tailles manquantes en tenant compte des équivalences
-    def find_unavailable_sizes(possible_sizes, available_normalized):
+    # Fonction pour trouver uniquement les tailles canoniques manquantes
+    def find_unavailable_canonical_sizes(possible_sizes, available_normalized):
+        # On ne garde que les tailles canoniques (sans zéro initial)
+        canonical_sizes = sorted({size for size in possible_sizes if not size.startswith('0')})
         unavailable = []
-        for size in possible_sizes:
+        
+        for size in canonical_sizes:
             normalized = normalize_size(size)
             if normalized not in available_normalized:
                 unavailable.append(size)
         return unavailable
 
-    unavailable_sizes_us = find_unavailable_sizes(possible_sizes_us, available_sizes_normalized)
-    unavailable_sizes_uk = find_unavailable_sizes(possible_sizes_uk, available_sizes_normalized)
+    # Liste des tailles indisponibles (format canonique seulement)
+    unavailable_sizes_us = find_unavailable_canonical_sizes(possible_sizes_us, available_sizes_normalized)
+    unavailable_sizes_uk = find_unavailable_canonical_sizes(possible_sizes_uk, available_sizes_normalized)
 
     col1, col2 = st.columns(2)
 
     with col1:
         st.write("Tailles US indisponibles :")
         if unavailable_sizes_us:
-            # Regrouper les tailles équivalentes
-            grouped_sizes = {}
-            for size in unavailable_sizes_us:
-                norm_size = normalize_size(size)
-                if norm_size not in grouped_sizes:
-                    grouped_sizes[norm_size] = []
-                grouped_sizes[norm_size].append(size)
-            
-            # Afficher les groupes
-            for norm_size, equivalents in grouped_sizes.items():
-                st.write(f"{norm_size} → {', '.join(equivalents)}")
+            st.write(unavailable_sizes_us)
         else:
             st.write("Toutes les tailles US sont disponibles pour cette désignation.")
 
     with col2:
         st.write("Tailles UK indisponibles :")
         if unavailable_sizes_uk:
-            # Regrouper les tailles équivalentes
-            grouped_sizes = {}
-            for size in unavailable_sizes_uk:
-                norm_size = normalize_size(size)
-                if norm_size not in grouped_sizes:
-                    grouped_sizes[norm_size] = []
-                grouped_sizes[norm_size].append(size)
-            
-            # Afficher les groupes
-            for norm_size, equivalents in grouped_sizes.items():
-                st.write(f"{norm_size} → {', '.join(equivalents)}")
+            st.write(unavailable_sizes_uk)
         else:
             st.write("Toutes les tailles UK sont disponibles pour cette désignation.")
 
