@@ -30,7 +30,7 @@ def display_supplier_info(df, fournisseur):
     return df_filtered[colonnes_affichier]
 
 def display_designation_info(df, designation):
-    # Colonnes à afficher dans le tableau
+    # Colonnes à afficher dans le tableau principal
     colonnes_a_afficher = ['barcode', 'taille', 'designation', 'Qté stock dispo']
     designation = designation.strip().upper()
     df['designation'] = df['designation'].fillna('')
@@ -54,7 +54,7 @@ def display_designation_info(df, designation):
     if 'taille' in df_filtered.columns:
         df_filtered['taille_normalisee'] = df_filtered['taille'].apply(normalize_size)
 
-    # Calculer la somme des quantités par taille
+    # Calculer la somme des quantités par taille normalisée
     sum_by_size = pd.DataFrame()
     if not df_filtered.empty and 'taille_normalisee' in df_filtered.columns:
         sum_by_size = df_filtered.groupby('taille_normalisee')['Qté stock dispo'].sum().reset_index()
@@ -76,7 +76,6 @@ def display_designation_info(df, designation):
     if not sum_by_size.empty:
         st.subheader("Somme des quantités disponibles par taille")
         
-        # Appliquer un style conditionnel pour les totaux égaux à 1
         def highlight_total_if_one(val):
             color = 'red' if val == 1 else ''
             return f'background-color: {color}'
@@ -84,7 +83,7 @@ def display_designation_info(df, designation):
         styled_sum = sum_by_size.style.applymap(highlight_total_if_one, subset=['Total Qté dispo'])
         st.dataframe(styled_sum)
 
-    # --- Tailles possibles ---
+    # --- Configuration des tailles possibles ---
     specific_designations = [
         'PRODIGIO', 'PRODIGIO WOMAN', 'AKASHA II', 'AKASHA II WOMAN', 'JACKAL',
         'ULTRA RAPTOR II MID LEATHER GTX', 'ULTRA RAPTOR II MID GTX',
@@ -96,6 +95,7 @@ def display_designation_info(df, designation):
     possible_sizes_uk = []
 
     if any(desig in designation for desig in specific_designations):
+        # Tailles spécifiques (36-47)
         for size in range(36, 48):
             possible_sizes_us.append(f'{size}')
             possible_sizes_us.append(f'0{size}')
@@ -105,23 +105,28 @@ def display_designation_info(df, designation):
                 possible_sizes_us.append(f'{size}.5')
                 possible_sizes_us.append(f'0{size}.5')
     else:
-        # Tailles étendues jusqu'au 14 comme demandé
-        for size in ['4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14']:
-            possible_sizes_us.append(f'{size}.0US')
-            possible_sizes_us.append(f'0{size}.0US')
-            possible_sizes_us.append(f'{size}.5US')
-            possible_sizes_us.append(f'0{size}.5US')
-            possible_sizes_uk.append(f'{size}.0UK')
-            possible_sizes_uk.append(f'0{size}.0UK')
-            possible_sizes_uk.append(f'{size}.5UK')
-            possible_sizes_uk.append(f'0{size}.5UK')
+        # Tailles standard US/UK (4-14)
+        base_sizes = []
+        for num in range(4, 15):  # De 4 à 14 inclus
+            base_sizes.append(str(num))
+            base_sizes.append(f'{num}.5')
+        
+        for size in base_sizes:
+            # Format US
+            possible_sizes_us.append(f'{size}US')
+            possible_sizes_us.append(f'0{size}US')
+            # Format UK
+            possible_sizes_uk.append(f'{size}UK')
+            possible_sizes_uk.append(f'0{size}UK')
 
     # --- Tailles indisponibles ---
     st.subheader("Tailles indisponibles:")
     available_sizes_normalized = df_filtered['taille_normalisee'].unique() if 'taille_normalisee' in df_filtered.columns else []
 
     def find_unavailable_canonical_sizes(possible_sizes, available_normalized):
-        canonical_sizes = sorted({size for size in possible_sizes if not size.startswith('0')})
+        # On prend les tailles de base sans les formats avec zéro devant
+        canonical_sizes = sorted({size.replace('0', '').replace('US', '').replace('UK', '') 
+                               for size in possible_sizes if not size.startswith('0')})
         unavailable = []
         for size in canonical_sizes:
             normalized = normalize_size(size)
@@ -132,6 +137,7 @@ def display_designation_info(df, designation):
     unavailable_sizes_us = find_unavailable_canonical_sizes(possible_sizes_us, available_sizes_normalized)
     unavailable_sizes_uk = find_unavailable_canonical_sizes(possible_sizes_uk, available_sizes_normalized)
 
+    # Affichage en deux colonnes
     col1, col2 = st.columns(2)
     with col1:
         st.write("Tailles US indisponibles:")
