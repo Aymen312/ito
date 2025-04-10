@@ -30,14 +30,22 @@ def display_supplier_info(df, fournisseur):
     return df_filtered[colonnes_affichier]
 
 
-def display_designation_info(df, designation):
+def display_designation_info(df):
     # Colonnes à afficher dans le tableau principal
     colonnes_a_afficher = ['barcode', 'taille', 'designation', 'Qté stock dispo']
-    designation = designation.strip().upper()
-    df['designation'] = df['designation'].fillna('')
+    
+    # Récupérer toutes les désignations uniques et les trier
+    all_designations = sorted(df['designation'].dropna().unique())
+    
+    # Afficher un selectbox pour choisir la désignation
+    designation = st.selectbox(
+        "Sélectionnez une désignation:",
+        options=all_designations,
+        index=0
+    )
     
     # Filtre exact sur la désignation
-    df_filtered = df[df['designation'].str.upper() == designation] if designation else pd.DataFrame(columns=colonnes_a_afficher)
+    df_filtered = df[df['designation'] == designation] if designation else pd.DataFrame(columns=colonnes_a_afficher)
 
     # Normalisation des tailles
     def normalize_size(size):
