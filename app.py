@@ -188,14 +188,38 @@ def display_designation_info(df, designation):
     tab1, tab2 = st.tabs(["HOMME", "FEMME"])
     
     with tab1:
-        st.subheader("Rayon HOMME")
-        col1, col2 = st.columns(2)
-        with col1:
-            st.write("Tailles US indisponibles:")
-            st.write(format_sizes(unavailable_sizes_us_homme))
-        with col2:
-            st.write("Tailles UK indisponibles:")
-            st.write(format_sizes(unavailable_sizes_uk_homme))
+    fournisseur = st.text_input("Entrez le nom du fournisseur:")
+    df_filtered = display_supplier_info(df.copy(), fournisseur)
+    if not df_filtered.empty:
+        st.dataframe(df_filtered.style.apply(highlight_row_if_one, axis=1))
+        
+        # Nouveau tableau pour afficher les désignations par fournisseur
+        st.subheader("Désignations disponibles pour ce fournisseur")
+        
+        # Récupérer les désignations uniques pour ce fournisseur
+        designations_fournisseur = df_filtered['designation'].unique()
+        
+        # Créer un DataFrame pour l'affichage
+        df_designations = pd.DataFrame({
+            'Désignations': designations_fournisseur,
+            'Nombre de références': [len(df_filtered[df_filtered['designation'] == d]) for d in designations_fournisseur]
+        }).sort_values('Nombre de références', ascending=False)
+        
+        # Afficher le tableau
+        st.dataframe(df_designations)
+        
+        # Option pour filtrer par désignation
+        selected_designation = st.selectbox(
+            "Sélectionnez une désignation pour voir les détails:",
+            options=["Toutes"] + sorted(designations_fournisseur.tolist())
+        )
+        
+        if selected_designation != "Toutes":
+            st.subheader(f"Détails pour la désignation: {selected_designation}")
+            df_designation_details = df_filtered[df_filtered['designation'] == selected_designation]
+            st.dataframe(df_designation_details.style.apply(highlight_row_if_one, axis=1))
+    else:
+        st.write("Aucune information disponible pour ce fournisseur.")
     
     with tab2:
         st.subheader("Rayon FEMME")
