@@ -44,6 +44,12 @@ def display_designation_info(df, designation):
         if pd.isna(size):
             return ''
         size_str = str(size).strip().upper()
+        
+        # Conserver les tailles commençant par 0 comme "05" sans modification
+        if size_str.startswith('0') and size_str[1:].isdigit():
+            return size_str
+            
+        # Traitement normal pour les autres tailles
         size_str = size_str.replace('US', '').replace('UK', '').strip()
         if '.' in size_str:
             int_part, dec_part = size_str.split('.', 1)
@@ -70,6 +76,10 @@ def display_designation_info(df, designation):
         # Trier les tailles de manière logique
         def sort_key(size_str):
             try:
+                # Cas spécial pour les tailles commençant par 0 (comme "05")
+                if size_str.startswith('0') and size_str[1:].isdigit():
+                    return ('', int(size_str))
+                
                 # Extraire la partie numérique
                 num_part = size_str.split('.')[0]
                 num = float(num_part) if num_part else 0
@@ -102,6 +112,7 @@ def display_designation_info(df, designation):
 
     possible_sizes_us = []
     possible_sizes_uk = []
+    possible_sizes_special = []  # Pour les tailles comme "05"
 
     if any(desig in designation for desig in specific_designations):
         # Tailles européennes (36-47.5)
@@ -117,6 +128,11 @@ def display_designation_info(df, designation):
             possible_sizes_us.append(f'{num}.5US')
             possible_sizes_uk.append(f'{num}.0UK')
             possible_sizes_uk.append(f'{num}.5UK')
+        
+        # Ajout des tailles spéciales commençant par 0
+        for num in range(1, 10):  # De 01 à 09
+            possible_sizes_special.append(f'0{num}')
+            possible_sizes_special.append(f'0{num}.0')
 
     # --- Tailles indisponibles (affichées à la fin) ---
     st.subheader("Tailles indisponibles")
@@ -134,8 +150,13 @@ def display_designation_info(df, designation):
 
     missing_sizes_us = find_missing_sizes(possible_sizes_us)
     missing_sizes_uk = find_missing_sizes(possible_sizes_uk)
+    missing_sizes_special = find_missing_sizes(possible_sizes_special)
 
-    # Affichage en deux colonnes
+    # Affichage en colonnes
+    if missing_sizes_special:
+        st.write("Tailles spéciales indisponibles (commençant par 0):")
+        st.write(missing_sizes_special)
+    
     col1, col2 = st.columns(2)
     with col1:
         st.write("Tailles US indisponibles:")
