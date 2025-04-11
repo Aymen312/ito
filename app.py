@@ -149,7 +149,11 @@ def display_designation_info(df, designation):
         size_order = {}
         for i, size in enumerate(possible_sizes):
             # Nettoyer la taille pour la comparaison
-            clean_size = size.replace('US', '').replace('UK', '').replace('0', '').strip('.')
+            clean_size = size.replace('US', '').replace('UK', '').strip()
+            # Supprimer les zéros initiaux et les .0 inutiles
+            clean_size = clean_size.lstrip('0')
+            if clean_size.endswith('.0'):
+                clean_size = clean_size[:-2]
             try:
                 size_order[size] = float(clean_size)
             except:
@@ -158,9 +162,16 @@ def display_designation_info(df, designation):
         # Trier les tailles possibles
         sorted_sizes = sorted(possible_sizes, key=lambda x: size_order[x])
         
-        canonical_sizes = sorted({size for size in sorted_sizes if not size.startswith('0')}, 
-                               key=lambda x: size_order[x])
+        # Garder une seule version canonique de chaque taille (sans les variantes avec 0)
+        canonical_sizes = []
+        seen = set()
+        for size in sorted_sizes:
+            clean = size.replace('0', '').replace('.0', '').replace('.5', '.5')
+            if clean not in seen:
+                seen.add(clean)
+                canonical_sizes.append(size)
         
+        # Filtrer les tailles indisponibles
         unavailable = []
         for size in canonical_sizes:
             normalized = normalize_size(size)
@@ -182,20 +193,20 @@ def display_designation_info(df, designation):
         col1, col2 = st.columns(2)
         with col1:
             st.write("Tailles US indisponibles:")
-            st.write(unavailable_sizes_us_homme if unavailable_sizes_us_homme else "Toutes disponibles")
+            st.write(", ".join(unavailable_sizes_us_homme) if unavailable_sizes_us_homme else "Toutes disponibles")
         with col2:
             st.write("Tailles UK indisponibles:")
-            st.write(unavailable_sizes_uk_homme if unavailable_sizes_uk_homme else "Toutes disponibles")
+            st.write(", ".join(unavailable_sizes_uk_homme) if unavailable_sizes_uk_homme else "Toutes disponibles")
     
     with tab2:
         st.subheader("Rayon FEMME")
         col1, col2 = st.columns(2)
         with col1:
             st.write("Tailles US indisponibles:")
-            st.write(unavailable_sizes_us_femme if unavailable_sizes_us_femme else "Toutes disponibles")
+            st.write(", ".join(unavailable_sizes_us_femme) if unavailable_sizes_us_femme else "Toutes disponibles")
         with col2:
             st.write("Tailles UK indisponibles:")
-            st.write(unavailable_sizes_uk_femme if unavailable_sizes_uk_femme else "Toutes disponibles")
+            st.write(", ".join(unavailable_sizes_uk_femme) if unavailable_sizes_uk_femme else "Toutes disponibles")
 #### --- Fonction modifiée pour "Stock Négatif" ---
 def filter_negative_stock(df):
     colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
