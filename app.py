@@ -29,7 +29,6 @@ def display_supplier_info(df, fournisseur):
     df_filtered = df[df['fournisseur'].str.upper() == fournisseur] if fournisseur else pd.DataFrame(columns=colonnes_affichier)
     return df_filtered[colonnes_affichier]
 
-
 def display_designation_info(df, designation):
     # Colonnes à afficher dans le tableau principal
     colonnes_a_afficher = ['barcode', 'taille', 'rayon', 'designation', 'Qté stock dispo']
@@ -80,22 +79,31 @@ def display_designation_info(df, designation):
         return [''] * len(row)
 
     # --- Affichage du tableau principal ---
-    # Trier le dataframe principal par taille croissante
     if not df_filtered.empty and 'taille_num' in df_filtered.columns:
         df_filtered = df_filtered.sort_values('taille_num')
     st.dataframe(df_filtered[colonnes_a_afficher].style.apply(highlight_row_if_one, axis=1))
 
-    # --- Affichage du tableau des sommes par taille et rayon ---
+    # --- Affichage des sommes par taille et rayon ---
     if not sum_by_size.empty:
-        st.subheader("Somme des quantités disponibles par taille et rayon (tri croissant)")
-        
-        # Appliquer un style conditionnel pour les totaux égaux à 1
+        # Séparer les données par rayon
+        sum_homme = sum_by_size[sum_by_size['Rayon'] == 'HOMME']
+        sum_femme = sum_by_size[sum_by_size['Rayon'] == 'FEMME']
+
+        # Fonction de style conditionnel
         def highlight_total_if_one(val):
             color = 'red' if val == 1 else ''
             return f'background-color: {color}'
-        
-        styled_sum = sum_by_size.style.applymap(highlight_total_if_one, subset=['Total Qté dispo'])
-        st.dataframe(styled_sum)
+
+        # Afficher les tableaux séparés
+        if not sum_homme.empty:
+            st.subheader("Somme des quantités disponibles par taille - Rayon HOMME")
+            styled_homme = sum_homme[['Taille', 'Total Qté dispo']].style.applymap(highlight_total_if_one, subset=['Total Qté dispo'])
+            st.dataframe(styled_homme)
+
+        if not sum_femme.empty:
+            st.subheader("Somme des quantités disponibles par taille - Rayon FEMME")
+            styled_femme = sum_femme[['Taille', 'Total Qté dispo']].style.applymap(highlight_total_if_one, subset=['Total Qté dispo'])
+            st.dataframe(styled_femme)
 
     # --- Tailles possibles ---
     specific_designations = [
