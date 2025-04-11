@@ -126,21 +126,10 @@ def display_designation_info(df, designation):
 
     def find_unavailable_canonical_sizes(possible_sizes, available_normalized):
         # On prend les tailles de base sans les formats avec zéro devant
-        canonical_sizes = {size.replace('0', '').replace('US', '').replace('UK', '') 
-                         for size in possible_sizes if not size.startswith('0')}
-        
-        # Conversion en float pour le tri numérique
-        def size_to_float(s):
-            try:
-                return float(s)
-            except ValueError:
-                return float('inf')  # Pour les tailles non numériques
-        
-        # Tri des tailles en ordre croissant numérique
-        sorted_sizes = sorted(canonical_sizes, key=size_to_float)
-        
+        canonical_sizes = sorted({size.replace('0', '').replace('US', '').replace('UK', '') 
+                               for size in possible_sizes if not size.startswith('0')})
         unavailable = []
-        for size in sorted_sizes:
+        for size in canonical_sizes:
             normalized = normalize_size(size)
             if normalized not in available_normalized:
                 unavailable.append(size)
