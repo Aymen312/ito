@@ -21,10 +21,7 @@ def highlight_row_if_one(row):
     else:
         return [''] * len(row)
 
-#### --- Fonctions modifiées pour afficher …
-[20:28, 11/04/2025] ايمن: import streamlit as st
-import pandas as pd
-from io import BytesIO
+
 
 #### --- Fonctions pour le traitement des données ---
 def clean_numeric_columns(df):
