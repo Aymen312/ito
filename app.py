@@ -21,27 +21,6 @@ def highlight_row_if_one(row):
     else:
         return [''] * len(row)
 
-
-
-#### --- Fonctions pour le traitement des données ---
-def clean_numeric_columns(df):
-    numeric_columns = ['Prix Achat', 'Qté stock dispo', 'Valeur Stock']
-    for col in numeric_columns:
-        df[col] = df[col].astype(str).str.replace(',', '.').astype(float)
-    return df
-
-def clean_size_column(df):
-    if 'taille' in df.columns:
-        df['taille'] = df['taille'].astype(str).str.strip()
-    return df
-
-def highlight_row_if_one(row):
-    """Met en surbrillance la ligne en rouge si 'Qté stock dispo' est égale à 1."""
-    if row['Qté stock dispo'] == 1:
-        return ['background-color: red' for _ in row]
-    else:
-        return [''] * len(row)
-
 #### --- Fonctions modifiées pour afficher les colonnes spécifiques ---
 def display_supplier_info(df, fournisseur):
     colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
@@ -348,148 +327,173 @@ def display_stock_by_family(df):
             st.write(f"Aucune information disponible pour {famille} "
                      f"dans la catégorie {rayon_filter}.")
 
-# --- CONFIGURATION (DOIT ÊTRE LA PREMIÈRE COMMANDE STREAMLIT) ---
+#### --- Configuration de l'application Streamlit ---
 st.set_page_config(
     page_title="Application d'Analyse TDR",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# --- CSS PERSONNALISÉ ---
-st.markdown("""
+#### --- CSS Personnalisé pour un style moderne (Material Design) ---
+st.markdown(
+    """
     <style>
+    /* --- Importation de la police Roboto (Google Fonts) --- */
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
-    body { font-family: 'Roboto', sans-serif; background-color: #f5f5f5; }
-    h1, h2, h3 { color: #212121; }
-    table { width: 100%; background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-    th, td { padding: 12px 16px; border-bottom: 1px solid #EEE; }
-    .stTabs [data-baseweb="tab-list"] { border-bottom: 2px solid #EEE; }
-    .stButton>button { background-color: #2196f3; color: white; border-radius: 4px; }
+
+    /* --- Styles globaux --- */
+    body {
+        font-family: 'Roboto', sans-serif;
+        background-color: # #f5f5f5; /* Gris très clair */
+    }
+
+    /* --- Titres --- */
+    h1, h2, h3 {
+        color: # #212121; /* Gris foncé */
+    }
+
+    /* --- Tableaux de données --- */
+    table {
+        border-collapse: collapse;
+        width: 100%;
+        background-color: white;
+        box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1); /* Ombre subtile */
+    }
+    th, td {
+        text-align: left;
+        padding: 12px 16px;
+        border-bottom: 1px solid # #EEEEEE; /* Gris très clair */
+    }
+    th {
+        font-weight: bold;
+    }
+
+    /* --- Messages d'état --- */
+    .st-success {
+        color: # #448a50; /* Vert */
+    }
+    .st-warning {
+        color: # #f0ad4e; /* Orange */
+    }
+    .st-error {
+        color: # #d9534f; /* Rouge */
+    }
+
+    /* --- Onglets (style Material Design) --- */
+    .stTabs [data-baseweb="tab-list"] {
+        border-bottom: 2px solid # #EEEEEE; /* Gris très clair */
+    }
+    .stTabs [data-baseweb="tab-list"] button {
+        background-color: transparent;
+        border: none;
+        color: # #757575; /* Gris moyen */
+        font-size: 16px;
+        margin-right: 32px;
+        padding: 12px 16px;
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+    }
+    .stTabs [data-baseweb="tab-list"] button:hover {
+        color: # #212121; /* Gris foncé */
+    }
+    .stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {
+        color: # #2196f3; /* Bleu Material Design */
+        border-bottom: 2px solid # #2196f3; /* Bleu Material Design */
+    }
+
+    /* --- Boutons --- */
+    .stButton>button {
+        background-color: # #2196f3; /* Bleu Material Design */
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    .stButton>button:hover {
+        background-color: # #1976d2; /* Bleu Material Design plus foncé */
+    }
+
+    /* --- Autres éléments --- */
+    .stSelectbox [data-baseweb="select"] {
+        padding: 8px 12px;
+        border-radius: 4px;
+        border: 1px solid # #bdbdbd; /* Gris clair */
+    }
     </style>
-""", unsafe_allow_html=True)
+    """,
+    unsafe_allow_html=True
+)
 
-# --- FONCTIONS DE BASE ---
-def clean_numeric_columns(df):
-    numeric_cols = ['Prix Achat', 'Qté stock dispo', 'Valeur Stock']
-    for col in numeric_cols:
-        df[col] = df[col].astype(str).str.replace(',', '.').astype(float)
-    return df
+#### --- Interface principale de l'application ---
+st.title("Application d'Analyse TDR")
+st.sidebar.markdown("############ Menu")
+st.sidebar.info("Téléchargez un fichier CSV ou Excel pour commencer l'analyse.")
+fichier_telecharge = st.file_uploader("Téléchargez un fichier CSV ou Excel", type=['csv', 'xlsx'])
 
-def clean_size_column(df):
-    if 'taille' in df.columns:
-        df['taille'] = df['taille'].astype(str).str.strip()
-    return df
-
-def highlight_row_if_one(row):
-    return ['background-color: red' if row['Qté stock dispo'] == 1 else '' for _ in row]
-
-# --- FONCTIONS D'AFFICHAGE ---
-def display_supplier_info(df, fournisseur):
-    cols = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 
-            'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
-    df['fournisseur'] = df['fournisseur'].fillna('')
-    df_filtered = df[df['fournisseur'].str.upper() == fournisseur.strip().upper()]
-    return df_filtered[cols] if not df_filtered.empty else pd.DataFrame(columns=cols)
-
-def normalize_size(size):
-    if pd.isna(size): return ''
-    size_str = str(size).strip()
-    if '.' in size_str:
-        int_part, dec_part = size_str.split('.', 1)
-        return f"{int_part.lstrip('0') or '0'}.{dec_part}"
-    return size_str.lstrip('0') or '0'
-
-def display_designation_info(df, designation):
-    main_cols = ['barcode', 'taille', 'rayon', 'designation', 'Qté stock dispo']
-    designation = designation.strip().upper()
-    df['designation'] = df['designation'].fillna('')
-    df_filtered = df[df['designation'].str.upper() == designation] if designation else pd.DataFrame()
-    
-    if not df_filtered.empty and 'taille' in df_filtered.columns:
-        df_filtered['taille_normalisee'] = df_filtered['taille'].apply(normalize_size)
-        df_filtered['taille_num'] = pd.to_numeric(df_filtered['taille_normalisee'], errors='coerce')
-        sum_by_size = df_filtered.groupby(['taille_normalisee', 'rayon'])['Qté stock dispo'].sum().reset_index()
-        sum_by_size.columns = ['Taille', 'Rayon', 'Total Qté dispo']
-        
-        # Affichage principal
-        st.dataframe(df_filtered[main_cols].style.apply(highlight_row_if_one, axis=1))
-        
-        # Affichage des sommes par rayon
-        for rayon in ['HOMME', 'FEMME']:
-            rayon_sum = sum_by_size[sum_by_size['Rayon'] == rayon]
-            if not rayon_sum.empty:
-                st.subheader(f"Stock total - Rayon {rayon}")
-                st.dataframe(rayon_sum[['Taille', 'Total Qté dispo']].style.applymap(
-                    lambda x: 'background-color: red' if x == 1 else '', subset=['Total Qté dispo']))
-
-def filter_negative_stock(df):
-    cols = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 
-            'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
-    df['Qté stock dispo'] = df['Qté stock dispo'].fillna(0)
-    return df[df['Qté stock dispo'] < 0][cols]
-
-def display_anita_sizes(df):
-    df_anita = df[df['fournisseur'].str.upper() == "ANITA"]
-    tailles = [f"{num}{letter}" for num in [85, 90, 95, 100, 105, 110] for letter in 'ABCDEF']
-    return df_anita[df_anita['taille'].isin(tailles)].groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
-
-def display_sidas_levels(df):
-    df_sidas = df[df['fournisseur'].str.upper().str.contains("SIDAS")].dropna(subset=['couleur', 'taille'])
-    results = {}
-    for level in ['LOW', 'MID', 'HIGH']:
-        df_level = df_sidas[df_sidas['couleur'].str.upper() == level]
-        results[level] = df_level[df_level['taille'].isin(['XS', 'S', 'M', 'L', 'XL', 'XXL']]
-    return results
-
-def total_stock_value_by_supplier(df):
-    df['Valeur Totale HT'] = df['Qté stock dispo'] * df['Prix Achat']
-    return df.groupby('fournisseur')['Valeur Totale HT'].sum().sort_values(ascending=False).reset_index()
-
-# --- INTERFACE PRINCIPALE ---
-st.title("📊 Application d'Analyse TDR")
-st.sidebar.header("Menu")
-
-uploaded_file = st.sidebar.file_uploader("Télécharger fichier", type=['csv', 'xlsx'])
-
-if uploaded_file:
+if fichier_telecharge is not None:
+    extension_fichier = fichier_telecharge.name.split('.')[-1]
     try:
-        with st.spinner("Traitement en cours..."):
-            df = pd.read_csv(uploaded_file, encoding='ISO-8859-1', sep=';') if uploaded_file.name.endswith('.csv') else pd.read_excel(uploaded_file)
-            df = clean_numeric_columns(clean_size_column(df))
-            
-            tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-                "🔍 Fournisseur", 
-                "📝 Désignation", 
-                "⚠ Stock Négatif", 
-                "👙 Anita", 
-                "🧦 Sidas", 
-                "💰 Valeur Stock"
-            ])
+        with st.spinner("Chargement des données..."):
+            if extension_fichier == 'csv':
+                df = pd.read_csv(fichier_telecharge, encoding='ISO-8859-1', sep=';')
+            elif extension_fichier == 'xlsx':
+                df = pd.read_excel(fichier_telecharge)
+            else:
+                st.error("Format de fichier non supporté")
+                df = None
 
-            with tab1:
-                supplier = st.text_input("Nom du fournisseur:")
-                st.dataframe(display_supplier_info(df, supplier).style.apply(highlight_row_if_one, axis=1))
+            if df is not None:
+                df = clean_numeric_columns(df)
+                df = clean_size_column(df)
+                st.success("Données chargées avec succès!")
 
-            with tab2:
-                product = st.text_input("Désignation produit:")
-                display_designation_info(df, product)
+                tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["Filtrer par Fournisseur",
+                                                                    "Filtrer par Désignation",
+                                                                    "Stock Négatif",
+                                                                    "Anita Tailles",
+                                                                    "Sidas Niveaux",
+                                                                    "Valeur Totale du Stock par Fournisseur",
+                                                                    "Stock par Famille"])
 
-            with tab3:
-                st.dataframe(filter_negative_stock(df).style.apply(highlight_row_if_one, axis=1))
+                with tab1:
+                    fournisseur = st.text_input("Entrez le nom du fournisseur:")
+                    df_filtered = display_supplier_info(df.copy(), fournisseur)
+                    if not df_filtered.empty:
+                        st.dataframe(df_filtered.style.apply(highlight_row_if_one, axis=1))
+                    else:
+                        st.write("Aucune information disponible pour ce fournisseur.")
 
-            with tab4:
-                st.dataframe(display_anita_sizes(df))
+                with tab2:
+                    designation = st.text_input("Entrez la désignation du produit:")
+                    display_designation_info(df.copy(), designation)
 
-            with tab5:
-                for level, data in display_sidas_levels(df).items():
-                    st.subheader(f"Niveau {level}")
-                    st.dataframe(data)
+                with tab3:
+                    st.dataframe(filter_negative_stock(df.copy()).style.apply(highlight_row_if_one, axis=1))
 
-            with tab6:
-                st.dataframe(total_stock_value_by_supplier(df))
-                st.metric("Valeur totale du stock", f"{total_stock_value_by_supplier(df)['Valeur Totale HT'].sum():,.2f} €")
+                with tab4:
+                    df_anita_sizes = display_anita_sizes(df)
+                    st.write("Quantités disponibles pour Anita par taille:")
+                    st.dataframe(df_anita_sizes)
+
+                with tab5:
+                    sidas_results = display_sidas_levels(df)
+                    for level, df_level in sidas_results.items():
+                        st.write(f"Quantités disponibles pour SIDAS niveau {level}:")
+                        st.dataframe(df_level.style.apply(highlight_row_if_one, axis=1))  # # Appliquer le style ici
+
+                with tab6:
+                    st.subheader("Valeur Totale du Stock par Fournisseur")
+                    df_total_value_by_supplier = total_stock_value_by_supplier(df)
+                    st.dataframe(df_total_value_by_supplier)
+                    total_value = df_total_value_by_supplier['Valeur Totale HT'].sum()
+                    st.markdown(f"Valeur Totale du Stock pour tous les fournisseurs : {total_value:.2f}")
+
+                with tab7:
+                    st.header("Stock par Famille")
+                    display_stock_by_family(df)
 
     except Exception as e:
-        st.error(f"Erreur: {str(e)}")
+        st.error(f"Erreur lors du traitement du fichier: {str(e)}")
 else:
-    st.info("Veuillez télécharger un fichier pour commencer l'analyse")
+    st.warning("Veuillez télécharger un fichier pour commencer l'analyse.")
