@@ -155,40 +155,34 @@ def display_designation_info(df, designation):
             except:
                 size_order[size] = 0
         
-        # Trier les tailles possibles
+        # Trier les tailles possibles par ordre numérique croissant
         sorted_sizes = sorted(possible_sizes, key=lambda x: size_order[x])
         
-        canonical_sizes = sorted({size for size in sorted_sizes if not size.startswith('0')}, 
-                               key=lambda x: size_order[x])
+        # Identifier les tailles canoniques (sans les zéros initiaux) et les trier
+        canonical_sizes = sorted({size.lstrip('0') for size in sorted_sizes}, 
+                               key=lambda x: size_order.get(x, x))
         
         unavailable = []
         for size in canonical_sizes:
             normalized = normalize_size(size)
             if normalized not in available_normalized:
                 unavailable.append(size)
-        return unavailable
+        
+        # Trier les tailles indisponibles par ordre numérique croissant
+        unavailable_sorted = sorted(unavailable, key=lambda x: size_order.get(x, x))
+        
+        return unavailable_sorted
+
+    def format_sizes(sizes):
+        if not sizes:
+            return "Toutes disponibles"
+        return ", ".join(sizes)
 
     # Calculer les tailles indisponibles pour chaque rayon
     unavailable_sizes_us_homme = find_unavailable_canonical_sizes(possible_sizes_us, available_sizes_homme)
     unavailable_sizes_uk_homme = find_unavailable_canonical_sizes(possible_sizes_uk, available_sizes_homme)
     unavailable_sizes_us_femme = find_unavailable_canonical_sizes(possible_sizes_us, available_sizes_femme)
     unavailable_sizes_uk_femme = find_unavailable_canonical_sizes(possible_sizes_uk, available_sizes_femme)
-
-    # Fonction pour trier et formater les tailles
-    def format_sizes(sizes):
-        if not sizes:
-            return "Toutes disponibles"
-        
-        # Fonction de tri personnalisée
-        def sort_key(size):
-            num_part = size.replace('US', '').replace('UK', '').replace('.0', '').replace('.5', '.5')
-            try:
-                return float(num_part)
-            except:
-                return 0.0
-        
-        sorted_sizes = sorted(sizes, key=sort_key)
-        return ", ".join(sorted_sizes)
 
     # Afficher les résultats dans des onglets
     tab1, tab2 = st.tabs(["HOMME", "FEMME"])
