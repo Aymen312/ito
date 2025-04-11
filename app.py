@@ -1,4 +1,4 @@
-[19:15, 11/04/2025] ايمن: import streamlit as st
+import streamlit as st
 import pandas as pd
 from io import BytesIO
 
