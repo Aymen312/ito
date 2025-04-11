@@ -126,16 +126,29 @@ def display_designation_info(df, designation):
                 possible_sizes_us.append(f'{size}.5')
                 possible_sizes_us.append(f'0{size}.5')
     else:
-        # Tailles étendues jusqu'au 14 comme demandé
-        for size in ['4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14']:
-            possible_sizes_us.append(f'{size}.0US')
-            possible_sizes_us.append(f'0{size}.0US')
-            possible_sizes_us.append(f'{size}.5US')
-            possible_sizes_us.append(f'0{size}.5US')
-            possible_sizes_uk.append(f'{size}.0UK')
-            possible_sizes_uk.append(f'0{size}.0UK')
-            possible_sizes_uk.append(f'{size}.5UK')
-            possible_sizes_uk.append(f'0{size}.5UK')
+        # Tailles pour femme (4 à 10)
+        if 'FEMME' in df_filtered['rayon'].unique():
+            for size in ['4', '5', '6', '7', '8', '9', '10']:
+                possible_sizes_us.append(f'{size}.0US')
+                possible_sizes_us.append(f'0{size}.0US')
+                possible_sizes_us.append(f'{size}.5US')
+                possible_sizes_us.append(f'0{size}.5US')
+                possible_sizes_uk.append(f'{size}.0UK')
+                possible_sizes_uk.append(f'0{size}.0UK')
+                possible_sizes_uk.append(f'{size}.5UK')
+                possible_sizes_uk.append(f'0{size}.5UK')
+        
+        # Tailles pour homme (7 à 14)
+        if 'HOMME' in df_filtered['rayon'].unique():
+            for size in ['7', '8', '9', '10', '11', '12', '13', '14']:
+                possible_sizes_us.append(f'{size}.0US')
+                possible_sizes_us.append(f'0{size}.0US')
+                possible_sizes_us.append(f'{size}.5US')
+                possible_sizes_us.append(f'0{size}.5US')
+                possible_sizes_uk.append(f'{size}.0UK')
+                possible_sizes_uk.append(f'0{size}.0UK')
+                possible_sizes_uk.append(f'{size}.5UK')
+                possible_sizes_uk.append(f'0{size}.5UK')
 
     # --- Tailles indisponibles par rayon ---
     st.subheader("Tailles indisponibles par rayon:")
@@ -191,20 +204,20 @@ def display_designation_info(df, designation):
         st.subheader("Rayon HOMME")
         col1, col2 = st.columns(2)
         with col1:
-            st.write("Tailles US indisponibles:")
+            st.write("Tailles US indisponibles (7-14):")
             st.write(format_sizes(unavailable_sizes_us_homme))
         with col2:
-            st.write("Tailles UK indisponibles:")
+            st.write("Tailles UK indisponibles (7-14):")
             st.write(format_sizes(unavailable_sizes_uk_homme))
     
     with tab2:
         st.subheader("Rayon FEMME")
         col1, col2 = st.columns(2)
         with col1:
-            st.write("Tailles US indisponibles:")
+            st.write("Tailles US indisponibles (4-10):")
             st.write(format_sizes(unavailable_sizes_us_femme))
         with col2:
-            st.write("Tailles UK indisponibles:")
+            st.write("Tailles UK indisponibles (4-10):")
             st.write(format_sizes(unavailable_sizes_uk_femme))
 #### --- Fonction modifiée pour "Stock Négatif" ---
 def filter_negative_stock(df):
