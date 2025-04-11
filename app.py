@@ -23,24 +23,24 @@ def highlight_row_if_one(row):
 
 #### --- Fonctions modifiées pour afficher les colonnes spécifiques ---
 def display_supplier_info(df, fournisseur):
-    # Colonnes à afficher dans le tableau principal
     colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 
                          'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
-    
     fournisseur = fournisseur.strip().upper()
     df['fournisseur'] = df['fournisseur'].fillna('')
     
     # Filtrer par fournisseur
     df_filtered = df[df['fournisseur'].str.upper() == fournisseur] if fournisseur else pd.DataFrame(columns=colonnes_affichier)
     
-    # Créer un DataFrame avec les désignations uniques et leur compte
+    # Si des résultats sont trouvés
     if not df_filtered.empty:
+        # Créer un DataFrame avec les désignations uniques et leur compte
         designations = df_filtered['designation'].value_counts().reset_index()
         designations.columns = ['Désignation', 'Nombre de références']
         designations = designations.sort_values('Désignation')
         
-        # Ajouter les désignations comme attribut du DataFrame retourné
-        df_filtered.designations_summary = designations
+        # Afficher les désignations dans un expander
+        with st.expander(f"Voir toutes les désignations pour {fournisseur}"):
+            st.dataframe(designations)
     
     return df_filtered[colonnes_affichier]
 
