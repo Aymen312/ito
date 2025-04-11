@@ -39,51 +39,62 @@ def display_designation_info(df, designation):
     # Filtre exact sur la désignation
     df_filtered = df[df['designation'].str.upper() == designation] if designation else pd.DataFrame(columns=colonnes_a_afficher)
 
-    # Normalisation des tailles
+    # Normalisation des tailles (gère les cas comme 05 = 5)
     def normalize_size(size):
         if pd.isna(size):
             return ''
+            
         size_str = str(size).strip().upper()
         
-        # Conserver les tailles commençant par 0 comme "05" sans modification
-        if size_str.startswith('0') and size_str[1:].isdigit():
-            return size_str
-            
-        # Traitement normal pour les autres tailles
-        size_str = size_str.replace('US', '').replace('UK', '').strip()
-        if '.' in size_str:
-            int_part, dec_part = size_str.split('.', 1)
+        # Détecter si c'est une taille US/UK
+        is_us = 'US' in size_str
+        is_uk = 'UK' in size_str
+        suffix = 'US' if is_us else 'UK' if is_uk else ''
+        
+        # Nettoyer la chaîne
+        clean_size = size_str.replace('US', '').replace('UK', '').strip()
+        
+        # Cas spécial pour les tailles commençant par 0 (comme 05 = 5)
+        if clean_size.startswith('0') and len(clean_size) > 1 and clean_size[1:].replace('.', '').isdigit():
+            clean_size = clean_size[1:]  # Retire le 0 initial
+        
+        # Traitement normal des décimales
+        if '.' in clean_size:
+            int_part, dec_part = clean_size.split('.', 1)
             int_part = int_part.lstrip('0') or '0'
-            size_str = f"{int_part}.{dec_part}"
+            clean_size = f"{int_part}.{dec_part}"
         else:
-            size_str = size_str.lstrip('0') or '0'
-        return size_str
+            clean_size = clean_size.lstrip('0') or '0'
+        
+        # Rajouter le suffixe si nécessaire
+        if suffix:
+            clean_size = f"{clean_size}{suffix}"
+            
+        return clean_size
 
     if 'taille' in df_filtered.columns:
         df_filtered['taille_normalisee'] = df_filtered['taille'].apply(normalize_size)
-        # Ajouter les symboles UK/US dans une colonne séparée pour l'affichage
+        # Conserver la taille originale pour l'affichage
         df_filtered['taille_affichage'] = df_filtered['taille'].apply(lambda x: str(x).strip().upper())
 
     # --- Affichage du tableau principal ---
     st.dataframe(df_filtered[colonnes_a_afficher])
 
-    # --- Affichage du tableau des sommes par taille avec mise en forme ---
+    # --- Affichage du tableau des sommes par taille ---
     if not df_filtered.empty and 'taille_normalisee' in df_filtered.columns:
-        # Utiliser la colonne 'taille_affichage' pour le regroupement
         sum_by_size = df_filtered.groupby('taille_affichage')['Qté stock dispo'].sum().reset_index()
         sum_by_size.columns = ['Taille', 'Total Qté dispo']
         
         # Trier les tailles de manière logique
         def sort_key(size_str):
             try:
-                # Cas spécial pour les tailles commençant par 0 (comme "05")
-                if size_str.startswith('0') and size_str[1:].isdigit():
-                    return ('', int(size_str))
+                # Cas des tailles numériques simples (5, 5.5, etc.)
+                if size_str.replace('.', '').isdigit():
+                    return ('', float(size_str))
                 
-                # Extraire la partie numérique
-                num_part = size_str.split('.')[0]
+                # Cas des tailles avec US/UK
+                num_part = size_str.split('.')[0].replace('US', '').replace('UK', '').strip()
                 num = float(num_part) if num_part else 0
-                # Extraire le suffixe (UK/US)
                 suffix = 'US' if 'US' in size_str else 'UK' if 'UK' in size_str else ''
                 return (suffix, num)
             except:
@@ -92,7 +103,7 @@ def display_designation_info(df, designation):
         sum_by_size['sort_key'] = sum_by_size['Taille'].apply(sort_key)
         sum_by_size = sum_by_size.sort_values('sort_key').drop('sort_key', axis=1)
         
-        # Fonction pour colorer les cellules = 1 en rouge
+        # Mise en forme
         def highlight_qty(val):
             color = 'red' if val == 1 else ''
             return f'background-color: {color}'
@@ -112,15 +123,15 @@ def display_designation_info(df, designation):
 
     possible_sizes_us = []
     possible_sizes_uk = []
-    possible_sizes_special = []  # Pour les tailles comme "05"
+    possible_sizes_num = []  # Tailles numériques simples
 
     if any(desig in designation for desig in specific_designations):
         # Tailles européennes (36-47.5)
         for size in range(36, 48):
-            possible_sizes_us.append(f'{size}')
-            possible_sizes_us.append(f'{size}.0')
+            possible_sizes_num.append(f'{size}')
+            possible_sizes_num.append(f'{size}.0')
             if size != 47:
-                possible_sizes_us.append(f'{size}.5')
+                possible_sizes_num.append(f'{size}.5')
     else:
         # Tailles US/UK standard
         for num in range(4, 13):  # De 4 à 12
@@ -129,33 +140,35 @@ def display_designation_info(df, designation):
             possible_sizes_uk.append(f'{num}.0UK')
             possible_sizes_uk.append(f'{num}.5UK')
         
-        # Ajout des tailles spéciales commençant par 0
-        for num in range(1, 10):  # De 01 à 09
-            possible_sizes_special.append(f'0{num}')
-            possible_sizes_special.append(f'0{num}.0')
+        # Tailles numériques simples (5, 5.5, etc.)
+        for num in range(1, 13):
+            possible_sizes_num.append(f'{num}')
+            possible_sizes_num.append(f'{num}.0')
+            if num != 12:
+                possible_sizes_num.append(f'{num}.5')
 
-    # --- Tailles indisponibles (affichées à la fin) ---
+    # --- Tailles indisponibles ---
     st.subheader("Tailles indisponibles")
     
-    # Tailles disponibles (originales, non normalisées)
     available_sizes = set(df_filtered['taille_affichage'].unique()) if 'taille_affichage' in df_filtered.columns else set()
 
-    # Fonction pour trouver les tailles manquantes
     def find_missing_sizes(possible_sizes):
         missing = []
         for size in possible_sizes:
-            if size not in available_sizes:
+            # Vérifier la taille originale et la version normalisée
+            normalized = normalize_size(size)
+            if size not in available_sizes and normalized not in available_sizes:
                 missing.append(size)
         return missing
 
+    missing_sizes_num = find_missing_sizes(possible_sizes_num)
     missing_sizes_us = find_missing_sizes(possible_sizes_us)
     missing_sizes_uk = find_missing_sizes(possible_sizes_uk)
-    missing_sizes_special = find_missing_sizes(possible_sizes_special)
 
     # Affichage en colonnes
-    if missing_sizes_special:
-        st.write("Tailles spéciales indisponibles (commençant par 0):")
-        st.write(missing_sizes_special)
+    if missing_sizes_num:
+        st.write("Tailles numériques indisponibles:")
+        st.write(missing_sizes_num)
     
     col1, col2 = st.columns(2)
     with col1:
