@@ -23,11 +23,23 @@ def highlight_row_if_one(row):
 
 #### --- Fonctions modifiées pour afficher les colonnes spécifiques ---
 def display_supplier_info(df, fournisseur):
-    colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
+    # Colonnes pour le premier tableau
+    colonnes_a_afficher = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
+    
+    # Colonnes pour le deuxième tableau (juste les désignations)
+    colonnes_designations = ['designation']
+    
     fournisseur = fournisseur.strip().upper()
     df['fournisseur'] = df['fournisseur'].fillna('')
-    df_filtered = df[df['fournisseur'].str.upper() == fournisseur] if fournisseur else pd.DataFrame(columns=colonnes_affichier)
-    return df_filtered[colonnes_affichier]
+    
+    # Filtrer le dataframe selon le fournisseur
+    df_filtered = df[df['fournisseur'].str.upper() == fournisseur] if fournisseur else pd.DataFrame(columns=colonnes_a_afficher)
+    
+    # Retourner les deux dataframes
+    return {
+        'tableau_complet': df_filtered[colonnes_a_afficher],
+        'designations': df_filtered[colonnes_designations].drop_duplicates()
+    }
 
 def display_designation_info(df, designation):
     # Colonnes à afficher dans le tableau principal
