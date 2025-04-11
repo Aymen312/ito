@@ -29,6 +29,9 @@ def display_supplier_info(df, fournisseur):
     df_filtered = df[df['fournisseur'].str.upper() == fournisseur] if fournisseur else pd.DataFrame(columns=colonnes_affichier)
     return df_filtered[colonnes_affichier]
 
+import pandas as pd
+import streamlit as st
+
 def display_designation_info(df, designation):
     # Colonnes à afficher dans le tableau principal
     colonnes_a_afficher = ['barcode', 'taille', 'rayon', 'designation', 'Qté stock dispo']
@@ -126,16 +129,29 @@ def display_designation_info(df, designation):
                 possible_sizes_us.append(f'{size}.5')
                 possible_sizes_us.append(f'0{size}.5')
     else:
-        # Tailles étendues jusqu'au 14 comme demandé
-        for size in ['4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14']:
-            possible_sizes_us.append(f'{size}.0US')
-            possible_sizes_us.append(f'0{size}.0US')
-            possible_sizes_us.append(f'{size}.5US')
-            possible_sizes_us.append(f'0{size}.5US')
-            possible_sizes_uk.append(f'{size}.0UK')
-            possible_sizes_uk.append(f'0{size}.0UK')
-            possible_sizes_uk.append(f'{size}.5UK')
-            possible_sizes_uk.append(f'0{size}.5UK')
+        # Tailles pour femme (4 à 10)
+        if 'FEMME' in df_filtered['rayon'].unique():
+            for size in ['4', '5', '6', '7', '8', '9', '10']:
+                possible_sizes_us.append(f'{size}.0US')
+                possible_sizes_us.append(f'0{size}.0US')
+                possible_sizes_us.append(f'{size}.5US')
+                possible_sizes_us.append(f'0{size}.5US')
+                possible_sizes_uk.append(f'{size}.0UK')
+                possible_sizes_uk.append(f'0{size}.0UK')
+                possible_sizes_uk.append(f'{size}.5UK')
+                possible_sizes_uk.append(f'0{size}.5UK')
+        
+        # Tailles pour homme (7 à 14)
+        if 'HOMME' in df_filtered['rayon'].unique():
+            for size in ['7', '8', '9', '10', '11', '12', '13', '14']:
+                possible_sizes_us.append(f'{size}.0US')
+                possible_sizes_us.append(f'0{size}.0US')
+                possible_sizes_us.append(f'{size}.5US')
+                possible_sizes_us.append(f'0{size}.5US')
+                possible_sizes_uk.append(f'{size}.0UK')
+                possible_sizes_uk.append(f'0{size}.0UK')
+                possible_sizes_uk.append(f'{size}.5UK')
+                possible_sizes_uk.append(f'0{size}.5UK')
 
     # --- Tailles indisponibles par rayon ---
     st.subheader("Tailles indisponibles par rayon:")
@@ -144,10 +160,27 @@ def display_designation_info(df, designation):
     available_sizes_homme = df_filtered[df_filtered['rayon'] == 'HOMME']['taille_normalisee'].unique() if 'taille_normalisee' in df_filtered.columns else []
     available_sizes_femme = df_filtered[df_filtered['rayon'] == 'FEMME']['taille_normalisee'].unique() if 'taille_normalisee' in df_filtered.columns else []
 
-    def find_unavailable_canonical_sizes(possible_sizes, available_normalized):
+    def filter_sizes_by_range(sizes, size_range):
+        """Filtre les tailles pour ne garder que celles dans la plage spécifiée"""
+        filtered = []
+        for size in sizes:
+            # Extraire la partie numérique de la taille
+            clean_size = size.replace('US', '').replace('UK', '').replace('0', '').strip('.')
+            try:
+                num_size = float(clean_size)
+                if size_range[0] <= num_size <= size_range[1]:
+                    filtered.append(size)
+            except ValueError:
+                continue
+        return filtered
+
+    def find_unavailable_canonical_sizes(possible_sizes, available_normalized, size_range):
+        # Filtrer d'abord les tailles possibles selon la plage
+        possible_sizes_filtered = filter_sizes_by_range(possible_sizes, size_range)
+        
         # Créer un dictionnaire pour trier les tailles
         size_order = {}
-        for i, size in enumerate(possible_sizes):
+        for i, size in enumerate(possible_sizes_filtered):
             # Nettoyer la taille pour la comparaison
             clean_size = size.replace('US', '').replace('UK', '').replace('0', '').strip('.')
             try:
@@ -156,7 +189,7 @@ def display_designation_info(df, designation):
                 size_order[size] = 0
         
         # Trier les tailles possibles par ordre numérique croissant
-        sorted_sizes = sorted(possible_sizes, key=lambda x: size_order[x])
+        sorted_sizes = sorted(possible_sizes_filtered, key=lambda x: size_order[x])
         
         # Identifier les tailles canoniques (sans les zéros initiaux) et les trier
         canonical_sizes = sorted({size.lstrip('0') for size in sorted_sizes}, 
@@ -178,17 +211,17 @@ def display_designation_info(df, designation):
             return "Toutes disponibles"
         return ", ".join(sizes)
 
-    # Calculer les tailles indisponibles pour chaque rayon
-    unavailable_sizes_us_homme = find_unavailable_canonical_sizes(possible_sizes_us, available_sizes_homme)
-    unavailable_sizes_uk_homme = find_unavailable_canonical_sizes(possible_sizes_uk, available_sizes_homme)
-    unavailable_sizes_us_femme = find_unavailable_canonical_sizes(possible_sizes_us, available_sizes_femme)
-    unavailable_sizes_uk_femme = find_unavailable_canonical_sizes(possible_sizes_uk, available_sizes_femme)
+    # Calculer les tailles indisponibles pour chaque rayon avec les plages spécifiques
+    unavailable_sizes_us_homme = find_unavailable_canonical_sizes(possible_sizes_us, available_sizes_homme, (7, 14))
+    unavailable_sizes_uk_homme = find_unavailable_canonical_sizes(possible_sizes_uk, available_sizes_homme, (7, 14))
+    unavailable_sizes_us_femme = find_unavailable_canonical_sizes(possible_sizes_us, available_sizes_femme, (4, 10))
+    unavailable_sizes_uk_femme = find_unavailable_canonical_sizes(possible_sizes_uk, available_sizes_femme, (4, 10))
 
     # Afficher les résultats dans des onglets
-    tab1, tab2 = st.tabs(["HOMME", "FEMME"])
+    tab1, tab2 = st.tabs(["HOMME (7-14)", "FEMME (4-10)"])
     
     with tab1:
-        st.subheader("Rayon HOMME")
+        st.subheader("Rayon HOMME - Tailles 7 à 14")
         col1, col2 = st.columns(2)
         with col1:
             st.write("Tailles US indisponibles:")
@@ -198,7 +231,7 @@ def display_designation_info(df, designation):
             st.write(format_sizes(unavailable_sizes_uk_homme))
     
     with tab2:
-        st.subheader("Rayon FEMME")
+        st.subheader("Rayon FEMME - Tailles 4 à 10")
         col1, col2 = st.columns(2)
         with col1:
             st.write("Tailles US indisponibles:")
