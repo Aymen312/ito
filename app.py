@@ -31,119 +31,122 @@ def display_supplier_info(df, fournisseur):
 
 
 def display_designation_info(df, designation):
-    # Colonnes à afficher
-    colonnes_a_afficher = ['barcode', 'taille', 'designation', 'Qté stock dispo']
-    designation = designation.strip().upper()
-    df['designation'] = df['designation'].fillna('')
-    
-    # Filtre sur la désignation
-    df_filtered = df[df['designation'].str.upper() == designation] if designation else pd.DataFrame(columns=colonnes_a_afficher)
-
-    # Fonction de normalisation améliorée
+    # 1. Normalisation des tailles dans tout le DataFrame (avant filtrage)
     def normalize_size(size):
         if pd.isna(size):
             return ''
             
         size_str = str(size).strip().upper()
         
-        # Détection du type de taille
-        is_us = 'US' in size_str
-        is_uk = 'UK' in size_str
-        suffix = 'US' if is_us else 'UK' if is_uk else ''
+        # Conserver la notation US/UK
+        suffix = ''
+        if 'US' in size_str:
+            suffix = 'US'
+            size_str = size_str.replace('US', '')
+        elif 'UK' in size_str:
+            suffix = 'UK'
+            size_str = size_str.replace('UK', '')
         
-        # Nettoyage de la chaîne
-        clean_size = size_str.replace('US', '').replace('UK', '').strip()
+        size_str = size_str.strip()
         
-        # Gestion des formats numériques (07.5 -> 7.5)
-        if clean_size.replace('.', '').isdigit():
-            if '.' in clean_size:
-                int_part, dec_part = clean_size.split('.')
-                int_part = int_part.lstrip('0') or '0'
-                clean_size = f"{int_part}.{dec_part}"
-            else:
-                clean_size = clean_size.lstrip('0') or '0'
+        # Suppression systématique des 0 initiaux (07 → 7, 07.5 → 7.5)
+        if '.' in size_str:
+            int_part, dec_part = size_str.split('.', 1)
+            int_part = int_part.lstrip('0') or '0'
+            size_str = f"{int_part}.{dec_part}"
+        else:
+            size_str = size_str.lstrip('0') or '0'
         
-        return f"{clean_size}{suffix}" if suffix else clean_size
+        return f"{size_str}{suffix}" if suffix else size_str
 
-    # Application de la normalisation
-    if 'taille' in df_filtered.columns:
-        df_filtered['taille_normalisee'] = df_filtered['taille'].apply(normalize_size)
-        df_filtered['taille_originale'] = df_filtered['taille'].apply(lambda x: str(x).strip().upper())
-
-    # Affichage du stock actuel
-    st.dataframe(df_filtered[colonnes_a_afficher])
-
-    # Tableau récapitulatif par taille
-    if not df_filtered.empty:
-        sum_by_size = df_filtered.groupby('taille_normalisee')['Qté stock dispo'].sum().reset_index()
-        sum_by_size.columns = ['Taille normalisée', 'Quantité disponible']
-        
-        st.subheader("Stock par taille normalisée")
-        st.dataframe(
-            sum_by_size.style.applymap(
-                lambda x: 'background-color: #FFCDD2' if x == 1 else 
-                         'background-color: #C8E6C9' if x > 1 else '',
-                subset=['Quantité disponible']
-            )
-        )
-
-    # Génération des tailles attendues
-    def generate_expected_sizes():
+    # Appliquer la normalisation à tout le DataFrame
+    df['taille_normalisee'] = df['taille'].apply(normalize_size)
+    
+    # 2. Génération de toutes les tailles attendues
+    def generate_all_expected_sizes():
         sizes = []
         
-        # Tailles US
-        for num in range(1, 13):
-            sizes.extend([f"{num}US", f"{num}.0US", f"{num}.5US"])
+        # Tailles US (4-12)
+        for num in range(4, 13):
+            sizes.append(f"{num}US")
+            sizes.append(f"{num}.5US")
         
-        # Tailles UK
-        for num in range(1, 13):
-            sizes.extend([f"{num}UK", f"{num}.0UK", f"{num}.5UK"])
+        # Tailles UK (4-12)
+        for num in range(4, 13):
+            sizes.append(f"{num}UK")
+            sizes.append(f"{num}.5UK")
         
-        # Tailles numériques (pour les marques européennes)
-        for num in range(35, 48):
-            sizes.extend([f"{num}", f"{num}.0", f"{num}.5"])
+        # Tailles numériques (36-47.5)
+        for num in range(36, 48):
+            sizes.append(f"{num}")
+            sizes.append(f"{num}.5")
+        
+        # Tailles spéciales (XS-XXL)
+        sizes.extend(['XS', 'S', 'M', 'L', 'XL', 'XXL'])
         
         return sizes
 
-    # Détection PRÉCISE des tailles manquantes
-    expected_sizes = generate_expected_sizes()
-    available_sizes = set(df_filtered['taille_normalisee'].unique()) if 'taille_normalisee' in df_filtered.columns else set()
-    available_original = set(df_filtered['taille_originale'].unique()) if 'taille_originale' in df_filtered.columns else set()
+    all_expected_sizes = generate_all_expected_sizes()
     
-    missing_sizes = []
-    for size in expected_sizes:
-        # Vérification dans les tailles normalisées ET originales
-        normalized = normalize_size(size)
-        if (normalized not in available_sizes) and (size not in available_original):
-            # Formatage pour l'affichage
-            if size.endswith('US'):
-                display_size = f"{size[:-2]} (US)"
-            elif size.endswith('UK'):
-                display_size = f"{size[:-2]} (UK)"
-            else:
-                display_size = size
-            missing_sizes.append(display_size)
-
-    # Affichage des tailles réellement manquantes
-    st.subheader("Tailles réellement manquantes")
+    # 3. Détection des tailles manquantes globales
+    all_available_sizes = set(df['taille_normalisee'].unique())
+    global_missing_sizes = sorted([s for s in all_expected_sizes 
+                                 if normalize_size(s) not in all_available_sizes], 
+                                 key=lambda x: (len(x), x))
     
-    if missing_sizes:
-        # Création d'un DataFrame pour un meilleur affichage
-        missing_df = pd.DataFrame({'Taille manquante': sorted(missing_sizes)})
+    # 4. Affichage du tableau global des tailles manquantes
+    st.subheader("Toutes les tailles manquantes (global)")
+    if global_missing_sizes:
+        missing_df = pd.DataFrame({
+            'Type': ['US' if 'US' in s else 
+                    'UK' if 'UK' in s else 
+                    'EU' if str(s).replace('.','').isdigit() else 
+                    'SPEC'
+                    for s in global_missing_sizes],
+            'Taille': [s.replace('US', '').replace('UK', '').strip() for s in global_missing_sizes],
+            'Format Original': global_missing_sizes
+        })
         
         st.dataframe(
-            missing_df,
-            hide_index=True,
-            use_container_width=True,
-            height=min(600, 35 * len(missing_df))
+            missing_df[['Type', 'Taille', 'Format Original']]
+            .sort_values(['Type', 'Taille']),
+            hide_index=True
+        )
     else:
-        st.success("✔ Toutes les tailles attendues sont disponibles")
+        st.success("Toutes les tailles sont disponibles en stock")
+    
+    # 5. Filtrage par désignation (après l'affichage global)
+    designation = designation.strip().upper()
+    df['designation'] = df['designation'].fillna('').str.upper()
+    df_filtered = df[df['designation'] == designation] if designation else pd.DataFrame()
+    
+    if not df_filtered.empty:
+        st.subheader(f"Stock pour {designation}")
+        st.dataframe(df_filtered[['barcode', 'taille', 'Qté stock dispo']])
+        
+        # Quantités par taille pour la désignation
+        sum_by_size = df_filtered.groupby('taille_normalisee')['Qté stock dispo'].sum().reset_index()
+        st.dataframe(
+            sum_by_size.rename(columns={'taille_normalisee': 'Taille', 'Qté stock dispo': 'Quantité'})
+            .sort_values('Taille')
+        )
 
-    # Vérification supplémentaire pour debug
-    if st.checkbox("Afficher les données de vérification"):
-        st.write("Tailles disponibles (originales):", available_original)
-        st.write("Tailles disponibles (normalisées):", available_sizes)
-        st.write("Tailles attendues:", expected_sizes)
+    # 6. Tailles manquantes spécifiques à la désignation
+    if designation:
+        expected_for_designation = all_expected_sizes  # À adapter selon la désignation
+        available_for_designation = set(df_filtered['taille_normalisee'].unique())
+        specific_missing = sorted([s for s in expected_for_designation 
+                                 if normalize_size(s) not in available_for_designation],
+                                 key=lambda x: (len(x), x))
+        
+        st.subheader(f"Tailles manquantes pour {designation}")
+        if specific_missing:
+            st.dataframe(
+                pd.DataFrame({'Taille manquante': specific_missing}),
+                hide_index=True
+            )
+        else:
+            st.success(f"Toutes les tailles sont disponibles pour {designation}")
 #### --- Fonction modifiée pour "Stock Négatif" ---
 def filter_negative_stock(df):
     colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
