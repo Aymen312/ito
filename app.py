@@ -58,9 +58,14 @@ def display_designation_info(df, designation):
     # Calculer la somme des quantités par taille
     sum_by_size = pd.DataFrame()
     if not df_filtered.empty and 'taille_normalisee' in df_filtered.columns:
+        # Convertir en numérique pour un tri correct
+        df_filtered['taille_num'] = pd.to_numeric(df_filtered['taille_normalisee'], errors='coerce')
         sum_by_size = df_filtered.groupby('taille_normalisee')['Qté stock dispo'].sum().reset_index()
         sum_by_size.columns = ['Taille', 'Total Qté dispo']
-        sum_by_size = sum_by_size.sort_values('Taille')
+        # Trier par taille numérique croissante
+        sum_by_size['taille_num'] = pd.to_numeric(sum_by_size['Taille'], errors='coerce')
+        sum_by_size = sum_by_size.sort_values('taille_num')
+        sum_by_size = sum_by_size.drop(columns=['taille_num'])
 
     # Fonction de mise en forme conditionnelle
     def highlight_row_if_one(row):
@@ -71,11 +76,14 @@ def display_designation_info(df, designation):
         return [''] * len(row)
 
     # --- Affichage du tableau principal ---
+    # Trier le dataframe principal par taille croissante
+    if not df_filtered.empty and 'taille_num' in df_filtered.columns:
+        df_filtered = df_filtered.sort_values('taille_num')
     st.dataframe(df_filtered[colonnes_a_afficher].style.apply(highlight_row_if_one, axis=1))
 
     # --- Affichage du tableau des sommes par taille ---
     if not sum_by_size.empty:
-        st.subheader("Somme des quantités disponibles par taille")
+        st.subheader("Somme des quantités disponibles par taille (tri croissant)")
         
         # Appliquer un style conditionnel pour les totaux égaux à 1
         def highlight_total_if_one(val):
@@ -122,7 +130,22 @@ def display_designation_info(df, designation):
     available_sizes_normalized = df_filtered['taille_normalisee'].unique() if 'taille_normalisee' in df_filtered.columns else []
 
     def find_unavailable_canonical_sizes(possible_sizes, available_normalized):
-        canonical_sizes = sorted({size for size in possible_sizes if not size.startswith('0')})
+        # Créer un dictionnaire pour trier les tailles
+        size_order = {}
+        for i, size in enumerate(possible_sizes):
+            # Nettoyer la taille pour la comparaison
+            clean_size = size.replace('US', '').replace('UK', '').replace('0', '').strip('.')
+            try:
+                size_order[size] = float(clean_size)
+            except:
+                size_order[size] = 0
+        
+        # Trier les tailles possibles
+        sorted_sizes = sorted(possible_sizes, key=lambda x: size_order[x])
+        
+        canonical_sizes = sorted({size for size in sorted_sizes if not size.startswith('0')}, 
+                               key=lambda x: size_order[x])
+        
         unavailable = []
         for size in canonical_sizes:
             normalized = normalize_size(size)
@@ -135,11 +158,11 @@ def display_designation_info(df, designation):
 
     col1, col2 = st.columns(2)
     with col1:
-        st.write("Tailles US indisponibles:")
+        st.write("Tailles US indisponibles (tri croissant):")
         st.write(unavailable_sizes_us if unavailable_sizes_us else "Toutes disponibles")
     
     with col2:
-        st.write("Tailles UK indisponibles:")
+        st.write("Tailles UK indisponibles (tri croissant):")
         st.write(unavailable_sizes_uk if unavailable_sizes_uk else "Toutes disponibles")
 #### --- Fonction modifiée pour "Stock Négatif" ---
 def filter_negative_stock(df):
