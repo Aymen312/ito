@@ -471,9 +471,6 @@ if fichier_telecharge is not None:
         st.error(f"Erreur lors du traitement du fichier: {str(e)}")
 else:
     st.warning("Veuillez télécharger un fichier pour commencer l'analyse.")
-[20:28, 11/04/2025] ايمن: import streamlit as st
-import pandas as pd
-from io import BytesIO
 
 #### --- Fonctions pour le traitement des données ---
 def clean_numeric_columns(df):
