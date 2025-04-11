@@ -22,33 +22,14 @@ def highlight_row_if_one(row):
         return [''] * len(row)
 
 #### --- Fonctions modifiées pour afficher les colonnes spécifiques ---
-def display_supplier_info(df, fournisseur):
-    colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
-    fournisseur = fournisseur.strip().upper()
-    df['fournisseur'] = df['fournisseur'].fillna('')
-    df_filtered = df[df['fournisseur'].str.upper() == fournisseur] if fournisseur else pd.DataFrame(columns=colonnes_affichier)
-    return df_filtered[colonnes_affichier]
-
 def display_designation_info(df, designation):
-    # 1. DataFrame original
-    st.subheader("1. DataFrame Original (Input)")
-    st.write("Shape:", df.shape)
-    st.dataframe(df)
-    
-    # Colonnes à afficher
+    # Colonnes à afficher dans le tableau principal
     colonnes_a_afficher = ['barcode', 'taille', 'rayon', 'designation', 'Qté stock dispo']
     designation = designation.strip().upper()
-    
-    # 2. Après nettoyage des désignations
     df['designation'] = df['designation'].fillna('')
-    st.subheader("2. Après nettoyage des désignations")
-    st.dataframe(df)
-
-    # 3. DataFrame filtré
+    
+    # Filtre exact sur la désignation
     df_filtered = df[df['designation'].str.upper() == designation] if designation else pd.DataFrame(columns=colonnes_a_afficher)
-    st.subheader("3. DataFrame Filtré par désignation")
-    st.write(f"Lignes trouvées pour '{designation}':", len(df_filtered))
-    st.dataframe(df_filtered)
 
     # Normalisation des tailles
     def normalize_size(size):
@@ -63,57 +44,151 @@ def display_designation_info(df, designation):
             size_str = size_str.lstrip('0') or '0'
         return size_str
 
-    # 4. Avec tailles normalisées
     if 'taille' in df_filtered.columns:
         df_filtered['taille_normalisee'] = df_filtered['taille'].apply(normalize_size)
-        st.subheader("4. Avec tailles normalisées")
-        st.dataframe(df_filtered[['barcode', 'taille', 'taille_normalisee']])
 
-    # 5. Conversion numérique des tailles
+    # Calculer la somme des quantités par taille et rayon
+    sum_by_size = pd.DataFrame()
     if not df_filtered.empty and 'taille_normalisee' in df_filtered.columns:
+        # Convertir en numérique pour un tri correct
         df_filtered['taille_num'] = pd.to_numeric(df_filtered['taille_normalisee'], errors='coerce')
-        st.subheader("5. Avec conversion numérique")
-        st.dataframe(df_filtered[['taille', 'taille_normalisee', 'taille_num']].sort_values('taille_num'))
-
-        # 6. Somme par taille et rayon
+        # Somme par taille et rayon
         sum_by_size = df_filtered.groupby(['taille_normalisee', 'rayon'])['Qté stock dispo'].sum().reset_index()
         sum_by_size.columns = ['Taille', 'Rayon', 'Total Qté dispo']
+        # Trier par taille numérique croissante
         sum_by_size['taille_num'] = pd.to_numeric(sum_by_size['Taille'], errors='coerce')
-        sum_by_size = sum_by_size.sort_values('taille_num').drop(columns=['taille_num'])
-        
-        st.subheader("6. Somme par taille et rayon")
-        st.dataframe(sum_by_size)
+        sum_by_size = sum_by_size.sort_values('taille_num')
+        sum_by_size = sum_by_size.drop(columns=['taille_num'])
 
-    # 7. Tailles possibles
-    st.subheader("7. Tailles possibles générées")
-    specific_designations = ['PRODIGIO', 'PRODIGIO WOMAN', 'AKASHA II', 'AKASHA II WOMAN']
-    
+    # Fonction de mise en forme conditionnelle
+    def highlight_row_if_one(row):
+        if 'taille_normalisee' in row and row['taille_normalisee'] in sum_by_size['Taille'].values:
+            mask = (sum_by_size['Taille'] == row['taille_normalisee']) 
+            if 'rayon' in sum_by_size.columns:
+                mask &= (sum_by_size['Rayon'] == row['rayon'])
+            total = sum_by_size.loc[mask, 'Total Qté dispo'].values[0] if any(mask) else 0
+            if total == 1:
+                return ['background-color: red'] * len(row)
+        return [''] * len(row)
+
+    # --- Affichage du tableau principal ---
+    if not df_filtered.empty and 'taille_num' in df_filtered.columns:
+        df_filtered = df_filtered.sort_values('taille_num')
+    st.dataframe(df_filtered[colonnes_a_afficher].style.apply(highlight_row_if_one, axis=1))
+
+    # --- Affichage des sommes par taille et rayon ---
+    if not sum_by_size.empty:
+        # Séparer les données par rayon
+        sum_homme = sum_by_size[sum_by_size['Rayon'] == 'HOMME']
+        sum_femme = sum_by_size[sum_by_size['Rayon'] == 'FEMME']
+
+        # Fonction de style conditionnel
+        def highlight_total_if_one(val):
+            color = 'red' if val == 1 else ''
+            return f'background-color: {color}'
+
+        # Afficher les tableaux séparés
+        if not sum_homme.empty:
+            st.subheader("Somme des quantités disponibles par taille - Rayon HOMME")
+            styled_homme = sum_homme[['Taille', 'Total Qté dispo']].style.applymap(highlight_total_if_one, subset=['Total Qté dispo'])
+            st.dataframe(styled_homme)
+
+        if not sum_femme.empty:
+            st.subheader("Somme des quantités disponibles par taille - Rayon FEMME")
+            styled_femme = sum_femme[['Taille', 'Total Qté dispo']].style.applymap(highlight_total_if_one, subset=['Total Qté dispo'])
+            st.dataframe(styled_femme)
+
+    # --- Tailles possibles ---
+    specific_designations = [
+        'PRODIGIO', 'PRODIGIO WOMAN', 'AKASHA II', 'AKASHA II WOMAN', 'JACKAL',
+        'ULTRA RAPTOR II MID LEATHER GTX', 'ULTRA RAPTOR II MID GTX',
+        'ULTRA RAPTOR II LEATHER W GTX', 'ULTRA RAPTOR II LEATHER WOMAN',
+        'ULTRA RAPTOR II GTX', 'AKASHA'
+    ]
+
     possible_sizes_us = []
     possible_sizes_uk = []
-    
-    if any(desig in designation for desig in specific_designations):
-        # Tailles européennes
-        sizes = [f"{size}.0" for size in range(36, 48)] + [f"{size}.5" for size in range(36, 47)]
-        possible_sizes_us.extend(sizes)
-        st.write("Tailles EU générées:", sizes)
-    elif "WOMAN" in designation:
-        # Tailles US femme
-        sizes_us = [f"{size}.0US" for size in range(5, 11)] + [f"{size}.5US" for size in range(5, 10)]
-        sizes_uk = [f"{size-2.5}.0UK" for size in range(5, 11)] + [f"{size-2.5}.5UK" for size in range(5, 10)]
-        possible_sizes_us.extend(sizes_us)
-        possible_sizes_uk.extend(sizes_uk)
-        st.write("Tailles US femme:", sizes_us)
-        st.write("Tailles UK femme:", sizes_uk)
-    else:
-        # Tailles standard
-        sizes_us = [f"{size}.0US" for size in range(4, 15)] + [f"{size}.5US" for size in range(4, 14)]
-        sizes_uk = [f"{size}.0UK" for size in range(4, 15)] + [f"{size}.5UK" for size in range(4, 14)]
-        possible_sizes_us.extend(sizes_us)
-        possible_sizes_uk.extend(sizes_uk)
-        st.write("Tailles US standard:", sizes_us)
-        st.write("Tailles UK standard:", sizes_uk)
 
-    # [Le reste de votre code...]
+    if any(desig in designation for desig in specific_designations):
+        for size in range(36, 48):
+            possible_sizes_us.append(f'{size}')
+            possible_sizes_us.append(f'0{size}')
+            possible_sizes_us.append(f'{size}.0')
+            possible_sizes_us.append(f'0{size}.0')
+            if size != 47:
+                possible_sizes_us.append(f'{size}.5')
+                possible_sizes_us.append(f'0{size}.5')
+    else:
+        # Tailles étendues jusqu'au 14 comme demandé
+        for size in ['4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14']:
+            possible_sizes_us.append(f'{size}.0US')
+            possible_sizes_us.append(f'0{size}.0US')
+            possible_sizes_us.append(f'{size}.5US')
+            possible_sizes_us.append(f'0{size}.5US')
+            possible_sizes_uk.append(f'{size}.0UK')
+            possible_sizes_uk.append(f'0{size}.0UK')
+            possible_sizes_uk.append(f'{size}.5UK')
+            possible_sizes_uk.append(f'0{size}.5UK')
+
+    # --- Tailles indisponibles par rayon ---
+    st.subheader("Tailles indisponibles par rayon:")
+    
+    # Séparer les tailles disponibles par rayon
+    available_sizes_homme = df_filtered[df_filtered['rayon'] == 'HOMME']['taille_normalisee'].unique() if 'taille_normalisee' in df_filtered.columns else []
+    available_sizes_femme = df_filtered[df_filtered['rayon'] == 'FEMME']['taille_normalisee'].unique() if 'taille_normalisee' in df_filtered.columns else []
+
+    def find_unavailable_canonical_sizes(possible_sizes, available_normalized):
+        # Créer un dictionnaire pour trier les tailles
+        size_order = {}
+        for i, size in enumerate(possible_sizes):
+            # Nettoyer la taille pour la comparaison
+            clean_size = size.replace('US', '').replace('UK', '').replace('0', '').strip('.')
+            try:
+                size_order[size] = float(clean_size)
+            except:
+                size_order[size] = 0
+        
+        # Trier les tailles possibles
+        sorted_sizes = sorted(possible_sizes, key=lambda x: size_order[x])
+        
+        canonical_sizes = sorted({size for size in sorted_sizes if not size.startswith('0')}, 
+                               key=lambda x: size_order[x])
+        
+        unavailable = []
+        for size in canonical_sizes:
+            normalized = normalize_size(size)
+            if normalized not in available_normalized:
+                unavailable.append(size)
+        return unavailable
+
+    # Calculer les tailles indisponibles pour chaque rayon
+    unavailable_sizes_us_homme = find_unavailable_canonical_sizes(possible_sizes_us, available_sizes_homme)
+    unavailable_sizes_uk_homme = find_unavailable_canonical_sizes(possible_sizes_uk, available_sizes_homme)
+    unavailable_sizes_us_femme = find_unavailable_canonical_sizes(possible_sizes_us, available_sizes_femme)
+    unavailable_sizes_uk_femme = find_unavailable_canonical_sizes(possible_sizes_uk, available_sizes_femme)
+
+    # Afficher les résultats dans des onglets
+    tab1, tab2 = st.tabs(["HOMME", "FEMME"])
+    
+    with tab1:
+        st.subheader("Rayon HOMME")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.write("Tailles US indisponibles:")
+            st.write(unavailable_sizes_us_homme if unavailable_sizes_us_homme else "Toutes disponibles")
+        with col2:
+            st.write("Tailles UK indisponibles:")
+            st.write(unavailable_sizes_uk_homme if unavailable_sizes_uk_homme else "Toutes disponibles")
+    
+    with tab2:
+        st.subheader("Rayon FEMME")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.write("Tailles US indisponibles:")
+            st.write(unavailable_sizes_us_femme if unavailable_sizes_us_femme else "Toutes disponibles")
+        with col2:
+            st.write("Tailles UK indisponibles:")
+            st.write(unavailable_sizes_uk_femme if unavailable_sizes_uk_femme else "Toutes disponibles")
 #### --- Fonction modifiée pour "Stock Négatif" ---
 def filter_negative_stock(df):
     colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
