@@ -804,7 +804,96 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+#### --- CSS Personnalisé pour un style moderne (Material Design) ---
+st.markdown(
+    """
+    <style>
+    /* --- Importation de la police Roboto (Google Fonts) --- */
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
 
+    /* --- Styles globaux --- */
+    body {
+        font-family: 'Roboto', sans-serif;
+        background-color: # #f5f5f5; /* Gris très clair */
+    }
+
+    /* --- Titres --- */
+    h1, h2, h3 {
+        color: # #212121; /* Gris foncé */
+    }
+
+    /* --- Tableaux de données --- */
+    table {
+        border-collapse: collapse;
+        width: 100%;
+        background-color: white;
+        box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1); /* Ombre subtile */
+    }
+    th, td {
+        text-align: left;
+        padding: 12px 16px;
+        border-bottom: 1px solid # #EEEEEE; /* Gris très clair */
+    }
+    th {
+        font-weight: bold;
+    }
+
+    /* --- Messages d'état --- */
+    .st-success {
+        color: # #448a50; /* Vert */
+    }
+    .st-warning {
+        color: # #f0ad4e; /* Orange */
+    }
+    .st-error {
+        color: # #d9534f; /* Rouge */
+    }
+
+    /* --- Onglets (style Material Design) --- */
+    .stTabs [data-baseweb="tab-list"] {
+        border-bottom: 2px solid # #EEEEEE; /* Gris très clair */
+    }
+    .stTabs [data-baseweb="tab-list"] button {
+        background-color: transparent;
+        border: none;
+        color: # #757575; /* Gris moyen */
+        font-size: 16px;
+        margin-right: 32px;
+        padding: 12px 16px;
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+    }
+    .stTabs [data-baseweb="tab-list"] button:hover {
+        color: # #212121; /* Gris foncé */
+    }
+    .stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {
+        color: # #2196f3; /* Bleu Material Design */
+        border-bottom: 2px solid # #2196f3; /* Bleu Material Design */
+    }
+
+    /* --- Boutons --- */
+    .stButton>button {
+        background-color: # #2196f3; /* Bleu Material Design */
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    .stButton>button:hover {
+        background-color: # #1976d2; /* Bleu Material Design plus foncé */
+    }
+
+    /* --- Autres éléments --- */
+    .stSelectbox [data-baseweb="select"] {
+        padding: 8px 12px;
+        border-radius: 4px;
+        border: 1px solid # #bdbdbd; /* Gris clair */
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 #### --- Interface principale de l'application ---
 st.title("Application d'Analyse TDR")
