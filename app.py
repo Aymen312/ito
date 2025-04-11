@@ -137,9 +137,12 @@ def display_designation_info(df, designation):
             possible_sizes_uk.append(f'{size}.5UK')
             possible_sizes_uk.append(f'0{size}.5UK')
 
-    # --- Tailles indisponibles ---
-    st.subheader("Tailles indisponibles:")
-    available_sizes_normalized = df_filtered['taille_normalisee'].unique() if 'taille_normalisee' in df_filtered.columns else []
+    # --- Tailles indisponibles par rayon ---
+    st.subheader("Tailles indisponibles par rayon:")
+    
+    # Séparer les tailles disponibles par rayon
+    available_sizes_homme = df_filtered[df_filtered['rayon'] == 'HOMME']['taille_normalisee'].unique() if 'taille_normalisee' in df_filtered.columns else []
+    available_sizes_femme = df_filtered[df_filtered['rayon'] == 'FEMME']['taille_normalisee'].unique() if 'taille_normalisee' in df_filtered.columns else []
 
     def find_unavailable_canonical_sizes(possible_sizes, available_normalized):
         # Créer un dictionnaire pour trier les tailles
@@ -165,17 +168,34 @@ def display_designation_info(df, designation):
                 unavailable.append(size)
         return unavailable
 
-    unavailable_sizes_us = find_unavailable_canonical_sizes(possible_sizes_us, available_sizes_normalized)
-    unavailable_sizes_uk = find_unavailable_canonical_sizes(possible_sizes_uk, available_sizes_normalized)
+    # Calculer les tailles indisponibles pour chaque rayon
+    unavailable_sizes_us_homme = find_unavailable_canonical_sizes(possible_sizes_us, available_sizes_homme)
+    unavailable_sizes_uk_homme = find_unavailable_canonical_sizes(possible_sizes_uk, available_sizes_homme)
+    unavailable_sizes_us_femme = find_unavailable_canonical_sizes(possible_sizes_us, available_sizes_femme)
+    unavailable_sizes_uk_femme = find_unavailable_canonical_sizes(possible_sizes_uk, available_sizes_femme)
 
-    col1, col2 = st.columns(2)
-    with col1:
-        st.write("Tailles US indisponibles (tri croissant):")
-        st.write(unavailable_sizes_us if unavailable_sizes_us else "Toutes disponibles")
+    # Afficher les résultats dans des onglets
+    tab1, tab2 = st.tabs(["HOMME", "FEMME"])
     
-    with col2:
-        st.write("Tailles UK indisponibles (tri croissant):")
-        st.write(unavailable_sizes_uk if unavailable_sizes_uk else "Toutes disponibles")
+    with tab1:
+        st.subheader("Rayon HOMME")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.write("Tailles US indisponibles:")
+            st.write(unavailable_sizes_us_homme if unavailable_sizes_us_homme else "Toutes disponibles")
+        with col2:
+            st.write("Tailles UK indisponibles:")
+            st.write(unavailable_sizes_uk_homme if unavailable_sizes_uk_homme else "Toutes disponibles")
+    
+    with tab2:
+        st.subheader("Rayon FEMME")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.write("Tailles US indisponibles:")
+            st.write(unavailable_sizes_us_femme if unavailable_sizes_us_femme else "Toutes disponibles")
+        with col2:
+            st.write("Tailles UK indisponibles:")
+            st.write(unavailable_sizes_uk_femme if unavailable_sizes_uk_femme else "Toutes disponibles")
 #### --- Fonction modifiée pour "Stock Négatif" ---
 def filter_negative_stock(df):
     colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
