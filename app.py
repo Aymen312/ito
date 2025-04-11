@@ -30,7 +30,7 @@ def display_supplier_info(df, fournisseur):
     return df_filtered[colonnes_affichier]
 
 
-def display_designation_info(df, designation):
+ddef display_designation_info(df, designation):
     # Colonnes à afficher dans le tableau principal
     colonnes_a_afficher = ['barcode', 'taille', 'designation', 'Qté stock dispo']
     designation = designation.strip().upper()
