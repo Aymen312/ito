@@ -174,6 +174,22 @@ def display_designation_info(df, designation):
     unavailable_sizes_us_femme = find_unavailable_canonical_sizes(possible_sizes_us, available_sizes_femme)
     unavailable_sizes_uk_femme = find_unavailable_canonical_sizes(possible_sizes_uk, available_sizes_femme)
 
+    # Fonction pour trier et formater les tailles
+    def format_sizes(sizes):
+        if not sizes:
+            return "Toutes disponibles"
+        
+        # Fonction de tri personnalisée
+        def sort_key(size):
+            num_part = size.replace('US', '').replace('UK', '').replace('.0', '').replace('.5', '.5')
+            try:
+                return float(num_part)
+            except:
+                return 0.0
+        
+        sorted_sizes = sorted(sizes, key=sort_key)
+        return ", ".join(sorted_sizes)
+
     # Afficher les résultats dans des onglets
     tab1, tab2 = st.tabs(["HOMME", "FEMME"])
     
@@ -182,20 +198,20 @@ def display_designation_info(df, designation):
         col1, col2 = st.columns(2)
         with col1:
             st.write("Tailles US indisponibles:")
-            st.write(unavailable_sizes_us_homme if unavailable_sizes_us_homme else "Toutes disponibles")
+            st.write(format_sizes(unavailable_sizes_us_homme))
         with col2:
             st.write("Tailles UK indisponibles:")
-            st.write(unavailable_sizes_uk_homme if unavailable_sizes_uk_homme else "Toutes disponibles")
+            st.write(format_sizes(unavailable_sizes_uk_homme))
     
     with tab2:
         st.subheader("Rayon FEMME")
         col1, col2 = st.columns(2)
         with col1:
             st.write("Tailles US indisponibles:")
-            st.write(unavailable_sizes_us_femme if unavailable_sizes_us_femme else "Toutes disponibles")
+            st.write(format_sizes(unavailable_sizes_us_femme))
         with col2:
             st.write("Tailles UK indisponibles:")
-            st.write(unavailable_sizes_uk_femme if unavailable_sizes_uk_femme else "Toutes disponibles")
+            st.write(format_sizes(unavailable_sizes_uk_femme))
 #### --- Fonction modifiée pour "Stock Négatif" ---
 def filter_negative_stock(df):
     colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
