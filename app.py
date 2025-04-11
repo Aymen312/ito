@@ -23,8 +23,7 @@ def highlight_row_if_one(row):
 
 #### --- Fonctions modifiées pour afficher les colonnes spécifiques ---
 def display_supplier_info(df, fournisseur):
-    colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 
-                         'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
+    colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
     fournisseur = fournisseur.strip().upper()
     df['fournisseur'] = df['fournisseur'].fillna('')
     df_filtered = df[df['fournisseur'].str.upper() == fournisseur] if fournisseur else pd.DataFrame(columns=colonnes_affichier)
@@ -432,41 +431,12 @@ if fichier_telecharge is not None:
                                                                     "Stock par Famille"])
 
                 with tab1:
-    fournisseur = st.text_input("Entrez le nom du fournisseur:")
-    df_filtered = display_supplier_info(df.copy(), fournisseur)
-    if not df_filtered.empty:
-        # Afficher le tableau principal des produits du fournisseur
-        st.subheader(f"Produits du fournisseur {fournisseur}")
-        st.dataframe(df_filtered.style.apply(highlight_row_if_one, axis=1))
-        
-        # Ajouter un nouveau tableau avec les désignations uniques
-        st.subheader(f"Désignations disponibles pour {fournisseur}")
-        designations = df_filtered['designation'].unique()
-        
-        # Créer un DataFrame pour un meilleur affichage
-        df_designations = pd.DataFrame({
-            'Désignation': designations,
-            'Nombre de références': [len(df_filtered[df_filtered['designation'] == d]) for d in designations]
-        })
-        
-        # Trier par nombre de références (décroissant) puis par nom de désignation
-        df_designations = df_designations.sort_values(
-            by=['Nombre de références', 'Désignation'], 
-            ascending=[False, True]
-        )
-        
-        st.dataframe(df_designations)
-        
-        # Option pour filtrer directement vers la section Désignation
-        if st.button("Voir les détails d'une désignation"):
-            selected_designation = st.selectbox(
-                "Choisissez une désignation à analyser:",
-                options=designations
-            )
-            # Afficher directement dans l'onglet Désignation
-            display_designation_info(df.copy(), selected_designation)
-    else:
-        st.write("Aucune information disponible pour ce fournisseur.")
+                    fournisseur = st.text_input("Entrez le nom du fournisseur:")
+                    df_filtered = display_supplier_info(df.copy(), fournisseur)
+                    if not df_filtered.empty:
+                        st.dataframe(df_filtered.style.apply(highlight_row_if_one, axis=1))
+                    else:
+                        st.write("Aucune information disponible pour ce fournisseur.")
 
                 with tab2:
                     designation = st.text_input("Entrez la désignation du produit:")
