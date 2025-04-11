@@ -496,4 +496,4 @@ if fichier_telecharge is not None:
     except Exception as e:
         st.error(f"Erreur lors du traitement du fichier: {str(e)}")
 else:
-    st.warning("Veuillez télécharger un fichier pour commencer l'analyse.")
+    st.warning("Veuillez télécharger un fichier pour commencer l'analyse.")
