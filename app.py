@@ -32,7 +32,7 @@ def display_supplier_info(df, fournisseur):
 
 def display_designation_info(df, designation):
     # Colonnes à afficher dans le tableau principal
-    colonnes_a_afficher = ['barcode', 'taille', 'designation', 'Qté stock dispo', 'rayon']
+    colonnes_a_afficher = ['barcode', 'taille', 'rayon', 'designation', 'Qté stock dispo']
     designation = designation.strip().upper()
     df['designation'] = df['designation'].fillna('')
     
