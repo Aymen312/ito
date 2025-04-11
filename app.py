@@ -31,8 +31,8 @@ def display_supplier_info(df, fournisseur):
 
 
 def display_designation_info(df, designation):
-    # Colonnes à afficher dans le tableau
-    colonnes_a_afficher = ['barcode', 'taille', 'designation', 'Qté stock dispo']
+    # Colonnes à afficher dans le tableau principal
+    colonnes_a_afficher = ['barcode', 'taille', 'designation', 'Qté stock dispo', 'rayon']
     designation = designation.strip().upper()
     df['designation'] = df['designation'].fillna('')
     
@@ -55,13 +55,14 @@ def display_designation_info(df, designation):
     if 'taille' in df_filtered.columns:
         df_filtered['taille_normalisee'] = df_filtered['taille'].apply(normalize_size)
 
-    # Calculer la somme des quantités par taille
+    # Calculer la somme des quantités par taille et rayon
     sum_by_size = pd.DataFrame()
     if not df_filtered.empty and 'taille_normalisee' in df_filtered.columns:
         # Convertir en numérique pour un tri correct
         df_filtered['taille_num'] = pd.to_numeric(df_filtered['taille_normalisee'], errors='coerce')
-        sum_by_size = df_filtered.groupby('taille_normalisee')['Qté stock dispo'].sum().reset_index()
-        sum_by_size.columns = ['Taille', 'Total Qté dispo']
+        # Somme par taille et rayon
+        sum_by_size = df_filtered.groupby(['taille_normalisee', 'rayon'])['Qté stock dispo'].sum().reset_index()
+        sum_by_size.columns = ['Taille', 'Rayon', 'Total Qté dispo']
         # Trier par taille numérique croissante
         sum_by_size['taille_num'] = pd.to_numeric(sum_by_size['Taille'], errors='coerce')
         sum_by_size = sum_by_size.sort_values('taille_num')
@@ -70,7 +71,10 @@ def display_designation_info(df, designation):
     # Fonction de mise en forme conditionnelle
     def highlight_row_if_one(row):
         if 'taille_normalisee' in row and row['taille_normalisee'] in sum_by_size['Taille'].values:
-            total = sum_by_size.loc[sum_by_size['Taille'] == row['taille_normalisee'], 'Total Qté dispo'].values[0]
+            mask = (sum_by_size['Taille'] == row['taille_normalisee']) 
+            if 'rayon' in sum_by_size.columns:
+                mask &= (sum_by_size['Rayon'] == row['rayon'])
+            total = sum_by_size.loc[mask, 'Total Qté dispo'].values[0] if any(mask) else 0
             if total == 1:
                 return ['background-color: red'] * len(row)
         return [''] * len(row)
@@ -81,9 +85,9 @@ def display_designation_info(df, designation):
         df_filtered = df_filtered.sort_values('taille_num')
     st.dataframe(df_filtered[colonnes_a_afficher].style.apply(highlight_row_if_one, axis=1))
 
-    # --- Affichage du tableau des sommes par taille ---
+    # --- Affichage du tableau des sommes par taille et rayon ---
     if not sum_by_size.empty:
-        st.subheader("Somme des quantités disponibles par taille (tri croissant)")
+        st.subheader("Somme des quantités disponibles par taille et rayon (tri croissant)")
         
         # Appliquer un style conditionnel pour les totaux égaux à 1
         def highlight_total_if_one(val):
