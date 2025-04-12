@@ -413,25 +413,14 @@ def display_stock_by_family(df):
                      f"dans la catégorie {rayon_filter}.")
 
 #### --- Nouvelle fonction pour les désignations spécifiques ---
-def display_specific_designations(df):
-    # Vérification initiale du DataFrame
-    if df.empty:
-        st.error("Le DataFrame est vide")
-        return
-    
-    # Vérification des colonnes requises
-    required_columns = ['designation', 'taille']
-    missing_cols = [col for col in required_columns if col not in df.columns]
-    
-    if missing_cols:
-        st.error(f"Colonnes manquantes dans le DataFrame: {', '.join(missing_cols)}")
-        st.write("Colonnes disponibles:", df.columns.tolist())
-        return
+import pandas as pd
+import streamlit as st
 
-    # Aperçu des données pour diagnostic
-    st.subheader("Diagnostic des données")
-    st.write("Aperçu des données:", df.head())
-    st.write("Valeurs manquantes:", df.isnull().sum())
+def display_specific_designations(df):
+    # Vérification minimale des colonnes requises
+    if 'designation' not in df.columns or 'taille' not in df.columns:
+        st.error("Erreur : Le DataFrame doit contenir les colonnes 'designation' et 'taille'")
+        return
 
     # Groupes de désignations par fournisseur
     brooks_designations = [
@@ -450,43 +439,28 @@ def display_specific_designations(df):
         "XODUS 3", "XODUS 3 W"
     ]
 
-    # Fonction de normalisation des tailles améliorée
+    # Fonction de normalisation des tailles
     def normalize_size(size):
         try:
-            if pd.isna(size):
-                return None
-                
             size_str = str(size).upper().replace('US', '').strip()
-            
-            # Gestion des cas comme '7', '7.0', '07', etc.
             if '.' in size_str:
                 parts = size_str.split('.')
-                return f"{int(parts[0])}.{parts[1].lstrip('0') or '0'}"
-            return str(int(size_str))
-        except (ValueError, AttributeError):
+                return f"{int(parts[0])}.{parts[1]}"
+            return str(int(size_str)) if size_str.isdigit() else size_str
+        except:
             return str(size)
 
     # Fonction pour créer un tableau par fournisseur
     def create_supplier_table(designations, supplier_name):
-        # Filtrer les désignations valides (non vides)
         valid_designations = [d for d in designations if d]
-        
-        if not valid_designations:
-            return
-
-        # Filtrage du DataFrame
-        mask = df['designation'].str.upper().isin([d.upper() for d in valid_designations])
-        df_filtered = df[mask].copy()
+        df_filtered = df[df['designation'].str.upper().isin([d.upper() for d in valid_designations])].copy()
         
         if df_filtered.empty:
             st.warning(f"Aucune donnée trouvée pour {supplier_name}")
-            st.write(f"Désignations recherchées: {', '.join(valid_designations)}")
-            st.write(f"Désignations disponibles: {', '.join(df['designation'].unique())}")
             return
 
-        # Normalisation des tailles
         df_filtered['taille_normalisee'] = df_filtered['taille'].apply(normalize_size)
-        
+
         # Tailles US attendues
         homme_sizes = [f"{x}.0" for x in range(7, 15)] + [f"{x}.5" for x in range(7, 15)]
         femme_sizes = [f"{x}.0" for x in range(5, 11)] + [f"{x}.5" for x in range(5, 11)]
@@ -495,7 +469,7 @@ def display_specific_designations(df):
         results = []
         for designation in designations:
             if not designation:  # Séparateur
-                results.append({'Désignation': '', 'Tailles US manquantes': ''})
+                results.append({'Désignation': '', 'Tailles manquantes': ''})
                 continue
 
             df_design = df_filtered[df_filtered['designation'].str.upper() == designation.upper()]
@@ -507,22 +481,19 @@ def display_specific_designations(df):
 
             results.append({
                 'Désignation': designation,
-                'Tailles US manquantes': ", ".join(missing_sizes) if missing_sizes else "Aucune"
+                'Tailles manquantes': ", ".join(missing_sizes) if missing_sizes else "Aucune"
             })
 
-        # Création du DataFrame de résultats
+        # Affichage du tableau
         df_results = pd.DataFrame(results)
         
-        # Style pour les séparateurs
         def style_separators(row):
             return ['background-color: #f0f0f0' if row['Désignation'] == '' else '' for _ in row]
         
-        # Affichage du tableau
         st.subheader(supplier_name)
         st.dataframe(
             df_results.style.apply(style_separators, axis=1)
-            .format({'Tailles US manquantes': lambda x: x if x else ''})
-            .set_properties(**{'text-align': 'left'})
+            .format({'Tailles manquantes': lambda x: x if x else ''})
         )
 
     # Affichage des tableaux
