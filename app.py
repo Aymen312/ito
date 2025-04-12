@@ -425,7 +425,7 @@ def display_specific_designations(df):
     # Dictionnaire des fournisseurs et leurs modèles
     suppliers = {
         "Brooks": ["GHOST 16", "GHOST 16 W", "GLYCERIN 22", "GLYCERIN 22 W", "CASCADIA 18", "CASCADIA 18 W"],
-        "Soccuny": ["RIDE 18", "RIDE 18 W", "TRIUMPH 22", "TRIUMPH 22 W", "XODUS 3", "XODUS 3 W"]
+        "Soccuny": ["RIDE 18", "RIDE 18 W", "TRIUMPH 22", "TRIUMPH 22 W", "XODUS ULTRA 3", "XODUS 3 ULTRA W"]
     }
 
     # Normalisation des tailles
