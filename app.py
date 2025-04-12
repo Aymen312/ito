@@ -423,8 +423,8 @@ def display_specific_designations(df):
 
     # Dictionnaire des fournisseurs et leurs modèles
     suppliers = {
-        "Brooks": ["GHOST 16", "GHOST 16 W", "GLYCERIN 22", "GLYCERIN 22 W", "CASCADIA 18", "CASCADIA 18 W"],
-        "Soccuny": ["RIDE 18", "RIDE 18 W", "TRIUMPH 22", "TRIUMPH 22 W", "XODUS ULTRA 3", "XODUS 3 ULTRA W"]
+        "BROOKS": ["GHOST 16", "GHOST 16 W", "GLYCERIN 22", "GLYCERIN 22 W", "CASCADIA 18", "CASCADIA 18 W", "CASCADIA 18 GTX", "GHOST 16 GTX", "HYPERION 2", "HYPERION MAX 2", "CALDERA 8", "CASCADIA 18 GTX W", "CASCADIA 18 W", "GHOST MAX 2 W", "CALDERA 8 W", "GLYCERIN 22 W", ""],
+        "SAUCONY": ["RIDE 18", "RIDE 18 W", "TRIUMPH 22", "TRIUMPH 22 W", "XODUS ULTRA 3", "XODUS 3 ULTRA W", "ENDORPHIN PRO 4", "ENDORPHIN SPEED 4", "ENDORPHIN SPEED 4 W", "KINVARA 15", "KINVARA 15 W", "PEREGRINE 15", "PEREGRINE 15 W", "RIDE TR2", "RIDE TR2 W", "TRIUMPH 22", "XODUS ULTRA 3", "XODUS ULTRA 3 W"]
     }
 
     # Normalisation des tailles
