@@ -417,15 +417,29 @@ def display_stock_by_family(df):
 
 def display_specific_designations(df):
     # Vérification des colonnes requises
-    if 'designation' not in df.columns or 'taille' not in df.columns:
-        st.error("Erreur : Le DataFrame doit contenir les colonnes 'designation' et 'taille'")
+    if 'designation' not in df.columns or '**taille**' not in df.columns:
+        st.error("Erreur : Le DataFrame doit contenir les colonnes 'designation' et '**taille**'")
         return
 
-    # Dictionnaire des fournisseurs et leurs modèles
+    # Dictionnaire des fournisseurs et leurs modèles (triés par ordre alphabétique)
     suppliers = {
-        "BROOKS": ["GHOST 16", "GHOST 16 W", "GLYCERIN 22", "CASCADIA 18", "CASCADIA 18 W", "CASCADIA 18 GTX", "HYPERION 2", "HYPERION MAX 2", "CALDERA 8", "CASCADIA 18 GTX W", "CASCADIA 18 W", "GHOST MAX 2 W", "CALDERA 8 W", "GLYCERIN 22 W"],
-        "SAUCONY": ["RIDE 18", "RIDE 18 W", "TRIUMPH 22", "TRIUMPH 22 W", "XODUS ULTRA 3", "XODUS 3 ULTRA W", "ENDORPHIN PRO 4", "ENDORPHIN SPEED 4", "ENDORPHIN SPEED 4 W", "KINVARA 15", "KINVARA 15 W", "PEREGRINE 15", "PEREGRINE 15 W", "RIDE TR2", "RIDE TR2 W", "TRIUMPH 22", "XODUS ULTRA 3", "XODUS ULTRA 3 W"],
-        "ASICS": ["GEL-TRABUCO 13 GTX", "GEL-CUMULUS 27", "GEL-CUMULUS 27 W", "GT-2000 13 TR", "GT-2000 13 TR W", "GT-2000 13 W", "MAGIC SPEED 4", "METASPEED EDGE+", "NOVABLAST 5", "NOVABLAST 5 W"],
+        "BROOKS": sorted([
+            "CALDERA 8", "CALDERA 8 W", "CASCADIA 18", "CASCADIA 18 GTX", 
+            "CASCADIA 18 GTX W", "CASCADIA 18 W", "GHOST 16", "GHOST 16 W",
+            "GHOST MAX 2 W", "GLYCERIN 22", "GLYCERIN 22 W", "HYPERION 2", 
+            "HYPERION MAX 2"
+        ]),
+        "SAUCONY": sorted([
+            "ENDORPHIN PRO 4", "ENDORPHIN SPEED 4", "ENDORPHIN SPEED 4 W",
+            "KINVARA 15", "KINVARA 15 W", "PEREGRINE 15", "PEREGRINE 15 W",
+            "RIDE 18", "RIDE 18 W", "RIDE TR2", "RIDE TR2 W", "TRIUMPH 22",
+            "TRIUMPH 22 W", "XODUS ULTRA 3", "XODUS ULTRA 3 W"
+        ]),
+        "ASICS": sorted([
+            "GEL-CUMULUS 27", "GEL-CUMULUS 27 W", "GEL-TRABUCO 13 GTX",
+            "GT-2000 13 TR", "GT-2000 13 TR W", "GT-2000 13 W", "MAGIC SPEED 4",
+            "METASPEED EDGE+", "NOVABLAST 5", "NOVABLAST 5 W"
+        ]),
     }
 
     # Normalisation des **tailles**
@@ -447,7 +461,7 @@ def display_specific_designations(df):
             st.warning(f"Aucune donnée trouvée pour {supplier}")
             continue
 
-        df_filtered['taille_normalisee'] = df_filtered['taille'].apply(normalize_size)
+        df_filtered['**taille**_normalisee'] = df_filtered['**taille**'].apply(normalize_size)
 
         # **Tailles** attendues
         homme_sizes = [f"{x}.0" for x in range(7, 15)] + [f"{x}.5" for x in range(7, 15)]
@@ -459,22 +473,21 @@ def display_specific_designations(df):
             is_woman = "W" in designation.upper()
             expected_sizes = femme_sizes if is_woman else homme_sizes
 
-            available_sizes = df_design['taille_normalisee'].dropna().unique()
+            available_sizes = df_design['**taille**_normalisee'].dropna().unique()
             missing_sizes = [size for size in expected_sizes if size not in available_sizes]
 
             results.append({
                 'Modèle': designation,
-                'Tailles manquantes': ", ".join(missing_sizes) if missing_sizes else "Complet"
+                '**Tailles** manquantes': ", ".join(missing_sizes) if missing_sizes else "Complet"
             })
 
         # Affichage du tableau
         st.subheader(supplier)
         st.dataframe(
             pd.DataFrame(results)
-            .style.format({'Tailles manquantes': lambda x: x if x else ''})
+            .style.format({'**Tailles** manquantes': lambda x: x if x else ''})
             .set_properties(**{'text-align': 'left'})
         )
-
 #### --- Configuration de l'application Streamlit ---
 st.set_page_config(
     page_title="Application d'Analyse TDR",
