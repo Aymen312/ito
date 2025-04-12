@@ -479,12 +479,11 @@ def display_specific_designations(df):
         
         st.dataframe(
             df_results.style.apply(style_separators, axis=1)
-            .set_properties({'text-align': 'left'})
+            # Remove the .set_properties() line that was causing the error
             .format({'Tailles US manquantes': lambda x: x if x else ''})
         )
     else:
         st.write("Toutes les tailles US attendues sont disponibles.")
-
 #### --- Configuration de l'application Streamlit ---
 st.set_page_config(
     page_title="Application d'Analyse TDR",
