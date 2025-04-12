@@ -491,17 +491,12 @@ def display_specific_designations(df):
                     'text-align': 'left',
                     'border-bottom': '1px solid #e0e0e0'
                 })
-                .hide_index()
-        )
+                .set_table_styles([{
+                    'selector': 'thead',
+                    'props': [('display', 'none')]
+                }])
     else:
         st.write("Toutes les tailles US attendues sont disponibles.")
-#### --- Configuration de l'application Streamlit ---
-st.set_page_config(
-    page_title="Application d'Analyse TDR",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
-
 #### --- CSS Personnalisé pour un style moderne (Material Design) ---
 st.markdown(
     """
