@@ -429,47 +429,43 @@ def display_specific_designations(df):
         ]
     }
     
-    # Filtrer le dataframe pour ces désignations
-    df_specific = df[df['designation'].str.upper().isin(specific_designations)].copy()
+    all_designations = [d for lst in designations_by_fournisseur.values() for d in lst]
+    
+    # Filtrer le dataframe
+    df_specific = df[df['designation'].str.upper().isin([d.upper() for d in all_designations])].copy()
     
     if df_specific.empty:
         st.write("Aucune donnée disponible pour ces désignations spécifiques.")
         return
     
-    # Nettoyer et normaliser les tailles
     df_specific['taille_normalisee'] = df_specific['taille'].astype(str).str.strip()
     
-    # Définir les tailles attendues pour homme et femme
-    homme_sizes = [str(x) + '.0' for x in range(7, 15)] + [str(x) + '.5' for x in range(7, 15)]
-    femme_sizes = [str(x) + '.0' for x in range(5, 11)] + [str(x) + '.5' for x in range(5, 11)]
-    
-    # Créer un DataFrame pour chaque désignation
+    homme_sizes = [f"{x}.0" for x in range(7, 15)] + [f"{x}.5" for x in range(7, 15)]
+    femme_sizes = [f"{x}.0" for x in range(5, 11)] + [f"{x}.5" for x in range(5, 11)]
+
     results = []
-    for designation in specific_designations:
-        df_design = df_specific[df_specific['designation'].str.upper() == designation.upper()]
-        
-        # Déterminer si c'est une version femme (W) ou homme
-        is_woman = "W" in designation.upper()
-        expected_sizes = femme_sizes if is_woman else homme_sizes
-        
-        # Trouver les tailles disponibles
-        available_sizes = df_design['taille_normalisee'].unique()
-        
-        # Trouver les tailles manquantes
-        missing_sizes = [size for size in expected_sizes if size not in available_sizes]
-        
-        # N'afficher que si des tailles sont manquantes
-        if missing_sizes:
-            results.append({
-                'Désignation': designation,
-                'Tailles manquantes': ", ".join(missing_sizes)
-            })
-    
+    for fournisseur, designations in designations_by_fournisseur.items():
+        for designation in designations:
+            df_design = df_specific[df_specific['designation'].str.upper() == designation.upper()]
+            is_woman = "W" in designation.upper()
+            expected_sizes = femme_sizes if is_woman else homme_sizes
+            available_sizes = df_design['taille_normalisee'].unique()
+            missing_sizes = [size for size in expected_sizes if size not in available_sizes]
+            
+            if missing_sizes:
+                results.append({
+                    'Fournisseur': fournisseur,
+                    'Désignation': designation,
+                    'Tailles manquantes': ", ".join(missing_sizes)
+                })
+
     if results:
         df_results = pd.DataFrame(results)
+        df_results = df_results.sort_values(by=['Fournisseur', 'Désignation'])
         st.dataframe(df_results)
     else:
         st.write("Toutes les tailles attendues sont disponibles pour les désignations sélectionnées.")
+
 
 #### --- Configuration de l'application Streamlit ---
 st.set_page_config(
