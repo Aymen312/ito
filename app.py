@@ -417,7 +417,9 @@ def display_specific_designations(df):
     specific_designations = [
         "GHOST 16", "GHOST 16 W", 
         "GLYCERIN 22", "GLYCERIN 22W",
-        "CASCADIA 18", "CASCADIA 18 W"
+        "CASCADIA 18", "CASCADIA 18 W", "RIDE 18", "RIDE 18 W",
+            "TRIUMP 22", "TRIUMP 22 W",
+            "XODUS 3", "XODUS 3 W"
     ]
     
     # Filtrer le dataframe pour ces désignations
