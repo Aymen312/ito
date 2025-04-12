@@ -21,6 +21,72 @@ def highlight_row_if_one(row):
     else:
         return [''] * len(row)
 
+# Ajoutez cette fonction dans la section des fonctions
+def display_specific_designations(df):
+    specific_designations = [
+        "GHOST 16", "GHOST 16 W", 
+        "GLYCERIN 22", "GLYCERIN 22W",
+        "CASCADIA 18", "CASCADIA 18 W"
+    ]
+    
+    # Filtrer le dataframe pour ces désignations
+    df_specific = df[df['designation'].str.upper().isin(specific_designations)].copy()
+    
+    if df_specific.empty:
+        st.write("Aucune donnée disponible pour ces désignations spécifiques.")
+        return
+    
+    # Nettoyer et normaliser les tailles
+    df_specific['taille_normalisee'] = df_specific['taille'].astype(str).str.strip()
+    
+    # Définir les tailles attendues pour homme et femme
+    homme_sizes = [str(x) + '.0' for x in range(7, 15)] + [str(x) + '.5' for x in range(7, 15)]
+    femme_sizes = [str(x) + '.0' for x in range(5, 11)] + [str(x) + '.5' for x in range(5, 11)]
+    
+    # Créer un DataFrame pour chaque désignation
+    results = []
+    for designation in specific_designations:
+        df_design = df_specific[df_specific['designation'].str.upper() == designation.upper()]
+        
+        # Déterminer si c'est une version femme (W) ou homme
+        is_woman = "W" in designation.upper()
+        expected_sizes = femme_sizes if is_woman else homme_sizes
+        
+        # Trouver les tailles disponibles
+        available_sizes = df_design['taille_normalisee'].unique()
+        
+        # Trouver les tailles manquantes
+        missing_sizes = [size for size in expected_sizes if size not in available_sizes]
+        
+        results.append({
+            'Désignation': designation,
+            'Tailles disponibles': ", ".join(available_sizes) if len(available_sizes) > 0 else "Aucune",
+            'Tailles manquantes': ", ".join(missing_sizes) if len(missing_sizes) > 0 else "Aucune",
+            'Quantité totale': df_design['Qté stock dispo'].sum()
+        })
+    
+    # Créer et afficher le DataFrame de résultats
+    df_results = pd.DataFrame(results)
+    st.dataframe(df_results)
+    
+    # Afficher également le détail par taille pour chaque désignation
+    st.subheader("Détail par désignation et taille")
+    for designation in specific_designations:
+        df_design = df_specific[df_specific['designation'].str.upper() == designation.upper()]
+        if not df_design.empty:
+            st.write(f"**{designation}**")
+            
+            # Grouper par taille et calculer la quantité totale
+            df_size_qty = df_design.groupby('taille_normalisee')['Qté stock dispo'].sum().reset_index()
+            df_size_qty = df_size_qty.sort_values('taille_normalisee')
+            
+            # Appliquer le style pour les quantités = 1
+            def highlight_qty(val):
+                color = 'red' if val == 1 else ''
+                return f'background-color: {color}'
+            
+            styled_df = df_size_qty.style.applymap(highlight_qty, subset=['Qté stock dispo'])
+            st.dataframe(styled_df)
 #### --- Fonctions modifiées pour afficher les colonnes spécifiques ---
 def display_supplier_info(df, fournisseur):
     colonnes_afficher = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 
@@ -531,13 +597,16 @@ if fichier_telecharge is not None:
                 df = clean_size_column(df)
                 st.success("Données chargées avec succès!")
 
-                tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["Filtrer par Fournisseur",
-                                                                    "Filtrer par Désignation",
-                                                                    "Stock Négatif",
-                                                                    "Anita Tailles",
-                                                                    "Sidas Niveaux",
-                                                                    "Valeur Totale du Stock par Fournisseur",
-                                                                    "Stock par Famille"])
+                tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
+    "Filtrer par Fournisseur",
+    "Filtrer par Désignation",
+    "Stock Négatif",
+    "Anita Tailles",
+    "Sidas Niveaux",
+    "Valeur Totale du Stock par Fournisseur",
+    "Stock par Famille",
+    "Désignations Spécifiques"  # Nouvel onglet
+])
 
                 with tab1:
                     fournisseur = st.text_input("Entrez le nom du fournisseur:")
@@ -576,6 +645,12 @@ if fichier_telecharge is not None:
                     st.header("Stock par Famille")
                     display_stock_by_family(df)
 
+    
+
+                with tab8:
+                     st.header("Tailles manquantes pour désignations spécifiques")
+                     display_specific_designations(df.copy())
+                    
     except Exception as e:
         st.error(f"Erreur lors du traitement du fichier: {str(e)}")
 else:
