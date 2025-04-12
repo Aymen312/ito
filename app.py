@@ -33,29 +33,48 @@ def display_supplier_info(df, fournisseur):
     
     # Si des résultats sont trouvés
     if not df_filtered.empty:
-        # Créer un DataFrame avec toutes les désignations et leurs tailles
-        st.write(f"## Toutes les désignations pour {fournisseur}")
+        # Créer un DataFrame avec les désignations et rayons
+        designations_rayons = df_filtered.groupby(['designation', 'rayon']).size().reset_index(name='Nombre de références')
+        designations_rayons = designations_rayons.sort_values(['designation', 'rayon'])
         
-        # Grouper par designation et rayon
-        grouped = df_filtered.groupby(['designation', 'rayon'])
-        
-        for (designation, rayon), group in grouped:
-            st.write(f"### {designation} ({rayon})")
+        # Afficher les désignations et rayons dans un expander
+        with st.expander(f"Désignations disponibles pour {fournisseur}"):
+            # Créer une colonne cliquable avec designation + rayon
+            designations_rayons['selection'] = designations_rayons.apply(
+                lambda x: f"{x['designation']} ({x['rayon']})", axis=1)
+            
+            selected = st.selectbox(
+                "Sélectionnez une désignation pour voir les tailles manquantes",
+                designations_rayons['selection']
+            )
+            
+            # Récupérer la désignation et le rayon sélectionnés
+            selected_design, selected_rayon = selected.split(" (")
+            selected_rayon = selected_rayon[:-1]  # Enlever la parenthèse fermante
+            
+            # Filtrer le dataframe pour la désignation et rayon sélectionnés
+            filtered = df_filtered[
+                (df_filtered['designation'] == selected_design) & 
+                (df_filtered['rayon'] == selected_rayon)
+            ]
             
             # Définir les plages de tailles attendues selon le rayon
-            if rayon.upper() == 'FEMME':
+            if selected_rayon.upper() == 'FEMME':
                 expected_sizes = [round(x*0.5, 1) for x in range(10, 21)]  # 5.0 à 10.0 par pas de 0.5
-            elif rayon.upper() == 'HOMME':
+            elif selected_rayon.upper() == 'HOMME':
                 expected_sizes = [round(x*0.5, 1) for x in range(14, 29)]  # 7.0 à 14.0 par pas de 0.5
             else:  # UNISEX ou autres
-                existing_sizes = group['taille'].unique()
+                existing_sizes = filtered['taille'].unique()
                 expected_sizes = sorted([float(x.replace(',', '.')) for x in existing_sizes if str(x).replace('.', '').isdigit()])
             
             # Fonction pour extraire la valeur numérique de la taille
             def extract_size_value(size_str):
                 try:
+                    # Nettoyer la chaîne
                     cleaned = str(size_str).upper().replace('US', '').strip()
+                    # Remplacer les virgules par des points
                     cleaned = cleaned.replace(',', '.')
+                    # Supprimer les zéros initiaux
                     if '.' in cleaned:
                         int_part, dec_part = cleaned.split('.', 1)
                         int_part = int_part.lstrip('0') or '0'
@@ -70,7 +89,7 @@ def display_supplier_info(df, fournisseur):
             size_qtys = {}
             size_mapping = {}
             
-            for _, row in group.iterrows():
+            for _, row in filtered.iterrows():
                 size = row['taille']
                 qty = row['Qté stock dispo']
                 size_value = extract_size_value(size)
@@ -78,7 +97,7 @@ def display_supplier_info(df, fournisseur):
                 if size_value is not None:
                     if size_value not in size_qtys:
                         size_qtys[size_value] = 0
-                        size_mapping[size_value] = str(size)
+                        size_mapping[size_value] = str(size)  # Garder le format original pour l'affichage
                     size_qtys[size_value] += qty
                 else:
                     if size not in size_qtys:
@@ -86,7 +105,7 @@ def display_supplier_info(df, fournisseur):
                     size_qtys[size] += qty
             
             # Trouver les tailles manquantes
-            if rayon.upper() in ['FEMME', 'HOMME']:
+            if selected_rayon.upper() in ['FEMME', 'HOMME']:
                 missing_sizes = []
                 for expected in expected_sizes:
                     expected_float = float(expected)
@@ -95,8 +114,11 @@ def display_supplier_info(df, fournisseur):
             else:
                 missing_sizes = []
             
-            # Afficher les tailles disponibles
-            available_sizes = []
+            # Afficher les résultats
+            st.write(f"**Tailles disponibles pour {selected_design} ({selected_rayon}):**")
+            
+            # Préparer l'affichage des tailles avec quantités
+            display_sizes = []
             for size in sorted(size_qtys.keys()):
                 qty = size_qtys[size]
                 display_size = size_mapping.get(size, str(size))
@@ -104,17 +126,16 @@ def display_supplier_info(df, fournisseur):
                 
                 if qty == 1:
                     display_text = f"<span style='color:red'>{display_text}</span>"
-                available_sizes.append(display_text)
+                display_sizes.append(display_text)
             
-            st.markdown("**Tailles disponibles:** " + ", ".join(available_sizes), unsafe_allow_html=True)
+            # Afficher avec markdown pour permettre le HTML
+            st.markdown(", ".join(display_sizes), unsafe_allow_html=True)
             
-            # Afficher les tailles manquantes
             if missing_sizes:
-                st.markdown("**Tailles manquantes:** " + ", ".join(missing_sizes))
+                st.write(f"**Tailles manquantes ({selected_rayon}):**")
+                st.write(", ".join(missing_sizes))
             else:
-                st.markdown("**Toutes les tailles attendues sont disponibles.**")
-            
-            st.write("---")  # Séparateur entre les désignations
+                st.write("Toutes les tailles attendues sont disponibles.")
     
     return df_filtered[colonnes_afficher]
 def display_designation_info(df, designation):
