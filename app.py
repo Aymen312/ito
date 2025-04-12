@@ -414,59 +414,69 @@ def display_stock_by_family(df):
 
 #### --- Nouvelle fonction pour les désignations spécifiques ---
 def display_specific_designations(df):
+    # Groupes de désignations avec une ligne vide entre chaque groupe
     specific_designations = [
         "GHOST 16", "GHOST 16 W", 
+        "",  # Ligne vide pour séparer
         "GLYCERIN 22", "GLYCERIN 22W",
-        "CASCADIA 18", "CASCADIA 18 W", "RIDE 18", "RIDE 18 W",
+        "",  # Ligne vide pour séparer
+        "CASCADIA 18", "CASCADIA 18 W", 
+        "RIDE 18", "RIDE 18 W",
+        "",  # Ligne vide pour séparer
         "TRIUMP 22", "TRIUMP 22 W",
+        "",  # Ligne vide pour séparer
         "XODUS 3", "XODUS 3 W"
     ]
     
-    # Filtrer le dataframe pour ces désignations
-    df_specific = df[df['designation'].str.upper().isin(specific_designations)].copy()
+    # Filtrer le dataframe pour ces désignations (en ignorant les lignes vides)
+    df_specific = df[df['designation'].str.upper().isin([d.upper() for d in specific_designations if d])].copy()
     
     if df_specific.empty:
         st.write("Aucune donnée disponible pour ces désignations spécifiques.")
         return
     
-    # Nettoyer et normaliser les tailles (en conservant le format d'origine comme string)
+    # Nettoyer et normaliser les tailles
     df_specific['taille_normalisee'] = df_specific['taille'].astype(str).str.strip()
-    # Supprimer les .0 inutiles pour la comparaison (mais garder les .5)
     df_specific['taille_comparable'] = df_specific['taille_normalisee'].str.replace(r'\.0$', '', regex=True)
     
-    # Définir les tailles attendues pour homme et femme (sans .0 sauf pour .5)
+    # Définir les tailles attendues pour homme et femme
     homme_sizes = [str(x) for x in range(7, 15)] + [str(x) + '.5' for x in range(7, 15)]
     femme_sizes = [str(x) for x in range(5, 11)] + [str(x) + '.5' for x in range(5, 11)]
     
     # Créer un DataFrame pour chaque désignation
     results = []
-    for designation in specific_designations:
+    for designation in [d for d in specific_designations if d]:  # Ignorer les lignes vides
+        if not designation:  # Si c'est une ligne vide, l'ajouter comme séparateur
+            results.append({'Désignation': '', 'Tailles manquantes': ''})
+            continue
+            
         df_design = df_specific[df_specific['designation'].str.upper() == designation.upper()]
         
         # Déterminer si c'est une version femme (W) ou homme
         is_woman = "W" in designation.upper()
         expected_sizes = femme_sizes if is_woman else homme_sizes
         
-        # Trouver les tailles disponibles (format comparable)
+        # Trouver les tailles disponibles
         available_sizes = df_design['taille_comparable'].unique()
         
         # Trouver les tailles manquantes
         missing_sizes = [size for size in expected_sizes if size not in available_sizes]
         
-        # N'afficher que si des tailles sont manquantes
+        # N'ajouter que si des tailles sont manquantes
         if missing_sizes:
             results.append({
                 'Désignation': designation,
-                'Tailles manquantes': ", ".join(missing_sizes),
-                'Quantité totale': df_design['Qté stock dispo'].sum()
+                'Tailles manquantes': ", ".join(missing_sizes)
             })
     
     if results:
         df_results = pd.DataFrame(results)
-        st.dataframe(df_results)
+        # Ajouter un style pour les lignes vides (séparateurs)
+        st.dataframe(df_results.style.apply(lambda x: 
+            ['background-color: #f5f5f5' if x['Désignation'] == '' else '' for i in x], 
+            axis=1))
     else:
         st.write("Toutes les tailles attendues sont disponibles pour les désignations sélectionnées.")
-
 
 #### --- Configuration de l'application Streamlit ---
 st.set_page_config(
