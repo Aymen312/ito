@@ -449,35 +449,19 @@ def display_specific_designations(df):
         # Trouver les tailles manquantes
         missing_sizes = [size for size in expected_sizes if size not in available_sizes]
         
-        results.append({
-            'Désignation': designation,
-            'Tailles disponibles': ", ".join(available_sizes) if len(available_sizes) > 0 else "Aucune",
-            'Tailles manquantes': ", ".join(missing_sizes) if len(missing_sizes) > 0 else "Aucune",
-            'Quantité totale': df_design['Qté stock dispo'].sum()
-        })
+        # N'afficher que si des tailles sont manquantes
+        if missing_sizes:
+            results.append({
+                'Désignation': designation,
+                'Tailles manquantes': ", ".join(missing_sizes),
+                'Quantité totale': df_design['Qté stock dispo'].sum()
+            })
     
-    # Créer et afficher le DataFrame de résultats
-    df_results = pd.DataFrame(results)
-    st.dataframe(df_results)
-    
-    # Afficher également le détail par taille pour chaque désignation
-    st.subheader("Détail par désignation et taille")
-    for designation in specific_designations:
-        df_design = df_specific[df_specific['designation'].str.upper() == designation.upper()]
-        if not df_design.empty:
-            st.write(f"**{designation}**")
-            
-            # Grouper par taille et calculer la quantité totale
-            df_size_qty = df_design.groupby('taille_normalisee')['Qté stock dispo'].sum().reset_index()
-            df_size_qty = df_size_qty.sort_values('taille_normalisee')
-            
-            # Appliquer le style pour les quantités = 1
-            def highlight_qty(val):
-                color = 'red' if val == 1 else ''
-                return f'background-color: {color}'
-            
-            styled_df = df_size_qty.style.applymap(highlight_qty, subset=['Qté stock dispo'])
-            st.dataframe(styled_df)
+    if results:
+        df_results = pd.DataFrame(results)
+        st.dataframe(df_results)
+    else:
+        st.write("Toutes les tailles attendues sont disponibles pour les désignations sélectionnées.")
 
 #### --- Configuration de l'application Streamlit ---
 st.set_page_config(
