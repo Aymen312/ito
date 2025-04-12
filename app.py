@@ -415,33 +415,31 @@ def display_stock_by_family(df):
 #### --- Nouvelle fonction pour les désignations spécifiques ---
 
 def display_specific_designations(df):
-    # Groupes de désignations par fournisseur (4 désignations par fournisseur)
-    supplier_designations = {
-        "Fournisseur 1": [
-            "GHOST 16", "GHOST 16 W",
-            "GLYCERIN 22", "GLYCERIN 22 W"
-        ],
-        "Fournisseur 2": [
-            "CASCADIA 18", "CASCADIA 18 W",
-            "RIDE 18", "RIDE 18 W"
-        ],
-        "Fournisseur 3": [
-            "TRIUMPH 22", "TRIUMPH 22 W",
-            "XODUS 3", "XODUS 3 W"
-        ]
-    }
+    # Groupes de désignations avec séparation
+    specific_designations = [
+        "GHOST 16", "GHOST 16 W",
+        "",  # séparateur
+        "GLYCERIN 22", "GLYCERIN 22 W",
+        "",  # séparateur
+        "CASCADIA 18", "CASCADIA 18 W",
+        "RIDE 18", "RIDE 18 W",
+        "",  # séparateur
+        "TRIUMPH 22", "TRIUMPH 22 W",
+        "",  # séparateur
+        "XODUS 3", "XODUS 3 W"
+    ]
 
     # Filtrer le dataframe
-    all_designations = [d for group in supplier_designations.values() for d in group]
-    df_specific = df[df['designation'].str.upper().isin([d.upper() for d in all_designations])].copy()
+    df_specific = df[df['designation'].str.upper().isin([d.upper() for d in specific_designations if d])].copy()
 
     if df_specific.empty:
         st.write("Aucune donnée disponible pour ces désignations spécifiques.")
         return
 
-    # Normalisation des tailles
+    # Normalisation des tailles (supprime 'US' si présent et formatte)
     def normalize_size(size):
         size_str = str(size).upper().replace('US', '').strip()
+        # Gère les cas comme '7', '7.0', '07', etc.
         if '.' in size_str:
             parts = size_str.split('.')
             return f"{int(parts[0])}.{parts[1]}"
@@ -453,39 +451,40 @@ def display_specific_designations(df):
     homme_sizes = [f"{x}.0" for x in range(7, 15)] + [f"{x}.5" for x in range(7, 15)]
     femme_sizes = [f"{x}.0" for x in range(5, 11)] + [f"{x}.5" for x in range(5, 11)]
 
-    # Traitement par fournisseur
-    for supplier, designations in supplier_designations.items():
-        st.subheader(supplier)
-        
-        results = []
-        for designation in designations:
-            df_design = df_specific[df_specific['designation'].str.upper() == designation.upper()]
-            is_woman = "W" in designation.upper()
-            expected_sizes = femme_sizes if is_woman else homme_sizes
+    # Préparation des résultats
+    results = []
+    for designation in [d for d in specific_designations if d]:
+        if not designation:
+            results.append({'Désignation': '', 'Tailles US manquantes': ''})
+            continue
 
-            available_sizes = df_design['taille_normalisee'].unique()
-            missing_sizes = [size for size in expected_sizes if size not in available_sizes]
+        df_design = df_specific[df_specific['designation'].str.upper() == designation.upper()]
+        is_woman = "W" in designation.upper()
+        expected_sizes = femme_sizes if is_woman else homme_sizes
 
+        available_sizes = df_design['taille_normalisee'].unique()
+        missing_sizes = [size for size in expected_sizes if size not in available_sizes]
+
+        if missing_sizes:
             results.append({
                 'Désignation': designation,
-                'Tailles disponibles': ", ".join(available_sizes),
-                'Tailles manquantes': ", ".join(missing_sizes) if missing_sizes else "Aucune"
+                'Tailles US manquantes': ", ".join(missing_sizes)
             })
 
-        # Affichage sous forme de tableau
+    # Affichage
+    if results:
         df_results = pd.DataFrame(results)
-        st.dataframe(
-            df_results.style
-            .set_properties(**{'text-align': 'left'})
-            .format({
-                'Tailles disponibles': lambda x: x if x else '',
-                'Tailles manquantes': lambda x: x if x else ''
-            }),
-            hide_index=True
-        )
+        # Style pour les séparateurs
+        def style_separators(row):
+            return ['background-color: #f0f0f0' if row['Désignation'] == '' else '' for _ in row]
         
-        # Ajouter un espace entre les fournisseurs
-        st.write("")
+        st.dataframe(
+            df_results.style.apply(style_separators, axis=1)
+            .set_properties(**{'text-align': 'left'})
+            .format({'Tailles US manquantes': lambda x: x if x else ''})
+        )
+    else:
+        st.write("Toutes les tailles US attendues sont disponibles.")
 
 #### --- CSS Personnalisé pour un style moderne (Material Design) ---
 st.markdown(
