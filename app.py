@@ -449,19 +449,19 @@ def display_specific_designations(df):
     homme_sizes = [f"{x}.0" for x in range(7, 15)] + [f"{x}.5" for x in range(7, 15)]
     femme_sizes = [f"{x}.0" for x in range(5, 11)] + [f"{x}.5" for x in range(5, 11)]
 
-    # Préparation des résultats avec indicateurs de groupe
+    # Préparation des résultats
     results = []
-    current_group = 1
+    group_counter = 1
     
     for designation in [d for d in specific_designations if d]:
         if not designation:
-            # Ajouter une ligne séparatrice avec la colonne verte
+            # Ligne séparatrice avec groupe vide
             results.append({
-                'Groupe': f"Groupe {current_group}",
-                'Désignation': '', 
-                'Tailles US manquantes': ''
+                'Groupe': '',
+                'Désignation': '---', 
+                'Tailles US manquantes': '---'
             })
-            current_group += 1
+            group_counter += 1
             continue
 
         df_design = df_specific[df_specific['designation'].str.upper() == designation.upper()]
@@ -472,39 +472,40 @@ def display_specific_designations(df):
         missing_sizes = [size for size in expected_sizes if size not in available_sizes]
 
         results.append({
-            'Groupe': f"Groupe {current_group}",
+            'Groupe': f"Groupe {group_counter}",
             'Désignation': designation,
-            'Tailles US manquantes': ", ".join(missing_sizes) if missing_sizes else "Aucune"
+            'Tailles US manquantes': ", ".join(missing_sizes) if missing_sizes else "Complet"
         })
 
-    # Affichage avec style
-    if results:
-        df_results = pd.DataFrame(results)
-        
-        def style_table(df):
-            styles = []
-            for i, row in df.iterrows():
-                # Colonne "Groupe" en vert avec bordure
-                group_style = 'background-color: #90EE90; border-right: 2px solid green;' if row['Groupe'] else ''
-                
-                # Style pour les séparateurs
-                separator_style = 'background-color: #f0f0f0' if row['Désignation'] == '' else ''
-                
-                styles.append([
-                    group_style,
-                    separator_style,
-                    separator_style
-                ])
-            return styles
-        
-        # Version corrigée sans hide_index()
-        styled_df = df_results.style.apply(style_table, axis=None)\
-                       .set_properties(**{'text-align': 'left'})
-        
-        # Alternative pour cacher l'index
-        st.write(styled_df.to_html(), unsafe_allow_html=True)
-    else:
-        st.write("Toutes les tailles US attendues sont disponibles.")
+    # Création du DataFrame final
+    df_results = pd.DataFrame(results)
+    
+    # Style personnalisé
+    def apply_style(row):
+        styles = []
+        for i, item in enumerate(row):
+            if i == 0:  # Colonne 'Groupe'
+                if row['Désignation'] == '---':
+                    styles.append('')  # Pas de style pour les séparateurs
+                else:
+                    styles.append('background-color: #90EE90; border-right: 2px solid green; font-weight: bold;')
+            elif row['Désignation'] == '---':
+                styles.append('background-color: #f0f0f0; border-top: 2px solid #d3d3d3;')
+            else:
+                styles.append('')
+        return styles
+    
+    # Application du style
+    styled_df = df_results.style.apply(apply_style, axis=1)
+    
+    # Affichage dans Streamlit
+    st.markdown(
+        styled_df.set_table_styles([
+            {'selector': 'th', 'props': [('text-align', 'left')]},
+            {'selector': 'td', 'props': [('text-align', 'left')]}
+        ]).hide(axis="index").to_html(),
+        unsafe_allow_html=True
+    )
 #### --- Configuration de l'application Streamlit ---
 st.set_page_config(
     page_title="Application d'Analyse TDR",
