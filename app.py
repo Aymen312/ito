@@ -414,13 +414,16 @@ def display_stock_by_family(df):
 
 #### --- Nouvelle fonction pour les désignations spécifiques ---
 def display_specific_designations(df):
-    # Groupes de désignations avec séparation
-    specific_designations = [
+    # Groupes de désignations par fournisseur
+    brooks_designations = [
         "GHOST 16", "GHOST 16 W",
         "",  # séparateur
         "GLYCERIN 22", "GLYCERIN 22 W",
         "",  # séparateur
-        "CASCADIA 18", "CASCADIA 18 W",
+        "CASCADIA 18", "CASCADIA 18 W"
+    ]
+    
+    soccuny_designations = [
         "RIDE 18", "RIDE 18 W",
         "",  # séparateur
         "TRIUMPH 22", "TRIUMPH 22 W",
@@ -428,62 +431,68 @@ def display_specific_designations(df):
         "XODUS 3", "XODUS 3 W"
     ]
 
-    # Filtrer le dataframe
-    df_specific = df[df['designation'].str.upper().isin([d.upper() for d in specific_designations if d])].copy()
-
-    if df_specific.empty:
-        st.write("Aucune donnée disponible pour ces désignations spécifiques.")
-        return
-
-    # Normalisation des tailles (supprime 'US' si présent et formatte)
+    # Fonction pour normaliser les tailles
     def normalize_size(size):
         size_str = str(size).upper().replace('US', '').strip()
-        # Gère les cas comme '7', '7.0', '07', etc.
         if '.' in size_str:
             parts = size_str.split('.')
             return f"{int(parts[0])}.{parts[1]}"
         return str(int(size_str)) if size_str.isdigit() else size_str
 
-    df_specific['taille_normalisee'] = df_specific['taille'].apply(normalize_size)
-
-    # Tailles US attendues
-    homme_sizes = [f"{x}.0" for x in range(7, 15)] + [f"{x}.5" for x in range(7, 15)]
-    femme_sizes = [f"{x}.0" for x in range(5, 11)] + [f"{x}.5" for x in range(5, 11)]
-
-    # Préparation des résultats
-    results = []
-    for designation in [d for d in specific_designations if d]:
-        if not designation:
-            results.append({'Désignation': '', 'Tailles US manquantes': ''})
-            continue
-
-        df_design = df_specific[df_specific['designation'].str.upper() == designation.upper()]
-        is_woman = "W" in designation.upper()
-        expected_sizes = femme_sizes if is_woman else homme_sizes
-
-        available_sizes = df_design['taille_normalisee'].unique()
-        missing_sizes = [size for size in expected_sizes if size not in available_sizes]
-
-        if missing_sizes:
-            results.append({
-                'Désignation': designation,
-                'Tailles US manquantes': ", ".join(missing_sizes)
-            })
-
-    # Affichage
-    if results:
-        df_results = pd.DataFrame(results)
-        # Style pour les séparateurs
-        def style_separators(row):
-            return ['background-color: #f0f0f0' if row['Désignation'] == '' else '' for _ in row]
+    # Fonction pour créer un tableau pour un ensemble de désignations
+    def create_designation_table(designations, supplier_name):
+        # Filtrer le dataframe
+        df_specific = df[df['designation'].str.upper().isin([d.upper() for d in designations if d])].copy()
         
-        st.dataframe(
-            df_results.style.apply(style_separators, axis=1)
-            # Remove the .set_properties() line that was causing the error
-            .format({'Tailles US manquantes': lambda x: x if x else ''})
-        )
-    else:
-        st.write("Toutes les tailles US attendues sont disponibles.")
+        if df_specific.empty:
+            st.write(f"Aucune donnée disponible pour {supplier_name}.")
+            return
+
+        df_specific['taille_normalisee'] = df_specific['taille'].apply(normalize_size)
+
+        # Tailles US attendues
+        homme_sizes = [f"{x}.0" for x in range(7, 15)] + [f"{x}.5" for x in range(7, 15)]
+        femme_sizes = [f"{x}.0" for x in range(5, 11)] + [f"{x}.5" for x in range(5, 11)]
+
+        # Préparation des résultats
+        results = []
+        for designation in [d for d in designations if d]:
+            if not designation:
+                results.append({'Désignation': '', 'Tailles US manquantes': ''})
+                continue
+
+            df_design = df_specific[df_specific['designation'].str.upper() == designation.upper()]
+            is_woman = "W" in designation.upper()
+            expected_sizes = femme_sizes if is_woman else homme_sizes
+
+            available_sizes = df_design['taille_normalisee'].unique()
+            missing_sizes = [size for size in expected_sizes if size not in available_sizes]
+
+            if missing_sizes:
+                results.append({
+                    'Désignation': designation,
+                    'Tailles US manquantes': ", ".join(missing_sizes)
+                })
+
+        # Affichage
+        if results:
+            st.subheader(supplier_name)
+            df_results = pd.DataFrame(results)
+            
+            def style_separators(row):
+                return ['background-color: #f0f0f0' if row['Désignation'] == '' else '' for _ in row]
+            
+            st.dataframe(
+                df_results.style.apply(style_separators, axis=1)
+                .format({'Tailles US manquantes': lambda x: x if x else ''})
+            )
+        else:
+            st.write(f"Toutes les tailles US attendues sont disponibles pour {supplier_name}.")
+
+    # Créer les tableaux pour chaque fournisseur
+    create_designation_table(brooks_designations, "Fournisseur Brooks")
+    st.write("")  # Espace entre les tableaux
+    create_designation_table(soccuny_designations, "Fournisseur Soccuny")
 #### --- Configuration de l'application Streamlit ---
 st.set_page_config(
     page_title="Application d'Analyse TDR",
