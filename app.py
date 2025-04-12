@@ -414,7 +414,7 @@ def display_stock_by_family(df):
 
 #### --- Nouvelle fonction pour les désignations spécifiques ---
 def display_specific_designations(df):
-    # Mapping des désignations à leurs fournisseurs
+    # Désignations par fournisseur
     designations_by_fournisseur = {
         "BROOKS": [
             "GHOST 16", "GHOST 16 W", 
@@ -429,13 +429,19 @@ def display_specific_designations(df):
         ]
     }
     
-    all_designations = [d for lst in designations_by_fournisseur.values() for d in lst]
+    # Tous les noms en majuscule pour comparaison
+    all_designations_upper = [d.upper() for lst in designations_by_fournisseur.values() for d in lst]
     
-    # Filtrer le dataframe
-    df_specific = df[df['designation'].str.upper().isin([d.upper() for d in all_designations])].copy()
+    # Forcer en majuscule la colonne 'designation' pour comparaison
+    df['designation_upper'] = df['designation'].astype(str).str.upper().str.strip()
+    
+    # Filtrer les lignes correspondant aux désignations
+    df_specific = df[df['designation_upper'].isin(all_designations_upper)].copy()
     
     if df_specific.empty:
-        st.write("Aucune donnée disponible pour ces désignations spécifiques.")
+        st.warning("⚠️ Aucune désignation trouvée parmi celles définies. Vérifie les noms dans le fichier source.")
+        st.write("Voici les désignations uniques dans ton fichier :")
+        st.write(df['designation'].unique())
         return
     
     df_specific['taille_normalisee'] = df_specific['taille'].astype(str).str.strip()
@@ -446,8 +452,10 @@ def display_specific_designations(df):
     results = []
     for fournisseur, designations in designations_by_fournisseur.items():
         for designation in designations:
-            df_design = df_specific[df_specific['designation'].str.upper() == designation.upper()]
-            is_woman = "W" in designation.upper()
+            designation_upper = designation.upper()
+            df_design = df_specific[df_specific['designation_upper'] == designation_upper]
+            
+            is_woman = "W" in designation_upper
             expected_sizes = femme_sizes if is_woman else homme_sizes
             available_sizes = df_design['taille_normalisee'].unique()
             missing_sizes = [size for size in expected_sizes if size not in available_sizes]
@@ -464,7 +472,7 @@ def display_specific_designations(df):
         df_results = df_results.sort_values(by=['Fournisseur', 'Désignation'])
         st.dataframe(df_results)
     else:
-        st.write("Toutes les tailles attendues sont disponibles pour les désignations sélectionnées.")
+        st.success("✅ Toutes les tailles attendues sont disponibles pour les désignations sélectionnées.")
 
 
 #### --- Configuration de l'application Streamlit ---
