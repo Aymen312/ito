@@ -414,65 +414,55 @@ def display_stock_by_family(df):
 
 #### --- Nouvelle fonction pour les désignations spécifiques ---
 def display_specific_designations(df):
-    # Désignations par fournisseur
-    designations_by_fournisseur = {
-        "BROOKS": [
-            "GHOST 16", "GHOST 16 W", 
-            "CASCADIA 18", 
-            "GLYCERIN 22", "GLYCERIN 22 W", 
-            "GHOST MAX 2", "GHOST MAX 2 W"
-        ],
-        "SAUCONY": [
-            "RIDE 18", "RIDE 18 W",
-            "TRIUMP 22", "TRIUMP 22 W",
-            "XODUS 3", "XODUS 3 W"
-        ]
-    }
+    specific_designations = [
+        "GHOST 16", "GHOST 16 W", 
+        "GLYCERIN 22", "GLYCERIN 22W",
+        "CASCADIA 18", "CASCADIA 18 W"
+    ]
     
-    # Tous les noms en majuscule pour comparaison
-    all_designations_upper = [d.upper() for lst in designations_by_fournisseur.values() for d in lst]
-    
-    # Forcer en majuscule la colonne 'designation' pour comparaison
-    df['designation_upper'] = df['designation'].astype(str).str.upper().str.strip()
-    
-    # Filtrer les lignes correspondant aux désignations
-    df_specific = df[df['designation_upper'].isin(all_designations_upper)].copy()
+    # Filtrer le dataframe pour ces désignations
+    df_specific = df[df['designation'].str.upper().isin(specific_designations)].copy()
     
     if df_specific.empty:
-        st.warning("⚠️ Aucune désignation trouvée parmi celles définies. Vérifie les noms dans le fichier source.")
-        st.write("Voici les désignations uniques dans ton fichier :")
-        st.write(df['designation'].unique())
+        st.write("Aucune donnée disponible pour ces désignations spécifiques.")
         return
     
+    # Nettoyer et normaliser les tailles
     df_specific['taille_normalisee'] = df_specific['taille'].astype(str).str.strip()
     
-    homme_sizes = [f"{x}.0" for x in range(7, 15)] + [f"{x}.5" for x in range(7, 15)]
-    femme_sizes = [f"{x}.0" for x in range(5, 11)] + [f"{x}.5" for x in range(5, 11)]
-
+    # Définir les tailles attendues pour homme et femme
+    homme_sizes = [str(x) + '.0' for x in range(7, 15)] + [str(x) + '.5' for x in range(7, 15)]
+    femme_sizes = [str(x) + '.0' for x in range(5, 11)] + [str(x) + '.5' for x in range(5, 11)]
+    
+    # Créer un DataFrame pour chaque désignation
     results = []
-    for fournisseur, designations in designations_by_fournisseur.items():
-        for designation in designations:
-            designation_upper = designation.upper()
-            df_design = df_specific[df_specific['designation_upper'] == designation_upper]
-            
-            is_woman = "W" in designation_upper
-            expected_sizes = femme_sizes if is_woman else homme_sizes
-            available_sizes = df_design['taille_normalisee'].unique()
-            missing_sizes = [size for size in expected_sizes if size not in available_sizes]
-            
-            if missing_sizes:
-                results.append({
-                    'Fournisseur': fournisseur,
-                    'Désignation': designation,
-                    'Tailles manquantes': ", ".join(missing_sizes)
-                })
-
+    for designation in specific_designations:
+        df_design = df_specific[df_specific['designation'].str.upper() == designation.upper()]
+        
+        # Déterminer si c'est une version femme (W) ou homme
+        is_woman = "W" in designation.upper()
+        expected_sizes = femme_sizes if is_woman else homme_sizes
+        
+        # Trouver les tailles disponibles
+        available_sizes = df_design['taille_normalisee'].unique()
+        
+        # Trouver les tailles manquantes
+        missing_sizes = [size for size in expected_sizes if size not in available_sizes]
+        
+        # N'afficher que si des tailles sont manquantes
+        if missing_sizes:
+            results.append({
+                'Désignation': designation,
+                'Tailles manquantes': ", ".join(missing_sizes),
+                'Quantité totale': df_design['Qté stock dispo'].sum()
+            })
+    
     if results:
         df_results = pd.DataFrame(results)
-        df_results = df_results.sort_values(by=['Fournisseur', 'Désignation'])
         st.dataframe(df_results)
     else:
-        st.success("✅ Toutes les tailles attendues sont disponibles pour les désignations sélectionnées.")
+        st.write("Toutes les tailles attendues sont disponibles pour les désignations sélectionnées.")
+
 
 
 #### --- Configuration de l'application Streamlit ---
