@@ -428,7 +428,7 @@ def display_specific_designations(df):
         "ASICS": ["GEL-TRABUCO 13 GTX", "GEL-CUMULUS 27", "GEL-CUMULUS 27 W", "GT-2000 13 TR", "GT-2000 13 TR W", "GT-2000 13 W", "MAGIC SPEED 4", "METASPEED EDGE+", "NOVABLAST 5", "NOVABLAST 5 W"],
     }
 
-    # Normalisation des tailles
+    # Normalisation des **tailles**
     def normalize_size(size):
         try:
             size_str = str(size).upper().replace('US', '').strip()
@@ -449,7 +449,7 @@ def display_specific_designations(df):
 
         df_filtered['taille_normalisee'] = df_filtered['taille'].apply(normalize_size)
 
-        # Tailles attendues
+        # **Tailles** attendues
         homme_sizes = [f"{x}.0" for x in range(7, 15)] + [f"{x}.5" for x in range(7, 15)]
         femme_sizes = [f"{x}.0" for x in range(5, 11)] + [f"{x}.5" for x in range(5, 11)]
 
