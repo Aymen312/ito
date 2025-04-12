@@ -418,8 +418,8 @@ def display_specific_designations(df):
         "GHOST 16", "GHOST 16 W", 
         "GLYCERIN 22", "GLYCERIN 22W",
         "CASCADIA 18", "CASCADIA 18 W", "RIDE 18", "RIDE 18 W",
-            "TRIUMP 22", "TRIUMP 22 W",
-            "XODUS 3", "XODUS 3 W"
+        "TRIUMP 22", "TRIUMP 22 W",
+        "XODUS 3", "XODUS 3 W"
     ]
     
     # Filtrer le dataframe pour ces désignations
@@ -429,12 +429,14 @@ def display_specific_designations(df):
         st.write("Aucune donnée disponible pour ces désignations spécifiques.")
         return
     
-    # Nettoyer et normaliser les tailles
+    # Nettoyer et normaliser les tailles (en conservant le format d'origine comme string)
     df_specific['taille_normalisee'] = df_specific['taille'].astype(str).str.strip()
+    # Supprimer les .0 inutiles pour la comparaison (mais garder les .5)
+    df_specific['taille_comparable'] = df_specific['taille_normalisee'].str.replace(r'\.0$', '', regex=True)
     
-    # Définir les tailles attendues pour homme et femme
-    homme_sizes = [str(x) + '.0' for x in range(7, 15)] + [str(x) + '.5' for x in range(7, 15)]
-    femme_sizes = [str(x) + '.0' for x in range(5, 11)] + [str(x) + '.5' for x in range(5, 11)]
+    # Définir les tailles attendues pour homme et femme (sans .0 sauf pour .5)
+    homme_sizes = [str(x) for x in range(7, 15)] + [str(x) + '.5' for x in range(7, 15)]
+    femme_sizes = [str(x) for x in range(5, 11)] + [str(x) + '.5' for x in range(5, 11)]
     
     # Créer un DataFrame pour chaque désignation
     results = []
@@ -445,8 +447,8 @@ def display_specific_designations(df):
         is_woman = "W" in designation.upper()
         expected_sizes = femme_sizes if is_woman else homme_sizes
         
-        # Trouver les tailles disponibles
-        available_sizes = df_design['taille_normalisee'].unique()
+        # Trouver les tailles disponibles (format comparable)
+        available_sizes = df_design['taille_comparable'].unique()
         
         # Trouver les tailles manquantes
         missing_sizes = [size for size in expected_sizes if size not in available_sizes]
@@ -464,7 +466,6 @@ def display_specific_designations(df):
         st.dataframe(df_results)
     else:
         st.write("Toutes les tailles attendues sont disponibles pour les désignations sélectionnées.")
-
 
 
 #### --- Configuration de l'application Streamlit ---
