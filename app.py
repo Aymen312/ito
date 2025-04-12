@@ -435,10 +435,9 @@ def display_specific_designations(df):
         st.write("Aucune donnée disponible pour ces désignations spécifiques.")
         return
 
-    # Normalisation des tailles (supprime 'US' si présent et formatte)
+    # Normalisation des tailles
     def normalize_size(size):
         size_str = str(size).upper().replace('US', '').strip()
-        # Gère les cas comme '7', '7.0', '07', etc.
         if '.' in size_str:
             parts = size_str.split('.')
             return f"{int(parts[0])}.{parts[1]}"
@@ -450,11 +449,19 @@ def display_specific_designations(df):
     homme_sizes = [f"{x}.0" for x in range(7, 15)] + [f"{x}.5" for x in range(7, 15)]
     femme_sizes = [f"{x}.0" for x in range(5, 11)] + [f"{x}.5" for x in range(5, 11)]
 
-    # Préparation des résultats
+    # Préparation des résultats avec indicateurs de groupe
     results = []
+    current_group = 1
+    
     for designation in [d for d in specific_designations if d]:
         if not designation:
-            results.append({'Désignation': '', 'Tailles US manquantes': ''})
+            # Ajouter une ligne séparatrice avec la colonne verte
+            results.append({
+                'Groupe': f"Groupe {current_group}",
+                'Désignation': '', 
+                'Tailles US manquantes': ''
+            })
+            current_group += 1
             continue
 
         df_design = df_specific[df_specific['designation'].str.upper() == designation.upper()]
@@ -464,23 +471,37 @@ def display_specific_designations(df):
         available_sizes = df_design['taille_normalisee'].unique()
         missing_sizes = [size for size in expected_sizes if size not in available_sizes]
 
-        if missing_sizes:
-            results.append({
-                'Désignation': designation,
-                'Tailles US manquantes': ", ".join(missing_sizes)
-            })
+        results.append({
+            'Groupe': f"Groupe {current_group}",
+            'Désignation': designation,
+            'Tailles US manquantes': ", ".join(missing_sizes) if missing_sizes else "Aucune"
+        })
 
-    # Affichage
+    # Affichage avec style
     if results:
         df_results = pd.DataFrame(results)
-        # Style pour les séparateurs
-        def style_separators(row):
-            return ['background-color: #f0f0f0' if row['Désignation'] == '' else '' for _ in row]
+        
+        def style_table(df):
+            styles = []
+            for i, row in df.iterrows():
+                # Colonne "Groupe" en vert avec bordure
+                group_style = 'background-color: #90EE90; border-right: 2px solid green;' if row['Groupe'] else ''
+                
+                # Style pour les séparateurs
+                separator_style = 'background-color: #f0f0f0' if row['Désignation'] == '' else ''
+                
+                styles.append([
+                    group_style,
+                    separator_style,
+                    separator_style
+                ])
+            return styles
         
         st.dataframe(
-            df_results.style.apply(style_separators, axis=1)
+            df_results.style
+            .apply(style_table, axis=None)
             .set_properties(**{'text-align': 'left'})
-            .format({'Tailles US manquantes': lambda x: x if x else ''})
+            .hide_index()
         )
     else:
         st.write("Toutes les tailles US attendues sont disponibles.")
