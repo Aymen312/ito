@@ -436,10 +436,9 @@ def display_specific_designations(df):
         st.write("Aucune donnée disponible pour ces désignations spécifiques.")
         return
 
-    # Normalisation des tailles (supprime 'US' si présent et formatte)
+    # Normalisation des tailles
     def normalize_size(size):
         size_str = str(size).upper().replace('US', '').strip()
-        # Gère les cas comme '7', '7.0', '07', etc.
         if '.' in size_str:
             parts = size_str.split('.')
             return f"{int(parts[0])}.{parts[1]}"
@@ -453,9 +452,12 @@ def display_specific_designations(df):
 
     # Préparation des résultats
     results = []
+    current_color_index = 0
+    color_cycle = ['#e6f3ff', '#ffe6e6', '#e6ffe6', '#fff2e6']  # Couleurs pastel alternées
+    
     for designation in [d for d in specific_designations if d]:
         if not designation:
-            results.append({'Désignation': '', 'Tailles US manquantes': ''})
+            results.append({'Désignation': '', 'Tailles US manquantes': '', 'Color': ''})
             continue
 
         df_design = df_specific[df_specific['designation'].str.upper() == designation.upper()]
@@ -465,24 +467,35 @@ def display_specific_designations(df):
         available_sizes = df_design['taille_normalisee'].unique()
         missing_sizes = [size for size in expected_sizes if size not in available_sizes]
 
-        if missing_sizes:
-            results.append({
-                'Désignation': designation,
-                'Tailles US manquantes': ", ".join(missing_sizes)
-            })
+        # Appliquer la couleur actuelle et passer à la suivante pour le prochain groupe
+        color = color_cycle[current_color_index % len(color_cycle)]
+        current_color_index += 1
 
-    # Affichage
+        results.append({
+            'Désignation': designation,
+            'Tailles US manquantes': ", ".join(missing_sizes),
+            'Color': color
+        })
+
+    # Affichage avec style
     if results:
         df_results = pd.DataFrame(results)
-        # Style pour les séparateurs
-        def style_separators(row):
-            return ['background-color: #f0f0f0' if row['Désignation'] == '' else '' for _ in row]
         
-        st.dataframe(
-            df_results.style.apply(style_separators, axis=1)
-            .set_properties(**{'text-align': 'left'})
+        def style_rows(row):
+            if row['Désignation'] == '':  # Séparateurs
+                return ['background-color: #f0f0f0'] * len(row)
+            else:
+                return [f'background-color: {row["Color"]}'] * len(row)
+        
+        styled_df = df_results.style.apply(style_rows, axis=1) \
+            .hide(axis='index') \
+            .set_properties(**{'text-align': 'left'}) \
             .format({'Tailles US manquantes': lambda x: x if x else ''})
-        )
+        
+        # Supprimer la colonne Color de l'affichage
+        styled_df = styled_df.hide(columns=['Color'])
+        
+        st.dataframe(styled_df)
     else:
         st.write("Toutes les tailles US attendues sont disponibles.")
 #### --- CSS Personnalisé pour un style moderne (Material Design) ---
