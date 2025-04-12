@@ -67,43 +67,56 @@ def display_supplier_info(df, fournisseur):
                 existing_sizes = filtered['taille'].unique()
                 expected_sizes = sorted([float(x.replace(',', '.')) for x in existing_sizes if str(x).replace('.', '').isdigit()])
             
-            # Fonction pour normaliser les tailles
-            def normalize_size(size):
+            # Fonction pour extraire la valeur numérique de la taille
+            def extract_size_value(size_str):
                 try:
-                    # Supprimer 'US' et autres suffixes
-                    size_str = str(size).upper().replace('US', '').strip()
+                    # Nettoyer la chaîne
+                    cleaned = str(size_str).upper().replace('US', '').strip()
                     # Remplacer les virgules par des points
-                    size_str = size_str.replace(',', '.')
-                    # Supprimer les zéros initiaux avant conversion
-                    if '.' in size_str:
-                        parts = size_str.split('.')
-                        parts[0] = parts[0].lstrip('0') or '0'
-                        size_str = '.'.join(parts)
+                    cleaned = cleaned.replace(',', '.')
+                    # Supprimer les zéros initiaux
+                    if '.' in cleaned:
+                        int_part, dec_part = cleaned.split('.', 1)
+                        int_part = int_part.lstrip('0') or '0'
+                        cleaned = f"{int_part}.{dec_part}"
                     else:
-                        size_str = size_str.lstrip('0') or '0'
-                    return float(size_str)
+                        cleaned = cleaned.lstrip('0') or '0'
+                    return float(cleaned)
                 except:
-                    return size  # Retourner la taille originale si conversion impossible
+                    return None
             
-            # Nettoyer les tailles existantes
-            existing_sizes_clean = []
+            # Préparer les tailles existantes normalisées
+            existing_sizes_normalized = []
+            size_mapping = {}
+            
             for size in filtered['taille'].unique():
-                normalized = normalize_size(size)
-                existing_sizes_clean.append(normalized if isinstance(normalized, float) else size)
-            
-            # Convertir les expected_sizes en float pour comparaison
-            expected_sizes_float = [float(x) for x in expected_sizes]
+                size_value = extract_size_value(size)
+                if size_value is not None:
+                    existing_sizes_normalized.append(size_value)
+                    size_mapping[size_value] = str(size)  # Garder le format original pour l'affichage
+                else:
+                    existing_sizes_normalized.append(size)
             
             # Trouver les tailles manquantes
             if selected_rayon.upper() in ['FEMME', 'HOMME']:
-                missing_sizes = [str(x) for x in expected_sizes_float 
-                                if x not in [s for s in existing_sizes_clean if isinstance(s, float)]]
+                missing_sizes = []
+                for expected in expected_sizes:
+                    expected_float = float(expected)
+                    if expected_float not in [s for s in existing_sizes_normalized if isinstance(s, float)]:
+                        missing_sizes.append(str(expected))
             else:
                 missing_sizes = []
             
             # Afficher les résultats
             st.write(f"**Tailles disponibles pour {selected_design} ({selected_rayon}):**")
-            st.write(", ".join([str(x) for x in existing_sizes_clean]))
+            # Afficher les tailles dans leur format original
+            display_sizes = []
+            for size in existing_sizes_normalized:
+                if isinstance(size, float) and size in size_mapping:
+                    display_sizes.append(size_mapping[size])
+                else:
+                    display_sizes.append(str(size))
+            st.write(", ".join(display_sizes))
             
             if missing_sizes:
                 st.write(f"**Tailles manquantes ({selected_rayon}):**")
