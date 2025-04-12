@@ -413,8 +413,7 @@ def display_stock_by_family(df):
                      f"dans la catégorie {rayon_filter}.")
 
 
-import pandas as pd
-import streamlit as st
+
 
 def display_specific_designations(df):
     # Vérification des colonnes requises
@@ -645,7 +644,7 @@ if fichier_telecharge is not None:
                     display_stock_by_family(df)
                     
                 with tab8:
-                    st.header("Tailles manquantes pour désignations spécifiques")
+                    st.header("Tailles manquantes")
                     display_specific_designations(df.copy())
 
     except Exception as e:
