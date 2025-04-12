@@ -64,28 +64,40 @@ def display_supplier_info(df, fournisseur):
             elif selected_rayon.upper() == 'HOMME':
                 expected_sizes = [round(x*0.5, 1) for x in range(14, 29)]  # 7.0 à 14.0 par pas de 0.5
             else:  # UNISEX ou autres
-                # On prend les tailles existantes comme référence
                 existing_sizes = filtered['taille'].unique()
                 expected_sizes = sorted([float(x.replace(',', '.')) for x in existing_sizes if str(x).replace('.', '').isdigit()])
+            
+            # Fonction pour normaliser les tailles
+            def normalize_size(size):
+                try:
+                    # Supprimer 'US' et autres suffixes
+                    size_str = str(size).upper().replace('US', '').strip()
+                    # Remplacer les virgules par des points
+                    size_str = size_str.replace(',', '.')
+                    # Supprimer les zéros initiaux avant conversion
+                    if '.' in size_str:
+                        parts = size_str.split('.')
+                        parts[0] = parts[0].lstrip('0') or '0'
+                        size_str = '.'.join(parts)
+                    else:
+                        size_str = size_str.lstrip('0') or '0'
+                    return float(size_str)
+                except:
+                    return size  # Retourner la taille originale si conversion impossible
             
             # Nettoyer les tailles existantes
             existing_sizes_clean = []
             for size in filtered['taille'].unique():
-                try:
-                    # Gérer les cas comme "07.0US" en supprimant le 0 initial
-                    size_str = str(size).strip()
-                    if size_str.startswith('0') and size_str[1:].replace('.', '').isdigit():
-                        size_str = size_str.lstrip('0')
-                    
-                    # Convertir en float après nettoyage
-                    size_clean = float(size_str.replace(',', '.'))
-                    existing_sizes_clean.append(size_clean)
-                except:
-                    existing_sizes_clean.append(size)
+                normalized = normalize_size(size)
+                existing_sizes_clean.append(normalized if isinstance(normalized, float) else size)
+            
+            # Convertir les expected_sizes en float pour comparaison
+            expected_sizes_float = [float(x) for x in expected_sizes]
             
             # Trouver les tailles manquantes
             if selected_rayon.upper() in ['FEMME', 'HOMME']:
-                missing_sizes = [str(x) for x in expected_sizes if x not in existing_sizes_clean]
+                missing_sizes = [str(x) for x in expected_sizes_float 
+                                if x not in [s for s in existing_sizes_clean if isinstance(s, float)]]
             else:
                 missing_sizes = []
             
