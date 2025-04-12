@@ -23,27 +23,25 @@ def highlight_row_if_one(row):
 
 #### --- Fonctions modifiées pour afficher les colonnes spécifiques ---
 def display_supplier_info(df, fournisseur):
-    colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 
-                         'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
+    colonnes_afficher = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 
+                        'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
     fournisseur = fournisseur.strip().upper()
     df['fournisseur'] = df['fournisseur'].fillna('')
     
     # Filtrer par fournisseur
-    df_filtered = df[df['fournisseur'].str.upper() == fournisseur] if fournisseur else pd.DataFrame(columns=colonnes_affichier)
+    df_filtered = df[df['fournisseur'].str.upper() == fournisseur] if fournisseur else pd.DataFrame(columns=colonnes_afficher)
     
     # Si des résultats sont trouvés
     if not df_filtered.empty:
-        # Créer un DataFrame avec les désignations uniques et leur compte
-        designations = df_filtered['designation'].value_counts().reset_index()
-        designations.columns = ['Désignation', 'Nombre de références']
-        designations = designations.sort_values('Désignation')
+        # Créer un DataFrame avec les désignations, rayons et leur compte
+        designations_rayons = df_filtered.groupby(['designation', 'rayon']).size().reset_index(name='Nombre de références')
+        designations_rayons = designations_rayons.sort_values(['designation', 'rayon'])
         
-        # Afficher les désignations dans un expander
+        # Afficher les désignations et rayons dans un expander
         with st.expander(f"Voir toutes les désignations pour {fournisseur}"):
-            st.dataframe(designations)
+            st.dataframe(designations_rayons)
     
-    return df_filtered[colonnes_affichier]
-
+    return df_filtered[colonnes_afficher]
 def display_designation_info(df, designation):
     # Colonnes à afficher dans le tableau principal
     colonnes_a_afficher = ['barcode', 'taille', 'rayon', 'designation', 'Qté stock dispo']
