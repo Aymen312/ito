@@ -453,8 +453,7 @@ def display_specific_designations(df):
         if missing_sizes:
             results.append({
                 'Désignation': designation,
-                'Tailles manquantes': ", ".join(missing_sizes),
-                'Quantité totale': df_design['Qté stock dispo'].sum()
+                'Tailles manquantes': ", ".join(missing_sizes)
             })
     
     if results:
