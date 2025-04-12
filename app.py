@@ -414,6 +414,25 @@ def display_stock_by_family(df):
 
 #### --- Nouvelle fonction pour les désignations spécifiques ---
 def display_specific_designations(df):
+    # Vérification initiale du DataFrame
+    if df.empty:
+        st.error("Le DataFrame est vide")
+        return
+    
+    # Vérification des colonnes requises
+    required_columns = ['designation', 'taille']
+    missing_cols = [col for col in required_columns if col not in df.columns]
+    
+    if missing_cols:
+        st.error(f"Colonnes manquantes dans le DataFrame: {', '.join(missing_cols)}")
+        st.write("Colonnes disponibles:", df.columns.tolist())
+        return
+
+    # Aperçu des données pour diagnostic
+    st.subheader("Diagnostic des données")
+    st.write("Aperçu des données:", df.head())
+    st.write("Valeurs manquantes:", df.isnull().sum())
+
     # Groupes de désignations par fournisseur
     brooks_designations = [
         "GHOST 16", "GHOST 16 W",
@@ -431,68 +450,86 @@ def display_specific_designations(df):
         "XODUS 3", "XODUS 3 W"
     ]
 
-    # Fonction pour normaliser les tailles
+    # Fonction de normalisation des tailles améliorée
     def normalize_size(size):
-        size_str = str(size).upper().replace('US', '').strip()
-        if '.' in size_str:
-            parts = size_str.split('.')
-            return f"{int(parts[0])}.{parts[1]}"
-        return str(int(size_str)) if size_str.isdigit() else size_str
+        try:
+            if pd.isna(size):
+                return None
+                
+            size_str = str(size).upper().replace('US', '').strip()
+            
+            # Gestion des cas comme '7', '7.0', '07', etc.
+            if '.' in size_str:
+                parts = size_str.split('.')
+                return f"{int(parts[0])}.{parts[1].lstrip('0') or '0'}"
+            return str(int(size_str))
+        except (ValueError, AttributeError):
+            return str(size)
 
-    # Fonction pour créer un tableau pour un ensemble de désignations
-    def create_designation_table(designations, supplier_name):
-        # Filtrer le dataframe
-        df_specific = df[df['designation'].str.upper().isin([d.upper() for d in designations if d])].copy()
+    # Fonction pour créer un tableau par fournisseur
+    def create_supplier_table(designations, supplier_name):
+        # Filtrer les désignations valides (non vides)
+        valid_designations = [d for d in designations if d]
         
-        if df_specific.empty:
-            st.write(f"Aucune donnée disponible pour {supplier_name}.")
+        if not valid_designations:
             return
 
-        df_specific['taille_normalisee'] = df_specific['taille'].apply(normalize_size)
+        # Filtrage du DataFrame
+        mask = df['designation'].str.upper().isin([d.upper() for d in valid_designations])
+        df_filtered = df[mask].copy()
+        
+        if df_filtered.empty:
+            st.warning(f"Aucune donnée trouvée pour {supplier_name}")
+            st.write(f"Désignations recherchées: {', '.join(valid_designations)}")
+            st.write(f"Désignations disponibles: {', '.join(df['designation'].unique())}")
+            return
 
+        # Normalisation des tailles
+        df_filtered['taille_normalisee'] = df_filtered['taille'].apply(normalize_size)
+        
         # Tailles US attendues
         homme_sizes = [f"{x}.0" for x in range(7, 15)] + [f"{x}.5" for x in range(7, 15)]
         femme_sizes = [f"{x}.0" for x in range(5, 11)] + [f"{x}.5" for x in range(5, 11)]
 
         # Préparation des résultats
         results = []
-        for designation in [d for d in designations if d]:
-            if not designation:
+        for designation in designations:
+            if not designation:  # Séparateur
                 results.append({'Désignation': '', 'Tailles US manquantes': ''})
                 continue
 
-            df_design = df_specific[df_specific['designation'].str.upper() == designation.upper()]
+            df_design = df_filtered[df_filtered['designation'].str.upper() == designation.upper()]
             is_woman = "W" in designation.upper()
             expected_sizes = femme_sizes if is_woman else homme_sizes
 
-            available_sizes = df_design['taille_normalisee'].unique()
+            available_sizes = df_design['taille_normalisee'].dropna().unique()
             missing_sizes = [size for size in expected_sizes if size not in available_sizes]
 
-            if missing_sizes:
-                results.append({
-                    'Désignation': designation,
-                    'Tailles US manquantes': ", ".join(missing_sizes)
-                })
+            results.append({
+                'Désignation': designation,
+                'Tailles US manquantes': ", ".join(missing_sizes) if missing_sizes else "Aucune"
+            })
 
-        # Affichage
-        if results:
-            st.subheader(supplier_name)
-            df_results = pd.DataFrame(results)
-            
-            def style_separators(row):
-                return ['background-color: #f0f0f0' if row['Désignation'] == '' else '' for _ in row]
-            
-            st.dataframe(
-                df_results.style.apply(style_separators, axis=1)
-                .format({'Tailles US manquantes': lambda x: x if x else ''})
-            )
-        else:
-            st.write(f"Toutes les tailles US attendues sont disponibles pour {supplier_name}.")
+        # Création du DataFrame de résultats
+        df_results = pd.DataFrame(results)
+        
+        # Style pour les séparateurs
+        def style_separators(row):
+            return ['background-color: #f0f0f0' if row['Désignation'] == '' else '' for _ in row]
+        
+        # Affichage du tableau
+        st.subheader(supplier_name)
+        st.dataframe(
+            df_results.style.apply(style_separators, axis=1)
+            .format({'Tailles US manquantes': lambda x: x if x else ''})
+            .set_properties(**{'text-align': 'left'})
+        )
 
-    # Créer les tableaux pour chaque fournisseur
-    create_designation_table(brooks_designations, "Fournisseur Brooks")
-    st.write("")  # Espace entre les tableaux
-    create_designation_table(soccuny_designations, "Fournisseur Soccuny")
+    # Affichage des tableaux
+    create_supplier_table(brooks_designations, "Fournisseur Brooks")
+    st.markdown("---")  # Ligne de séparation
+    create_supplier_table(soccuny_designations, "Fournisseur Soccuny")
+
 #### --- Configuration de l'application Streamlit ---
 st.set_page_config(
     page_title="Application d'Analyse TDR",
