@@ -414,11 +414,20 @@ def display_stock_by_family(df):
 
 #### --- Nouvelle fonction pour les désignations spécifiques ---
 def display_specific_designations(df):
-    specific_designations = [
-        "GHOST 16", "GHOST 16 W", 
-        "GLYCERIN 22", "GLYCERIN 22W",
-        "CASCADIA 18", "CASCADIA 18 W"
-    ]
+    # Mapping des désignations à leurs fournisseurs
+    designations_by_fournisseur = {
+        "BROOKS": [
+            "GHOST 16", "GHOST 16 W", 
+            "CASCADIA 18", 
+            "GLYCERIN 22", "GLYCERIN 22 W", 
+            "GHOST MAX 2", "GHOST MAX 2 W"
+        ],
+        "SAUCONY": [
+            "RIDE 18", "RIDE 18 W",
+            "TRIUMP 22", "TRIUMP 22 W",
+            "XODUS 3", "XODUS 3 W"
+        ]
+    }
     
     # Filtrer le dataframe pour ces désignations
     df_specific = df[df['designation'].str.upper().isin(specific_designations)].copy()
