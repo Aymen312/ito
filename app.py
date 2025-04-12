@@ -497,15 +497,14 @@ def display_specific_designations(df):
                 ])
             return styles
         
-        st.dataframe(
-            df_results.style
-            .apply(style_table, axis=None)
-            .set_properties(**{'text-align': 'left'})
-            .hide_index()
-        )
+        # Version corrigée sans hide_index()
+        styled_df = df_results.style.apply(style_table, axis=None)\
+                       .set_properties(**{'text-align': 'left'})
+        
+        # Alternative pour cacher l'index
+        st.write(styled_df.to_html(), unsafe_allow_html=True)
     else:
         st.write("Toutes les tailles US attendues sont disponibles.")
-
 #### --- Configuration de l'application Streamlit ---
 st.set_page_config(
     page_title="Application d'Analyse TDR",
