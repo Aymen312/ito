@@ -435,9 +435,10 @@ def display_specific_designations(df):
         st.write("Aucune donnée disponible pour ces désignations spécifiques.")
         return
 
-    # Normalisation des tailles
+    # Normalisation des tailles (supprime 'US' si présent et formatte)
     def normalize_size(size):
         size_str = str(size).upper().replace('US', '').strip()
+        # Gère les cas comme '7', '7.0', '07', etc.
         if '.' in size_str:
             parts = size_str.split('.')
             return f"{int(parts[0])}.{parts[1]}"
@@ -451,17 +452,9 @@ def display_specific_designations(df):
 
     # Préparation des résultats
     results = []
-    group_counter = 1
-    
     for designation in [d for d in specific_designations if d]:
         if not designation:
-            # Ligne séparatrice avec groupe vide
-            results.append({
-                'Groupe': '',
-                'Désignation': '---', 
-                'Tailles US manquantes': '---'
-            })
-            group_counter += 1
+            results.append({'Désignation': '', 'Tailles US manquantes': ''})
             continue
 
         df_design = df_specific[df_specific['designation'].str.upper() == designation.upper()]
@@ -471,41 +464,26 @@ def display_specific_designations(df):
         available_sizes = df_design['taille_normalisee'].unique()
         missing_sizes = [size for size in expected_sizes if size not in available_sizes]
 
-        results.append({
-            'Groupe': f"Groupe {group_counter}",
-            'Désignation': designation,
-            'Tailles US manquantes': ", ".join(missing_sizes) if missing_sizes else "Complet"
-        })
+        if missing_sizes:
+            results.append({
+                'Désignation': designation,
+                'Tailles US manquantes': ", ".join(missing_sizes)
+            })
 
-    # Création du DataFrame final
-    df_results = pd.DataFrame(results)
-    
-    # Style personnalisé
-    def apply_style(row):
-        styles = []
-        for i, item in enumerate(row):
-            if i == 0:  # Colonne 'Groupe'
-                if row['Désignation'] == '---':
-                    styles.append('')  # Pas de style pour les séparateurs
-                else:
-                    styles.append('background-color: #90EE90; border-right: 2px solid green; font-weight: bold;')
-            elif row['Désignation'] == '---':
-                styles.append('background-color: #f0f0f0; border-top: 2px solid #d3d3d3;')
-            else:
-                styles.append('')
-        return styles
-    
-    # Application du style
-    styled_df = df_results.style.apply(apply_style, axis=1)
-    
-    # Affichage dans Streamlit
-    st.markdown(
-        styled_df.set_table_styles([
-            {'selector': 'th', 'props': [('text-align', 'left')]},
-            {'selector': 'td', 'props': [('text-align', 'left')]}
-        ]).hide(axis="index").to_html(),
-        unsafe_allow_html=True
-    )
+    # Affichage
+    if results:
+        df_results = pd.DataFrame(results)
+        # Style pour les séparateurs
+        def style_separators(row):
+            return ['background-color: #f0f0f0' if row['Désignation'] == '' else '' for _ in row]
+        
+        st.dataframe(
+            df_results.style.apply(style_separators, axis=1)
+            .set_properties(**{'text-align': 'left'})
+            .format({'Tailles US manquantes': lambda x: x if x else ''})
+        )
+    else:
+        st.write("Toutes les tailles US attendues sont disponibles.")
 #### --- Configuration de l'application Streamlit ---
 st.set_page_config(
     page_title="Application d'Analyse TDR",
