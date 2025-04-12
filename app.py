@@ -85,51 +85,38 @@ def display_supplier_info(df, fournisseur):
                 except:
                     return None
             
-            # Préparer les tailles existantes avec leurs quantités
-            size_qtys = {}
+            # Préparer les tailles existantes normalisées
+            existing_sizes_normalized = []
             size_mapping = {}
             
-            for _, row in filtered.iterrows():
-                size = row['taille']
-                qty = row['Qté stock dispo']
+            for size in filtered['taille'].unique():
                 size_value = extract_size_value(size)
-                
                 if size_value is not None:
-                    if size_value not in size_qtys:
-                        size_qtys[size_value] = 0
-                        size_mapping[size_value] = str(size)  # Garder le format original pour l'affichage
-                    size_qtys[size_value] += qty
+                    existing_sizes_normalized.append(size_value)
+                    size_mapping[size_value] = str(size)  # Garder le format original pour l'affichage
                 else:
-                    if size not in size_qtys:
-                        size_qtys[size] = 0
-                    size_qtys[size] += qty
+                    existing_sizes_normalized.append(size)
             
             # Trouver les tailles manquantes
             if selected_rayon.upper() in ['FEMME', 'HOMME']:
                 missing_sizes = []
                 for expected in expected_sizes:
                     expected_float = float(expected)
-                    if expected_float not in [s for s in size_qtys.keys() if isinstance(s, float)]:
+                    if expected_float not in [s for s in existing_sizes_normalized if isinstance(s, float)]:
                         missing_sizes.append(str(expected))
             else:
                 missing_sizes = []
             
             # Afficher les résultats
             st.write(f"**Tailles disponibles pour {selected_design} ({selected_rayon}):**")
-            
-            # Préparer l'affichage des tailles avec quantités
+            # Afficher les tailles dans leur format original
             display_sizes = []
-            for size in sorted(size_qtys.keys()):
-                qty = size_qtys[size]
-                display_size = size_mapping.get(size, str(size))
-                display_text = f"{display_size} ({qty})"
-                
-                if qty == 1:
-                    display_text = f"<span style='color:red'>{display_text}</span>"
-                display_sizes.append(display_text)
-            
-            # Afficher avec markdown pour permettre le HTML
-            st.markdown(", ".join(display_sizes), unsafe_allow_html=True)
+            for size in existing_sizes_normalized:
+                if isinstance(size, float) and size in size_mapping:
+                    display_sizes.append(size_mapping[size])
+                else:
+                    display_sizes.append(str(size))
+            st.write(", ".join(display_sizes))
             
             if missing_sizes:
                 st.write(f"**Tailles manquantes ({selected_rayon}):**")
