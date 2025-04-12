@@ -115,7 +115,7 @@ def display_supplier_info(df, fournisseur):
                 missing_sizes = []
             
             # Afficher les résultats
-            st.write(f"*Tailles disponibles pour {selected_design} ({selected_rayon}):*")
+            st.write(f"Tailles disponibles pour {selected_design} ({selected_rayon}):")
             
             # Préparer l'affichage des tailles avec quantités
             display_sizes = []
@@ -132,7 +132,7 @@ def display_supplier_info(df, fournisseur):
             st.markdown(", ".join(display_sizes), unsafe_allow_html=True)
             
             if missing_sizes:
-                st.write(f"*Tailles manquantes ({selected_rayon}):*")
+                st.write(f"Tailles manquantes ({selected_rayon}):")
                 st.write(", ".join(missing_sizes))
             else:
                 st.write("Toutes les tailles attendues sont disponibles.")
@@ -479,11 +479,12 @@ def display_specific_designations(df):
         
         st.dataframe(
             df_results.style.apply(style_separators, axis=1)
-            .set_properties(**{'text-align': 'left'})
+            .set_properties({'text-align': 'left'})
             .format({'Tailles US manquantes': lambda x: x if x else ''})
         )
     else:
         st.write("Toutes les tailles US attendues sont disponibles.")
+
 #### --- Configuration de l'application Streamlit ---
 st.set_page_config(
     page_title="Application d'Analyse TDR",
