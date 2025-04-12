@@ -33,13 +33,69 @@ def display_supplier_info(df, fournisseur):
     
     # Si des résultats sont trouvés
     if not df_filtered.empty:
-        # Créer un DataFrame avec les désignations, rayons et leur compte
+        # Créer un DataFrame avec les désignations et rayons
         designations_rayons = df_filtered.groupby(['designation', 'rayon']).size().reset_index(name='Nombre de références')
         designations_rayons = designations_rayons.sort_values(['designation', 'rayon'])
         
         # Afficher les désignations et rayons dans un expander
-        with st.expander(f"Voir toutes les désignations pour {fournisseur}"):
-            st.dataframe(designations_rayons)
+        with st.expander(f"Désignations disponibles pour {fournisseur}"):
+            # Créer une colonne cliquable avec designation + rayon
+            designations_rayons['selection'] = designations_rayons.apply(
+                lambda x: f"{x['designation']} ({x['rayon']})", axis=1)
+            
+            selected = st.selectbox(
+                "Sélectionnez une désignation pour voir les tailles manquantes",
+                designations_rayons['selection']
+            )
+            
+            # Récupérer la désignation et le rayon sélectionnés
+            selected_design, selected_rayon = selected.split(" (")
+            selected_rayon = selected_rayon[:-1]  # Enlever la parenthèse fermante
+            
+            # Filtrer le dataframe pour la désignation et rayon sélectionnés
+            filtered = df_filtered[
+                (df_filtered['designation'] == selected_design) & 
+                (df_filtered['rayon'] == selected_rayon)
+            ]
+            
+            # Définir les plages de tailles attendues selon le rayon
+            if selected_rayon.upper() == 'FEMME':
+                expected_sizes = [round(x*0.5, 1) for x in range(10, 21)]  # 5.0 à 10.0 par pas de 0.5
+            elif selected_rayon.upper() == 'HOMME':
+                expected_sizes = [round(x*0.5, 1) for x in range(14, 29)]  # 7.0 à 14.0 par pas de 0.5
+            else:  # UNISEX ou autres
+                # On prend les tailles existantes comme référence
+                existing_sizes = filtered['taille'].unique()
+                expected_sizes = sorted([float(x.replace(',', '.')) for x in existing_sizes if str(x).replace('.', '').isdigit()])
+            
+            # Nettoyer les tailles existantes
+            existing_sizes_clean = []
+            for size in filtered['taille'].unique():
+                try:
+                    # Gérer les cas comme "0taille" ou autres formats
+                    if str(size).startswith('0'):
+                        size_clean = size
+                    else:
+                        size_clean = float(str(size).replace(',', '.'))
+                    existing_sizes_clean.append(size_clean)
+                except:
+                    existing_sizes_clean.append(size)
+            
+            # Trouver les tailles manquantes
+            if selected_rayon.upper() in ['FEMME', 'HOMME']:
+                missing_sizes = [str(x) for x in expected_sizes if x not in existing_sizes_clean]
+            else:
+                missing_sizes = []
+            
+            # Afficher les résultats
+            st.write(f"**Tailles disponibles pour {selected_design} ({selected_rayon}):**")
+            st.write(", ".join([str(x) for x in existing_sizes_clean]))
+            
+            if missing_sizes:
+                st.write(f"**Tailles manquantes ({selected_rayon}):**")
+                st.write(", ".join(missing_sizes))
+            else:
+                st.write("Toutes les tailles attendues sont disponibles.")
     
     return df_filtered[colonnes_afficher]
 def display_designation_info(df, designation):
