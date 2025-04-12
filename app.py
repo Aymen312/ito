@@ -72,11 +72,13 @@ def display_supplier_info(df, fournisseur):
             existing_sizes_clean = []
             for size in filtered['taille'].unique():
                 try:
-                    # Gérer les cas comme "0taille" ou autres formats
-                    if str(size).startswith('0'):
-                        size_clean = size
-                    else:
-                        size_clean = float(str(size).replace(',', '.'))
+                    # Gérer les cas comme "07.0US" en supprimant le 0 initial
+                    size_str = str(size).strip()
+                    if size_str.startswith('0') and size_str[1:].replace('.', '').isdigit():
+                        size_str = size_str.lstrip('0')
+                    
+                    # Convertir en float après nettoyage
+                    size_clean = float(size_str.replace(',', '.'))
                     existing_sizes_clean.append(size_clean)
                 except:
                     existing_sizes_clean.append(size)
