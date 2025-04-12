@@ -115,7 +115,7 @@ def display_supplier_info(df, fournisseur):
                 missing_sizes = []
             
             # Afficher les résultats
-            st.write(f"**Tailles disponibles pour {selected_design} ({selected_rayon}):**")
+            st.write(f"*Tailles disponibles pour {selected_design} ({selected_rayon}):*")
             
             # Préparer l'affichage des tailles avec quantités
             display_sizes = []
@@ -132,13 +132,12 @@ def display_supplier_info(df, fournisseur):
             st.markdown(", ".join(display_sizes), unsafe_allow_html=True)
             
             if missing_sizes:
-                st.write(f"**Tailles manquantes ({selected_rayon}):**")
+                st.write(f"*Tailles manquantes ({selected_rayon}):*")
                 st.write(", ".join(missing_sizes))
             else:
                 st.write("Toutes les tailles attendues sont disponibles.")
     
     return df_filtered[colonnes_afficher]
-
 def display_designation_info(df, designation):
     # Colonnes à afficher dans le tableau principal
     colonnes_a_afficher = ['barcode', 'taille', 'rayon', 'designation', 'Qté stock dispo']
@@ -316,7 +315,6 @@ def display_designation_info(df, designation):
         with col2:
             st.write("Tailles UK indisponibles:")
             st.write(format_sizes(unavailable_sizes_uk_femme))
-
 #### --- Fonction modifiée pour "Stock Négatif" ---
 def filter_negative_stock(df):
     colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
@@ -412,79 +410,12 @@ def display_stock_by_family(df):
             st.write(f"Aucune information disponible pour {famille} "
                      f"dans la catégorie {rayon_filter}.")
 
-#### --- Nouvelle fonction pour les désignations spécifiques ---
-
-def display_specific_designations(df):
-    # Groupes de désignations avec séparation
-    specific_designations = [
-        "GHOST 16", "GHOST 16 W",
-        "",  # séparateur
-        "GLYCERIN 22", "GLYCERIN 22 W",
-        "",  # séparateur
-        "CASCADIA 18", "CASCADIA 18 W",
-        "RIDE 18", "RIDE 18 W",
-        "",  # séparateur
-        "TRIUMPH 22", "TRIUMPH 22 W",
-        "",  # séparateur
-        "XODUS 3", "XODUS 3 W"
-    ]
-
-    # Filtrer le dataframe
-    df_specific = df[df['designation'].str.upper().isin([d.upper() for d in specific_designations if d])].copy()
-
-    if df_specific.empty:
-        st.write("Aucune donnée disponible pour ces désignations spécifiques.")
-        return
-
-    # Normalisation des tailles (supprime 'US' si présent et formatte)
-    def normalize_size(size):
-        size_str = str(size).upper().replace('US', '').strip()
-        # Gère les cas comme '7', '7.0', '07', etc.
-        if '.' in size_str:
-            parts = size_str.split('.')
-            return f"{int(parts[0])}.{parts[1]}"
-        return str(int(size_str)) if size_str.isdigit() else size_str
-
-    df_specific['taille_normalisee'] = df_specific['taille'].apply(normalize_size)
-
-    # Tailles US attendues
-    homme_sizes = [f"{x}.0" for x in range(7, 15)] + [f"{x}.5" for x in range(7, 15)]
-    femme_sizes = [f"{x}.0" for x in range(5, 11)] + [f"{x}.5" for x in range(5, 11)]
-
-    # Préparation des résultats
-    results = []
-    for designation in [d for d in specific_designations if d]:
-        if not designation:
-            results.append({'Désignation': '', 'Tailles US manquantes': ''})
-            continue
-
-        df_design = df_specific[df_specific['designation'].str.upper() == designation.upper()]
-        is_woman = "W" in designation.upper()
-        expected_sizes = femme_sizes if is_woman else homme_sizes
-
-        available_sizes = df_design['taille_normalisee'].unique()
-        missing_sizes = [size for size in expected_sizes if size not in available_sizes]
-
-        if missing_sizes:
-            results.append({
-                'Désignation': designation,
-                'Tailles US manquantes': ", ".join(missing_sizes)
-            })
-
-    # Affichage
-    if results:
-        df_results = pd.DataFrame(results)
-        # Style pour les séparateurs
-        def style_separators(row):
-            return ['background-color: #f0f0f0' if row['Désignation'] == '' else '' for _ in row]
-        
-        st.dataframe(
-            df_results.style.apply(style_separators, axis=1)
-            .set_properties(**{'text-align': 'left'})
-            .format({'Tailles US manquantes': lambda x: x if x else ''})
-        )
-    else:
-        st.write("Toutes les tailles US attendues sont disponibles.")
+#### --- Configuration de l'application Streamlit ---
+st.set_page_config(
+    page_title="Application d'Analyse TDR",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
 #### --- CSS Personnalisé pour un style moderne (Material Design) ---
 st.markdown(
@@ -600,16 +531,13 @@ if fichier_telecharge is not None:
                 df = clean_size_column(df)
                 st.success("Données chargées avec succès!")
 
-                tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
-                    "Filtrer par Fournisseur",
-                    "Filtrer par Désignation",
-                    "Stock Négatif",
-                    "Anita Tailles",
-                    "Sidas Niveaux",
-                    "Valeur Totale du Stock par Fournisseur",
-                    "Stock par Famille",
-                    "Désignations Spécifiques"  # Nouvel onglet
-                ])
+                tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["Filtrer par Fournisseur",
+                                                                    "Filtrer par Désignation",
+                                                                    "Stock Négatif",
+                                                                    "Anita Tailles",
+                                                                    "Sidas Niveaux",
+                                                                    "Valeur Totale du Stock par Fournisseur",
+                                                                    "Stock par Famille"])
 
                 with tab1:
                     fournisseur = st.text_input("Entrez le nom du fournisseur:")
@@ -647,12 +575,8 @@ if fichier_telecharge is not None:
                 with tab7:
                     st.header("Stock par Famille")
                     display_stock_by_family(df)
-                    
-                with tab8:
-                    st.header("Tailles manquantes pour désignations spécifiques")
-                    display_specific_designations(df.copy())
 
     except Exception as e:
         st.error(f"Erreur lors du traitement du fichier: {str(e)}")
 else:
-    st.warning("Veuillez télécharger  fichier pour commencer l'analyse.")
+    st.warning("Veuillez télécharger un fichier pour commencer l'analyse.")
