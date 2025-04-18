@@ -414,7 +414,8 @@ def display_stock_by_family(df):
 
 
 
-import streamlit as st
+
+          import streamlit as st
 import pandas as pd
 
 def display_specific_designations(df):
@@ -605,7 +606,6 @@ def display_specific_designations(df):
         )
     else:
         st.warning(f"Aucun modèle {supplier} trouvé dans les données")
-   
 #### --- Configuration de l'application Streamlit ---
 st.set_page_config(
     page_title="Application d'Analyse TDR",
