@@ -439,19 +439,36 @@ def display_specific_designations(df):
             "TRIUMPH 22", "TRIUMPH 22", "TRIUMPH 22 W",
             "XODUS 3 ULTRA W", "XODUS ULTRA 3", "XODUS ULTRA 3", "XODUS ULTRA 3 W"
         ],
-        "NEW BALANCE": [
-            "880 V15", "880 V15 W"
-        ],
         "SALOMON": [
-            "ULTRA GLIDE 3", "ULTRA GLIDE 3 W"
+            "ULTRA GLIDE 3", "ULTRA GLIDE 3 W",
+            "AERO GLIDE 3 GRVL", "AERO GLIDE 3 GRVL W"
+        ],
+        "LA SPORTIVA": [
+            "AKASHA II", "AKASHA II WOMAN",
+            "ULTRA RAPTOR II GTX", "ULTRA RAPTOR II WOMAN GTX",
+            "ULTRA RAPTOR II MID LEATHERGTX",
+            "ULTRA RAPTOR II MID LEATHER WM",
+            "ULTRA RAPTOR II LTH W GTX"
+        ],
+        "MIZUNO": [
+            "WAVE DAICHI 9", "WAVE DAICHI 9 W",
+            "WAVE RIDER TT 2", "WAVE RIDER TT 2 W",
+            "WAVE RIDER 28", "WAVE RIDER 28 W"
+        ],
+        "HOKA": [
+            "SPEEDGOAT 6", "SPEEDGOAT 6 W",
+            "MACH 6", "MACH 6 W",
+            "CLIFTON 10", "CLIFTON 10 W",
+            "CHALLENGER 7 W", "CHALLENGER 7",
+            "MAFATE SPEED 4", "MAFATE SPEED 4 W"
         ]
     }
 
     # Normalisation des tailles
     def normalize_size(size):
         try:
-            # Supprimer les préfixes US et UK pour normaliser
-            size_str = str(size).upper().replace('US', '').replace('UK', '').strip()
+            # Supprimer les préfixes US, UK, EU pour normaliser
+            size_str = str(size).upper().replace('US', '').replace('UK', '').replace('EU', '').strip()
             if '.' in size_str:
                 parts = size_str.split('.')
                 return f"{int(parts[0])}.{parts[1]}"
@@ -476,11 +493,48 @@ def display_specific_designations(df):
         results = []
         for designation in designations:
             df_design = df_filtered[df_filtered['designation'].str.upper() == designation.upper()]
-            is_woman = "W" in designation.upper()
+            is_woman = "W" in designation.upper() or "WOMAN" in designation.upper()
 
-            # Détermination des tailles attendues selon le fournisseur
+            # Détermination des tailles attendues selon le fournisseur et le modèle
+            expected_sizes = []
             if supplier == "SALOMON":
-                # Tailles en UK pour Salomon
+                if "AERO GLIDE 3 GRVL" in designation.upper():
+                    if is_woman:
+                        start, end = 4, 9
+                    else:
+                        start, end = 6, 13
+                else:  # Pour les autres modèles Salomon comme ULTRA GLIDE 3
+                    if is_woman:
+                        start, end = 6, 13
+                    else:
+                        start, end = 4, 9
+                # Génération des tailles UK
+                expected_sizes = []
+                for x in range(start, end + 1):
+                    expected_sizes.append(f"{x}.0")
+                    if x != end:
+                        expected_sizes.append(f"{x}.5")
+            elif supplier == "LA SPORTIVA":
+                if "AKASHA II" in designation.upper():
+                    if is_woman:
+                        start, end = 36, 42
+                    else:
+                        start, end = 40, 48
+                else:
+                    if is_woman:
+                        start, end = 36, 42
+                    else:
+                        start, end = 40, 48
+                # Génération des tailles EU avec pas de 0.5
+                current = start
+                expected_sizes = []
+                while current <= end:
+                    expected_sizes.append(f"{current:.1f}")
+                    current += 0.5
+                    if current > end:
+                        break
+            elif supplier == "MIZUNO":
+                # Tailles UK
                 if is_woman:
                     start, end = 6, 13
                 else:
@@ -490,7 +544,7 @@ def display_specific_designations(df):
                     expected_sizes.append(f"{x}.0")
                     if x != end:
                         expected_sizes.append(f"{x}.5")
-            elif supplier == "NEW BALANCE":
+            elif supplier == "HOKA":
                 expected_sizes = femme_sizes if is_woman else homme_sizes
             else:
                 # Autres fournisseurs (ASICS, BROOKS, SAUCONY)
@@ -511,7 +565,6 @@ def display_specific_designations(df):
             .style.format({'Tailles manquantes': lambda x: x if x else ''})
             .set_properties(**{'text-align': 'left'})
         )
-
 
 #### --- Configuration de l'application Streamlit ---
 st.set_page_config(
