@@ -414,8 +414,8 @@ def display_stock_by_family(df):
 
 
 
-        def display_specific_designations(df):
-    # Dictionnaire des fournisseurs et leurs modèles (trié alphabétiquement)
+    def display_specific_designations(df):
+    
     suppliers = {
         "ASICS": [
             "GEL-CUMULUS 27", "GEL-CUMULUS 27 W", "GEL-TRABUCO 13 GTX",
