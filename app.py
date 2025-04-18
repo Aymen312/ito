@@ -415,7 +415,7 @@ def display_stock_by_family(df):
 
 
     def display_specific_designations(df):
-    
+    # Dictionnaire des fournisseurs et leurs modèles (trié alphabétiquement)
     suppliers = {
         "ASICS": [
             "GEL-CUMULUS 27", "GEL-CUMULUS 27 W", "GEL-TRABUCO 13 GTX",
@@ -472,9 +472,9 @@ def display_stock_by_family(df):
         except:
             return str(size)
 
-    # Menu déroulant pour sélectionner le fournisseur
+    # Menu déroulant principal
     selected_supplier = st.selectbox(
-        "Sélectionnez un fournisseur:",
+        "Choisissez une marque:",
         options=sorted(suppliers.keys()),
         index=0
     )
@@ -483,82 +483,50 @@ def display_stock_by_family(df):
     designations = suppliers[selected_supplier]
     df_filtered = df[df['designation'].str.upper().isin([d.upper() for d in designations])].copy()
     
-    if df_filtered.empty:
-        st.warning(f"Aucune donnée trouvée pour {selected_supplier}")
-        return
+    if not df_filtered.empty:
+        df_filtered['taille_normalisee'] = df_filtered['taille'].apply(normalize_size)
 
-    df_filtered['taille_normalisee'] = df_filtered['taille'].apply(normalize_size)
+        results = []
+        for designation in sorted(designations):
+            df_design = df_filtered[df_filtered['designation'].str.upper() == designation.upper()]
+            is_woman = "W" in designation.upper() or "WOMAN" in designation.upper()
 
-    results = []
-    for designation in sorted(designations):
-        df_design = df_filtered[df_filtered['designation'].str.upper() == designation.upper()]
-        is_woman = "W" in designation.upper() or "WOMAN" in designation.upper()
-
-        # Détermination des tailles attendues
-        if selected_supplier == "SALOMON":
-            if "AERO GLIDE 3 GRVL" in designation.upper():
-                if is_woman:
-                    start, end = 4, 9
+            # Détermination des tailles attendues
+            if selected_supplier == "SALOMON":
+                if "AERO GLIDE 3 GRVL" in designation.upper():
+                    sizes = list(range(4, 10)) if is_woman else list(range(6, 14))
                 else:
-                    start, end = 6, 13
+                    sizes = list(range(6, 14)) if is_woman else list(range(4, 10))
+                expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1]]
+            elif selected_supplier == "LA SPORTIVA":
+                sizes = list(range(36, 43)) if is_woman else list(range(40, 49))
+                expected_sizes = [f"{x/2:.1f}" for x in range(sizes[0]*2, sizes[-1]*2+1)]
+            elif selected_supplier == "MIZUNO":
+                sizes = list(range(6, 14)) if is_woman else list(range(4, 10))
+                expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1]]
             else:
-                if is_woman:
-                    start, end = 6, 13
-                else:
-                    start, end = 4, 9
-            expected_sizes = []
-            for x in range(start, end + 1):
-                expected_sizes.append(f"{x}.0")
-                if x != end:
-                    expected_sizes.append(f"{x}.5")
-        elif selected_supplier == "LA SPORTIVA":
-            if "AKASHA II" in designation.upper():
-                if is_woman:
-                    start, end = 36, 42
-                else:
-                    start, end = 40, 48
-            else:
-                if is_woman:
-                    start, end = 36, 42
-                else:
-                    start, end = 40, 48
-            current = start
-            expected_sizes = []
-            while current <= end:
-                expected_sizes.append(f"{current:.1f}")
-                current += 0.5
-                if current > end:
-                    break
-        elif selected_supplier == "MIZUNO":
-            if is_woman:
-                start, end = 6, 13
-            else:
-                start, end = 4, 9
-            expected_sizes = []
-            for x in range(start, end + 1):
-                expected_sizes.append(f"{x}.0")
-                if x != end:
-                    expected_sizes.append(f"{x}.5")
-        elif selected_supplier == "HOKA":
-            expected_sizes = [f"{x}.0" for x in range(5, 11)] + [f"{x}.5" for x in range(5, 11)] if is_woman else [f"{x}.0" for x in range(7, 15)] + [f"{x}.5" for x in range(7, 15)]
-        else:
-            expected_sizes = [f"{x}.0" for x in range(5, 11)] + [f"{x}.5" for x in range(5, 11)] if is_woman else [f"{x}.0" for x in range(7, 15)] + [f"{x}.5" for x in range(7, 15)]
+                sizes = list(range(5, 11)) if is_woman else list(range(7, 15))
+                expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1]]
 
-        available_sizes = df_design['taille_normalisee'].dropna().unique()
-        missing_sizes = [size for size in expected_sizes if size not in available_sizes]
+            available_sizes = df_design['taille_normalisee'].dropna().unique()
+            missing_sizes = [size for size in expected_sizes if size not in available_sizes]
 
-        results.append({
-            'Modèle': designation,
-            'Tailles manquantes': ", ".join(missing_sizes) if missing_sizes else "Complet"
-        })
+            results.append({
+                'Modèle': designation,
+                'Tailles disponibles': len(available_sizes),
+                'Tailles manquantes': ", ".join(missing_sizes) if missing_senses else "Aucune"
+            })
 
-    # Affichage du tableau
-    st.subheader(selected_supplier)
-    st.dataframe(
-        pd.DataFrame(results)
-        .style.format({'Tailles manquantes': lambda x: x if x else ''})
-        .set_properties(**{'text-align': 'left'})
-    )
+        # Affichage du tableau avec mise en forme
+        st.markdown(f"### 📊 Stock {selected_supplier}")
+        st.dataframe(
+            pd.DataFrame(results)
+            .style.format({'Tailles manquantes': lambda x: x if x != "Aucune" else "✔️ Complet"})
+            .set_properties(**{'text-align': 'left'})
+            .bar(subset=['Tailles disponibles'], color='#5fba7d')
+        )
+    else:
+        st.info(f"Aucun modèle {selected_supplier} trouvé dans les données")
 #### --- Configuration de l'application Streamlit ---
 st.set_page_config(
     page_title="Application d'Analyse TDR",
