@@ -472,47 +472,32 @@ def display_specific_designations(df):
         except:
             return str(size)
 
-    # Style minimaliste noir et blanc
-    st.markdown("""
-    <style>
-    .supplier-btn {
-        display: inline-block;
-        margin: 5px;
-        padding: 12px 20px;
-        background-color: white;
-        color: black;
-        border: 2px solid black;
-        border-radius: 0;
-        cursor: pointer;
-        font-size: 16px;
-        font-weight: bold;
-        transition: all 0.3s;
-        width: 100%;
-        text-align: center;
-    }
-    .supplier-btn:hover {
-        background-color: black;
-        color: white;
-    }
-    .supplier-container {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-        gap: 10px;
-        margin-bottom: 30px;
-    }
-    .stock-table {
-        border: 1px solid #ddd;
-        margin-top: 20px;
-    }
-    .header {
-        font-size: 24px;
-        font-weight: bold;
-        margin-bottom: 20px;
-        text-align: center;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
+    # Style avec une seule couleur pour tous les boutons
+st.markdown("""
+<style>
+.supplier-btn {
+    display: inline-block;
+    margin: 5px;
+    padding: 12px 20px;
+    background-color: #4A90E2;  /* Couleur bleue */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    transition: all 0.3s;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+.supplier-btn:hover {
+    background-color: #357ABD;
+    transform: translateY(-2px);
+}
+/* ... reste du CSS inchangé ... */
+</style>
+""", unsafe_allow_html=True)
     # Titre
     st.markdown('<div class="header">LISTE DES FOURNISSEURS</div>', unsafe_allow_html=True)
 
