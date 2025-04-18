@@ -414,7 +414,9 @@ def display_stock_by_family(df):
 
 
 
-    def display_specific_designations(df):
+
+
+def display_specific_designations(df):
     # Dictionnaire des fournisseurs et leurs modèles (trié alphabétiquement)
     suppliers = {
         "ASICS": [
@@ -514,19 +516,21 @@ def display_stock_by_family(df):
             results.append({
                 'Modèle': designation,
                 'Tailles disponibles': len(available_sizes),
-                'Tailles manquantes': ", ".join(missing_sizes) if missing_senses else "Aucune"
+                'Tailles manquantes': ", ".join(missing_sizes) if missing_sizes else "✔️ Complet"
             })
 
         # Affichage du tableau avec mise en forme
         st.markdown(f"### 📊 Stock {selected_supplier}")
         st.dataframe(
             pd.DataFrame(results)
-            .style.format({'Tailles manquantes': lambda x: x if x != "Aucune" else "✔️ Complet"})
+            .style.format({'Tailles manquantes': lambda x: x})
             .set_properties(**{'text-align': 'left'})
             .bar(subset=['Tailles disponibles'], color='#5fba7d')
         )
     else:
         st.info(f"Aucun modèle {selected_supplier} trouvé dans les données")
+
+   
 #### --- Configuration de l'application Streamlit ---
 st.set_page_config(
     page_title="Application d'Analyse TDR",
