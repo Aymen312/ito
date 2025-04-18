@@ -473,40 +473,6 @@ def display_specific_designations(df):
     # Style minimaliste avec boutons contrastés
     st.markdown("""
     <style>
-    .supplier-btn {
-        display: inline-block;
-        margin: 5px;
-        padding: 12px 20px;
-        background-color: #000000 !important;
-        color: #FFFFFF !important;
-        border: 2px solid #FFFFFF !important;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 16px;
-        font-weight: bold;
-        width: 100%;
-        text-align: center;
-        transition: all 0.3s;
-    }
-    .supplier-btn:hover {
-        background-color: #FFFFFF !important;
-        color: #000000 !important;
-        transform: scale(1.02);
-    }
-    .supplier-container {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-        gap: 12px;
-        margin: 25px 0;
-    }
-    .stock-table {
-        border: 1px solid #000000;
-    }
-    .table-header {
-        background-color: black !important;
-        color: white !important;
-    }
-    /* Style pour les boutons Streamlit */
     div.stButton > button:first-child {
         background-color: #000000;
         color: #FFFFFF;
@@ -515,21 +481,27 @@ def display_specific_designations(df):
         padding: 12px 20px;
         font-weight: bold;
         width: 100%;
+        margin: 5px 0;
+        transition: all 0.3s;
     }
     div.stButton > button:hover {
         background-color: #FFFFFF !important;
         color: #000000 !important;
         border: 2px solid #000000 !important;
+        transform: scale(1.02);
+    }
+    .stock-table {
+        border: 1px solid #000000;
+    }
+    .table-header {
+        background-color: black !important;
+        color: white !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
     # Titre principal
     st.markdown("## LISTE DES FOURNISSEURS")
-
-    # Bouton pour afficher tout le DataFrame
-    if st.button("Afficher tout le stock", key="all_stock"):
-        st.dataframe(df)
 
     # Création des boutons fournisseurs
     cols = st.columns(3)  # 3 colonnes pour organiser les boutons
