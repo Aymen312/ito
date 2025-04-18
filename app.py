@@ -421,39 +421,47 @@ def display_specific_designations(df):
 
     # Dictionnaire des fournisseurs et leurs modèles
     suppliers = {
-    "ASICS": [
-        "GEL-CUMULUS 27", "GEL-CUMULUS 27 W", "GEL-TRABUCO 13 GTX",
-        "GT-2000 13 TR", "GT-2000 13 TR W", "GT-2000 13 W",
-        "MAGIC SPEED 4", "METASPEED EDGE+", "NOVABLAST 5", "NOVABLAST 5 W"
-    ],
+        "ASICS": [
+            "GEL-CUMULUS 27", "GEL-CUMULUS 27 W", "GEL-TRABUCO 13 GTX",
+            "GT-2000 13 TR", "GT-2000 13 TR W", "GT-2000 13 W",
+            "MAGIC SPEED 4", "METASPEED EDGE+", "NOVABLAST 5", "NOVABLAST 5 W"
+        ],
+        "BROOKS": [
+            "CALDERA 8", "CALDERA 8 W", "CASCADIA 18", "CASCADIA 18 GTX",
+            "CASCADIA 18 GTX W", "CASCADIA 18 W", "CASCADIA 18 W",
+            "GHOST 16", "GHOST 16 W", "GHOST MAX 2", "GHOST MAX 2 W",
+            "GLYCERIN 22", "GLYCERIN 22 W", "HYPERION 2", "HYPERION MAX 2"
+        ],
+        "SAUCONY": [
+            "ENDORPHIN PRO 4", "ENDORPHIN SPEED 4", "ENDORPHIN SPEED 4 W",
+            "KINVARA 15", "KINVARA 15 W", "PEREGRINE 15", "PEREGRINE 15 W",
+            "RIDE 18", "RIDE 18 W", "RIDE TR2", "RIDE TR2 W",
+            "TRIUMPH 22", "TRIUMPH 22", "TRIUMPH 22 W",
+            "XODUS 3 ULTRA W", "XODUS ULTRA 3", "XODUS ULTRA 3", "XODUS ULTRA 3 W"
+        ],
+        "NEW BALANCE": [
+            "880 V15", "880 V15 W"
+        ],
+        "SALOMON": [
+            "ULTRA GLIDE 3", "ULTRA GLIDE 3 W"
+        ]
+    }
 
-    "BROOKS": [
-        "CALDERA 8", "CALDERA 8 W", "CASCADIA 18", "CASCADIA 18 GTX",
-        "CASCADIA 18 GTX W", "CASCADIA 18 W", "CASCADIA 18 W",
-        "GHOST 16", "GHOST 16 W", "GHOST MAX 2", "GHOST MAX 2 W",
-        "GLYCERIN 22", "GLYCERIN 22 W", "HYPERION 2", "HYPERION MAX 2"
-    ],
-
-    "SAUCONY": [
-        "ENDORPHIN PRO 4", "ENDORPHIN SPEED 4", "ENDORPHIN SPEED 4 W",
-        "KINVARA 15", "KINVARA 15 W", "PEREGRINE 15", "PEREGRINE 15 W",
-        "RIDE 18", "RIDE 18 W", "RIDE TR2", "RIDE TR2 W",
-        "TRIUMPH 22", "TRIUMPH 22", "TRIUMPH 22 W",
-        "XODUS 3 ULTRA W", "XODUS ULTRA 3", "XODUS ULTRA 3", "XODUS ULTRA 3 W"
-    ]
-}
-
-
-    # Normalisation des **tailles**
+    # Normalisation des tailles
     def normalize_size(size):
         try:
-            size_str = str(size).upper().replace('US', '').strip()
+            # Supprimer les préfixes US et UK pour normaliser
+            size_str = str(size).upper().replace('US', '').replace('UK', '').strip()
             if '.' in size_str:
                 parts = size_str.split('.')
                 return f"{int(parts[0])}.{parts[1]}"
             return str(int(size_str)) if size_str.isdigit() else size_str
         except:
             return str(size)
+
+    # Tailles attendues pour les fournisseurs existants et New Balance
+    homme_sizes = [f"{x}.0" for x in range(7, 15)] + [f"{x}.5" for x in range(7, 15)]
+    femme_sizes = [f"{x}.0" for x in range(5, 11)] + [f"{x}.5" for x in range(5, 11)]
 
     # Traitement pour chaque fournisseur
     for supplier, designations in suppliers.items():
@@ -465,15 +473,28 @@ def display_specific_designations(df):
 
         df_filtered['taille_normalisee'] = df_filtered['taille'].apply(normalize_size)
 
-        # **Tailles** attendues
-        homme_sizes = [f"{x}.0" for x in range(7, 15)] + [f"{x}.5" for x in range(7, 15)]
-        femme_sizes = [f"{x}.0" for x in range(5, 11)] + [f"{x}.5" for x in range(5, 11)]
-
         results = []
         for designation in designations:
             df_design = df_filtered[df_filtered['designation'].str.upper() == designation.upper()]
             is_woman = "W" in designation.upper()
-            expected_sizes = femme_sizes if is_woman else homme_sizes
+
+            # Détermination des tailles attendues selon le fournisseur
+            if supplier == "SALOMON":
+                # Tailles en UK pour Salomon
+                if is_woman:
+                    start, end = 6, 13
+                else:
+                    start, end = 4, 9
+                expected_sizes = []
+                for x in range(start, end + 1):
+                    expected_sizes.append(f"{x}.0")
+                    if x != end:
+                        expected_sizes.append(f"{x}.5")
+            elif supplier == "NEW BALANCE":
+                expected_sizes = femme_sizes if is_woman else homme_sizes
+            else:
+                # Autres fournisseurs (ASICS, BROOKS, SAUCONY)
+                expected_sizes = femme_sizes if is_woman else homme_sizes
 
             available_sizes = df_design['taille_normalisee'].dropna().unique()
             missing_sizes = [size for size in expected_sizes if size not in available_sizes]
