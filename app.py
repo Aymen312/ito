@@ -415,10 +415,7 @@ def display_stock_by_family(df):
 
 
         def display_specific_designations(df):
-    # Vérification des colonnes requises
-    if 'designation' not in df.columns or 'taille' not in df.columns:
-        st.error("Erreur : Le DataFrame doit contenir les colonnes 'designation' et 'taille'")
-        return
+  
 
     # Dictionnaire des fournisseurs et leurs modèles (trié alphabétiquement)
     suppliers = {
