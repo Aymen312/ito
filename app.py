@@ -419,12 +419,13 @@ def display_specific_designations(df):
         st.error("Erreur : Le DataFrame doit contenir les colonnes 'designation' et 'taille'")
         return
 
-    # Dictionnaire des fournisseurs et leurs modèles
+    # Dictionnaire des fournisseurs et leurs modèles (trié alphabétiquement)
     suppliers = {
         "ASICS": [
             "GEL-CUMULUS 27", "GEL-CUMULUS 27 W", "GEL-TRABUCO 13 GTX",
             "GT-2000 13 TR", "GT-2000 13 TR W", "GT-2000 13 W",
-            "MAGIC SPEED 4", "METASPEED EDGE+", "NOVABLAST 5", "NOVABLAST 5 W"
+            "MAGIC SPEED 4", "METASPEED EDGE+", "NOVABLAST 5", "NOVABLAST 5 W",
+            "NOOSA TRI 16", "NOOSA TRI 16 W"  # Ajout des nouveaux modèles
         ],
         "BROOKS": [
             "CALDERA 8", "CALDERA 8 W", "CASCADIA 18", "CASCADIA 18 GTX",
@@ -432,16 +433,12 @@ def display_specific_designations(df):
             "GHOST 16", "GHOST 16 W", "GHOST MAX 2", "GHOST MAX 2 W",
             "GLYCERIN 22", "GLYCERIN 22 W", "HYPERION 2", "HYPERION MAX 2"
         ],
-        "SAUCONY": [
-            "ENDORPHIN PRO 4", "ENDORPHIN SPEED 4", "ENDORPHIN SPEED 4 W",
-            "KINVARA 15", "KINVARA 15 W", "PEREGRINE 15", "PEREGRINE 15 W",
-            "RIDE 18", "RIDE 18 W", "RIDE TR2", "RIDE TR2 W",
-            "TRIUMPH 22", "TRIUMPH 22", "TRIUMPH 22 W",
-            "XODUS 3 ULTRA W", "XODUS ULTRA 3", "XODUS ULTRA 3", "XODUS ULTRA 3 W"
-        ],
-        "SALOMON": [
-            "ULTRA GLIDE 3", "ULTRA GLIDE 3 W",
-            "AERO GLIDE 3 GRVL", "AERO GLIDE 3 GRVL W"
+        "HOKA": [
+            "SPEEDGOAT 6", "SPEEDGOAT 6 W",
+            "MACH 6", "MACH 6 W",
+            "CLIFTON 10", "CLIFTON 10 W",
+            "CHALLENGER 7 W", "CHALLENGER 7",
+            "MAFATE SPEED 4", "MAFATE SPEED 4 W"
         ],
         "LA SPORTIVA": [
             "AKASHA II", "AKASHA II WOMAN",
@@ -455,12 +452,16 @@ def display_specific_designations(df):
             "WAVE RIDER TT 2", "WAVE RIDER TT 2 W",
             "WAVE RIDER 28", "WAVE RIDER 28 W"
         ],
-        "HOKA": [
-            "SPEEDGOAT 6", "SPEEDGOAT 6 W",
-            "MACH 6", "MACH 6 W",
-            "CLIFTON 10", "CLIFTON 10 W",
-            "CHALLENGER 7 W", "CHALLENGER 7",
-            "MAFATE SPEED 4", "MAFATE SPEED 4 W"
+        "SALOMON": [
+            "ULTRA GLIDE 3", "ULTRA GLIDE 3 W",
+            "AERO GLIDE 3 GRVL", "AERO GLIDE 3 GRVL W"
+        ],
+        "SAUCONY": [
+            "ENDORPHIN PRO 4", "ENDORPHIN SPEED 4", "ENDORPHIN SPEED 4 W",
+            "KINVARA 15", "KINVARA 15 W", "PEREGRINE 15", "PEREGRINE 15 W",
+            "RIDE 18", "RIDE 18 W", "RIDE TR2", "RIDE TR2 W",
+            "TRIUMPH 22", "TRIUMPH 22", "TRIUMPH 22 W",
+            "XODUS 3 ULTRA W", "XODUS ULTRA 3", "XODUS ULTRA 3", "XODUS ULTRA 3 W"
         ]
     }
 
@@ -480,8 +481,9 @@ def display_specific_designations(df):
     homme_sizes = [f"{x}.0" for x in range(7, 15)] + [f"{x}.5" for x in range(7, 15)]
     femme_sizes = [f"{x}.0" for x in range(5, 11)] + [f"{x}.5" for x in range(5, 11)]
 
-    # Traitement pour chaque fournisseur
-    for supplier, designations in suppliers.items():
+    # Tri alphabétique des fournisseurs
+    for supplier in sorted(suppliers.keys()):
+        designations = suppliers[supplier]
         df_filtered = df[df['designation'].str.upper().isin([d.upper() for d in designations])].copy()
         
         if df_filtered.empty:
@@ -491,7 +493,7 @@ def display_specific_designations(df):
         df_filtered['taille_normalisee'] = df_filtered['taille'].apply(normalize_size)
 
         results = []
-        for designation in designations:
+        for designation in sorted(designations):  # Tri alphabétique des modèles
             df_design = df_filtered[df_filtered['designation'].str.upper() == designation.upper()]
             is_woman = "W" in designation.upper() or "WOMAN" in designation.upper()
 
@@ -565,7 +567,6 @@ def display_specific_designations(df):
             .style.format({'Tailles manquantes': lambda x: x if x else ''})
             .set_properties(**{'text-align': 'left'})
         )
-
 #### --- Configuration de l'application Streamlit ---
 st.set_page_config(
     page_title="Application d'Analyse TDR",
