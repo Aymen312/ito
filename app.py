@@ -412,10 +412,6 @@ def display_stock_by_family(df):
             st.write(f"Aucune information disponible pour {famille} "
                      f"dans la catégorie {rayon_filter}.")
 
-
-
-
-
 def display_specific_designations(df):
     # Dictionnaire des fournisseurs et leurs modèles
     suppliers = {
@@ -477,9 +473,6 @@ def display_specific_designations(df):
     # Style minimaliste avec boutons contrastés
     st.markdown("""
     <style>
-    body {
-        background-color: #f5f5f5;
-    }
     .supplier-btn {
         display: inline-block;
         margin: 5px;
@@ -513,64 +506,94 @@ def display_specific_designations(df):
         background-color: black !important;
         color: white !important;
     }
+    /* Style pour les boutons Streamlit */
+    div.stButton > button:first-child {
+        background-color: #000000;
+        color: #FFFFFF;
+        border: 2px solid #FFFFFF;
+        border-radius: 4px;
+        padding: 12px 20px;
+        font-weight: bold;
+        width: 100%;
+    }
+    div.stButton > button:hover {
+        background-color: #FFFFFF !important;
+        color: #000000 !important;
+        border: 2px solid #000000 !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
     # Titre principal
     st.markdown("## LISTE DES FOURNISSEURS")
 
-    # Ajout d'un bouton pour afficher tout le DataFrame
-    if st.button("Afficher tout le stock"):
+    # Bouton pour afficher tout le DataFrame
+    if st.button("Afficher tout le stock", key="all_stock"):
         st.dataframe(df)
 
-    # Création des boutons dans un conteneur grid
-    cols = st.columns(3)  # Crée 3 colonnes
+    # Création des boutons fournisseurs
+    cols = st.columns(3)  # 3 colonnes pour organiser les boutons
     for i, supplier in enumerate(sorted(suppliers.keys())):
-        with cols[i % 3]:  # Répartit les boutons sur les 3 colonnes
-            if st.button(supplier):
-                # Traitement des données pour le fournisseur sélectionné
-                designations = suppliers[supplier]
-                df_filtered = df[df['designation'].str.upper().isin([d.upper() for d in designations])].copy()
-                
-                if not df_filtered.empty:
-                    df_filtered['taille_normalisee'] = df_filtered['taille'].apply(normalize_size)
+        with cols[i % 3]:
+            if st.button(supplier, key=f"btn_{supplier}"):
+                selected_supplier = supplier
 
-                    results = []
-                    for designation in sorted(designations):
-                        df_design = df_filtered[df_filtered['designation'].str.upper() == designation.upper()]
-                        is_woman = "W" in designation.upper() or "WOMAN" in designation.upper()
+    # Affichage des résultats si un fournisseur est sélectionné
+    if 'selected_supplier' in locals():
+        supplier = selected_supplier
+        designations = suppliers[supplier]
+        df_filtered = df[df['designation'].str.upper().isin([d.upper() for d in designations])].copy()
+        
+        if not df_filtered.empty:
+            df_filtered['taille_normalisee'] = df_filtered['taille'].apply(normalize_size)
 
-                        # Détermination des tailles attendues
-                        if supplier == "SALOMON":
-                            if "AERO GLIDE 3 GRVL" in designation.upper():
-                                sizes = list(range(4, 10)) if is_woman else list(range(6, 14))
-                            else:
-                                sizes = list(range(6, 14)) if is_woman else list(range(4, 10))
-                            expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1]]
-                        elif supplier == "LA SPORTIVA":
-                            sizes = list(range(36, 43)) if is_woman else list(range(40, 49))
-                            expected_sizes = [f"{x/2:.1f}" for x in range(sizes[0]*2, sizes[-1]*2+1)]
-                        elif supplier == "MIZUNO":
-                            sizes = list(range(6, 14)) if is_woman else list(range(4, 10))
-                            expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1]]
-                        else:
-                            sizes = list(range(5, 11)) if is_woman else list(range(7, 15))
-                            expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1]]
+            results = []
+            for designation in sorted(designations):
+                df_design = df_filtered[df_filtered['designation'].str.upper() == designation.upper()]
+                is_woman = "W" in designation.upper() or "WOMAN" in designation.upper()
 
-                        available_sizes = df_design['taille_normalisee'].dropna().unique()
-                        missing_sizes = [size for size in expected_sizes if size not in available_sizes]
-
-                        results.append({
-                            'Modèle': designation,
-                            'Tailles disponibles': len(available_sizes),
-                            'Tailles manquantes': ", ".join(missing_sizes) if missing_sizes else "Complet"
-                        })
-
-                    # Affichage du tableau
-                    st.markdown(f"**{supplier} - Stock disponible**")
-                    st.dataframe(pd.DataFrame(results))
+                # Détermination des tailles attendues
+                if supplier == "SALOMON":
+                    if "AERO GLIDE 3 GRVL" in designation.upper():
+                        sizes = list(range(4, 10)) if is_woman else list(range(6, 14))
+                    else:
+                        sizes = list(range(6, 14)) if is_woman else list(range(4, 10))
+                    expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1]]
+                elif supplier == "LA SPORTIVA":
+                    sizes = list(range(36, 43)) if is_woman else list(range(40, 49))
+                    expected_sizes = [f"{x/2:.1f}" for x in range(sizes[0]*2, sizes[-1]*2+1)]
+                elif supplier == "MIZUNO":
+                    sizes = list(range(6, 14)) if is_woman else list(range(4, 10))
+                    expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1]]
                 else:
-                    st.warning(f"Aucun modèle {supplier} trouvé dans les données")
+                    sizes = list(range(5, 11)) if is_woman else list(range(7, 15))
+                    expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1]]
+
+                available_sizes = df_design['taille_normalisee'].dropna().unique()
+                missing_sizes = [size for size in expected_sizes if size not in available_sizes]
+
+                results.append({
+                    'Modèle': designation,
+                    'Tailles disponibles': len(available_sizes),
+                    'Tailles manquantes': ", ".join(missing_sizes) if missing_sizes else "Complet"
+                })
+
+            # Affichage du tableau
+            st.markdown(f"**{supplier} - Stock disponible**")
+            st.table(
+                pd.DataFrame(results)
+                .style
+                .set_properties(**{
+                    'text-align': 'left',
+                    'border': '1px solid black'
+                })
+                .set_table_styles([{
+                    'selector': 'th',
+                    'props': [('background-color', 'black'), ('color', 'white')]
+                }])
+            )
+        else:
+            st.warning(f"Aucun modèle {supplier} trouvé dans les données")
 #### --- Configuration de l'application Streamlit ---
 st.set_page_config(
     page_title="Application d'Analyse TDR",
