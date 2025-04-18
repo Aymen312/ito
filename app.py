@@ -414,6 +414,9 @@ def display_stock_by_family(df):
 
 
 
+import streamlit as st
+import pandas as pd
+
 def display_specific_designations(df):
     # Dictionnaire des fournisseurs et leurs modèles
     suppliers = {
@@ -472,136 +475,136 @@ def display_specific_designations(df):
         except:
             return str(size)
 
-    # Style minimaliste noir et blanc avec boutons blancs et texte noir
+    # Style minimaliste avec boutons contrastés
     st.markdown("""
     <style>
+    /* Style des boutons - Contraste maximal */
     .supplier-btn {
         display: inline-block;
         margin: 5px;
         padding: 12px 20px;
-        background-color: white;
-        color: black;
-        border: 2px solid black;
-        border-radius: 0;
+        background-color: #FFFFFF !important;
+        color: #000000 !important;
+        border: 2px solid #000000 !important;
+        border-radius: 4px;
         cursor: pointer;
         font-size: 16px;
         font-weight: bold;
-        transition: all 0.3s;
         width: 100%;
         text-align: center;
+        transition: all 0.3s;
     }
+    
+    /* Effet au survol */
     .supplier-btn:hover {
-        background-color: black;
-        color: white;
+        background-color: #000000 !important;
+        color: #FFFFFF !important;
+        transform: scale(1.02);
     }
+    
+    /* Conteneur responsive */
     .supplier-container {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-        gap: 10px;
-        margin-bottom: 30px;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 12px;
+        margin: 25px 0;
     }
+    
+    /* Style du tableau (noir et blanc) */
     .stock-table {
-        border: 1px solid #ddd;
-        margin-top: 20px;
+        border: 1px solid #000000;
     }
-    .header {
-        font-size: 24px;
-        font-weight: bold;
-        margin-bottom: 20px;
-        text-align: center;
-    }
-    table {
-        border-collapse: collapse;
-        width: 100%;
-    }
-    th, td {
-        border: 1px solid black;
-        padding: 8px;
-        text-align: left;
-    }
-    th {
-        background-color: black;
-        color: white;
-    }
-    tr:nth-child(even) {
-        background-color: #f2f2f2;
+    
+    /* En-têtes tableau */
+    .table-header {
+        background-color: black !important;
+        color: white !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
-    # Titre
-    st.markdown('<div class="header">LISTE DES FOURNISSEURS</div>', unsafe_allow_html=True)
+    # Titre principal
+    st.markdown("## LISTE DES FOURNISSEURS")
 
-    # Conteneur pour les boutons des fournisseurs
-    st.markdown('<div class="supplier-container">', unsafe_allow_html=True)
-    
-    # Créer un état pour suivre le fournisseur sélectionné
-    if 'selected_supplier' not in st.session_state:
-        st.session_state.selected_supplier = None
-    
-    # Afficher les boutons pour chaque fournisseur (texte noir sur fond blanc)
+    # Création des boutons dans un conteneur grid
+    button_html = '<div class="supplier-container">'
     for supplier in sorted(suppliers.keys()):
-        if st.button(supplier, key=f"btn_{supplier}"):
-            st.session_state.selected_supplier = supplier
+        button_html += f'<button class="supplier-btn" onclick="setSupplier(\'{supplier}\')">{supplier}</button>'
+    button_html += '</div>'
     
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown(button_html, unsafe_allow_html=True)
+    
+    # JavaScript pour gérer la sélection
+    st.markdown("""
+    <script>
+    function setSupplier(supplier) {
+        Streamlit.setComponentValue(supplier);
+    }
+    </script>
+    """, unsafe_allow_html=True)
+    
+    # Gestion de la sélection
+    selected_supplier = st.session_state.get('selected_supplier')
+    
+    if not selected_supplier:
+        st.info("Sélectionnez un fournisseur ci-dessus")
+        return
 
-    # Afficher le tableau si un fournisseur est sélectionné
-    if st.session_state.selected_supplier:
-        supplier = st.session_state.selected_supplier
-        designations = suppliers[supplier]
-        df_filtered = df[df['designation'].str.upper().isin([d.upper() for d in designations])].copy()
-        
-        if not df_filtered.empty:
-            df_filtered['taille_normalisee'] = df_filtered['taille'].apply(normalize_size)
+    # Traitement des données pour le fournisseur sélectionné
+    supplier = selected_supplier
+    designations = suppliers[supplier]
+    df_filtered = df[df['designation'].str.upper().isin([d.upper() for d in designations])].copy()
+    
+    if not df_filtered.empty:
+        df_filtered['taille_normalisee'] = df_filtered['taille'].apply(normalize_size)
 
-            results = []
-            for designation in sorted(designations):
-                df_design = df_filtered[df_filtered['designation'].str.upper() == designation.upper()]
-                is_woman = "W" in designation.upper() or "WOMAN" in designation.upper()
+        results = []
+        for designation in sorted(designations):
+            df_design = df_filtered[df_filtered['designation'].str.upper() == designation.upper()]
+            is_woman = "W" in designation.upper() or "WOMAN" in designation.upper()
 
-                # Détermination des tailles attendues
-                if supplier == "SALOMON":
-                    if "AERO GLIDE 3 GRVL" in designation.upper():
-                        sizes = list(range(4, 10)) if is_woman else list(range(6, 14))
-                    else:
-                        sizes = list(range(6, 14)) if is_woman else list(range(4, 10))
-                    expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1]]
-                elif supplier == "LA SPORTIVA":
-                    sizes = list(range(36, 43)) if is_woman else list(range(40, 49))
-                    expected_sizes = [f"{x/2:.1f}" for x in range(sizes[0]*2, sizes[-1]*2+1)]
-                elif supplier == "MIZUNO":
-                    sizes = list(range(6, 14)) if is_woman else list(range(4, 10))
-                    expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1]]
+            # Détermination des tailles attendues
+            if supplier == "SALOMON":
+                if "AERO GLIDE 3 GRVL" in designation.upper():
+                    sizes = list(range(4, 10)) if is_woman else list(range(6, 14))
                 else:
-                    sizes = list(range(5, 11)) if is_woman else list(range(7, 15))
-                    expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1]]
+                    sizes = list(range(6, 14)) if is_woman else list(range(4, 10))
+                expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1]]
+            elif supplier == "LA SPORTIVA":
+                sizes = list(range(36, 43)) if is_woman else list(range(40, 49))
+                expected_sizes = [f"{x/2:.1f}" for x in range(sizes[0]*2, sizes[-1]*2+1)]
+            elif supplier == "MIZUNO":
+                sizes = list(range(6, 14)) if is_woman else list(range(4, 10))
+                expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1]]
+            else:
+                sizes = list(range(5, 11)) if is_woman else list(range(7, 15))
+                expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1]]
 
-                available_sizes = df_design['taille_normalisee'].dropna().unique()
-                missing_sizes = [size for size in expected_sizes if size not in available_sizes]
+            available_sizes = df_design['taille_normalisee'].dropna().unique()
+            missing_sizes = [size for size in expected_sizes if size not in available_sizes]
 
-                results.append({
-                    'Modèle': designation,
-                    'Tailles disponibles': len(available_sizes),
-                    'Tailles manquantes': ", ".join(missing_sizes) if missing_sizes else "Complet"
-                })
+            results.append({
+                'Modèle': designation,
+                'Tailles disponibles': len(available_sizes),
+                'Tailles manquantes': ", ".join(missing_sizes) if missing_sizes else "Complet"
+            })
 
-            # Affichage du tableau avec style noir et blanc
-            st.markdown(f"**{supplier} - Stock disponible**")
-            st.table(
-                pd.DataFrame(results)
-                .style
-                .set_properties(**{
-                    'text-align': 'left',
-                    'border': '1px solid black'
-                })
-                .set_table_styles([{
-                    'selector': 'th',
-                    'props': [('background-color', 'black'), ('color', 'white')]
-                }])
-            )
-        else:
-            st.warning(f"Aucun modèle {supplier} trouvé dans les données")
+        # Affichage du tableau
+        st.markdown(f"**{supplier} - Stock disponible**")
+        st.table(
+            pd.DataFrame(results)
+            .style
+            .set_properties(**{
+                'text-align': 'left',
+                'border': '1px solid black'
+            })
+            .set_table_styles([{
+                'selector': 'th',
+                'props': [('background-color', 'black'), ('color', 'white')]
+            }])
+        )
+    else:
+        st.warning(f"Aucun modèle {supplier} trouvé dans les données")
    
 #### --- Configuration de l'application Streamlit ---
 st.set_page_config(
