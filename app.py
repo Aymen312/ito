@@ -476,51 +476,46 @@ def display_specific_designations(df):
 
     # Style minimaliste avec boutons contrastés
     st.markdown("""
-    <style>
-    /* Style des boutons - Contraste maximal */
-    .supplier-btn {
-        display: inline-block;
-        margin: 5px;
-        padding: 12px 20px;
-        background-color: #FFFFFF !important;
-        color: #000000 !important;
-        border: 2px solid #000000 !important;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 16px;
-        font-weight: bold;
-        width: 100%;
-        text-align: center;
-        transition: all 0.3s;
-    }
-    
-    /* Effet au survol */
-    .supplier-btn:hover {
-        background-color: #000000 !important;
-        color: #FFFFFF !important;
-        transform: scale(1.02);
-    }
-    
-    /* Conteneur responsive */
-    .supplier-container {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-        gap: 12px;
-        margin: 25px 0;
-    }
-    
-    /* Style du tableau (noir et blanc) */
-    .stock-table {
-        border: 1px solid #000000;
-    }
-    
-    /* En-têtes tableau */
-    .table-header {
-        background-color: black !important;
-        color: white !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+<style>
+body {
+    background-color: #f5f5f5;
+}
+.supplier-btn {
+    display: inline-block;
+    margin: 5px;
+    padding: 12px 20px;
+    background-color: #000000 !important;
+    color: #FFFFFF !important;
+    border: 2px solid #FFFFFF !important;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    width: 100%;
+    text-align: center;
+    transition: all 0.3s;
+}
+.supplier-btn:hover {
+    background-color: #FFFFFF !important;
+    color: #000000 !important;
+    transform: scale(1.02);
+}
+.supplier-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+    margin: 25px 0;
+}
+.stock-table {
+    border: 1px solid #000000;
+}
+.table-header {
+    background-color: black !important;
+    color: white !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 
     # Titre principal
     st.markdown("## LISTE DES FOURNISSEURS")
