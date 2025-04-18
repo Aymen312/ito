@@ -414,10 +414,8 @@ def display_stock_by_family(df):
 
 
 
-
-
 def display_specific_designations(df):
-    # Dictionnaire complet des fournisseurs et modèles
+    # Dictionnaire des fournisseurs et leurs modèles
     suppliers = {
         "ASICS": [
             "GEL-CUMULUS 27", "GEL-CUMULUS 27 W", "GEL-TRABUCO 13 GTX",
@@ -463,7 +461,7 @@ def display_specific_designations(df):
         ]
     }
 
-    # Fonction de normalisation des tailles
+    # Normalisation des tailles
     def normalize_size(size):
         try:
             size_str = str(size).upper().replace('US', '').replace('UK', '').replace('EU', '').strip()
@@ -474,31 +472,37 @@ def display_specific_designations(df):
         except:
             return str(size)
 
-    # CSS personnalisé pour l'interface
+    # Style minimaliste noir et blanc
     st.markdown("""
     <style>
     .supplier-btn {
         display: inline-block;
         margin: 5px;
         padding: 12px 20px;
-        background-color: white !important;
-        color: black !important;
-        border: 2px solid black !important;
-        font-weight: bold;
-        font-size: 16px;
-        text-align: center;
-        width: 100%;
+        background-color: white;
+        color: black;
+        border: 2px solid black;
+        border-radius: 0;
         cursor: pointer;
+        font-size: 16px;
+        font-weight: bold;
         transition: all 0.3s;
+        width: 100%;
+        text-align: center;
     }
     .supplier-btn:hover {
-        background-color: #f5f5f5 !important;
+        background-color: black;
+        color: white;
     }
     .supplier-container {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
         gap: 10px;
-        margin-bottom: 20px;
+        margin-bottom: 30px;
+    }
+    .stock-table {
+        border: 1px solid #ddd;
+        margin-top: 20px;
     }
     .header {
         font-size: 24px;
@@ -506,32 +510,27 @@ def display_specific_designations(df):
         margin-bottom: 20px;
         text-align: center;
     }
-    .dataframe {
-        width: 100%;
-    }
     </style>
     """, unsafe_allow_html=True)
 
-    # Titre principal
+    # Titre
     st.markdown('<div class="header">LISTE DES FOURNISSEURS</div>', unsafe_allow_html=True)
 
     # Conteneur pour les boutons des fournisseurs
     st.markdown('<div class="supplier-container">', unsafe_allow_html=True)
     
-    # Initialisation de l'état de sélection
+    # Créer un état pour suivre le fournisseur sélectionné
     if 'selected_supplier' not in st.session_state:
         st.session_state.selected_supplier = None
     
-    # Affichage des boutons fournisseurs
-    cols = st.columns(4)
-    for i, supplier in enumerate(sorted(suppliers.keys())):
-        with cols[i % 4]:
-            if st.button(supplier, key=f"btn_{supplier}"):
-                st.session_state.selected_supplier = supplier
+    # Afficher les boutons pour chaque fournisseur
+    for supplier in sorted(suppliers.keys()):
+        if st.button(supplier, key=f"btn_{supplier}"):
+            st.session_state.selected_supplier = supplier
     
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # Affichage du tableau lorsque un fournisseur est sélectionné
+    # Afficher le tableau si un fournisseur est sélectionné
     if st.session_state.selected_supplier:
         supplier = st.session_state.selected_supplier
         designations = suppliers[supplier]
@@ -568,20 +567,25 @@ def display_specific_designations(df):
                 results.append({
                     'Modèle': designation,
                     'Tailles disponibles': len(available_sizes),
-                    'Tailles manquantes': ", ".join(missing_sizes) if missing_sizes else "✔️ Complet"
+                    'Tailles manquantes': ", ".join(missing_sizes) if missing_sizes else "Complet"
                 })
 
             # Affichage du tableau
-            st.markdown(f"### 📊 Stock {supplier}")
-            st.dataframe(
+            st.markdown(f"**{supplier} - Stock disponible**")
+            st.table(
                 pd.DataFrame(results)
                 .style
-                .set_properties(**{'text-align': 'left'})
-                .bar(subset=['Tailles disponibles'], color='#5fba7d'),
-                use_container_width=True
+                .set_properties(**{
+                    'text-align': 'left',
+                    'border': '1px solid black'
+                })
+                .set_table_styles([{
+                    'selector': 'th',
+                    'props': [('background-color', 'black'), ('color', 'white')]
+                }])
             )
         else:
-            st.warning(f"Aucun modèle {supplier} trouvé dans les données", icon="⚠️")
+            st.warning(f"Aucun modèle {supplier} trouvé dans les données")
 
    
 #### --- Configuration de l'application Streamlit ---
