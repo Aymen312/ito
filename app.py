@@ -415,8 +415,6 @@ def display_stock_by_family(df):
 
 
         def display_specific_designations(df):
-  
-
     # Dictionnaire des fournisseurs et leurs modèles (trié alphabétiquement)
     suppliers = {
         "ASICS": [
