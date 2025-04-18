@@ -413,7 +413,8 @@ def display_stock_by_family(df):
                      f"dans la catégorie {rayon_filter}.")
 
 
-def display_specific_designations(df):
+
+        def display_specific_designations(df):
     # Vérification des colonnes requises
     if 'designation' not in df.columns or 'taille' not in df.columns:
         st.error("Erreur : Le DataFrame doit contenir les colonnes 'designation' et 'taille'")
@@ -425,7 +426,7 @@ def display_specific_designations(df):
             "GEL-CUMULUS 27", "GEL-CUMULUS 27 W", "GEL-TRABUCO 13 GTX",
             "GT-2000 13 TR", "GT-2000 13 TR W", "GT-2000 13 W",
             "MAGIC SPEED 4", "METASPEED EDGE+", "NOVABLAST 5", "NOVABLAST 5 W",
-            "NOOSA TRI 16", "NOOSA TRI 16 W"  # Ajout des nouveaux modèles
+            "NOOSA TRI 16", "NOOSA TRI 16 W"
         ],
         "BROOKS": [
             "CALDERA 8", "CALDERA 8 W", "CASCADIA 18", "CASCADIA 18 GTX",
@@ -468,7 +469,6 @@ def display_specific_designations(df):
     # Normalisation des tailles
     def normalize_size(size):
         try:
-            # Supprimer les préfixes US, UK, EU pour normaliser
             size_str = str(size).upper().replace('US', '').replace('UK', '').replace('EU', '').strip()
             if '.' in size_str:
                 parts = size_str.split('.')
@@ -477,96 +477,93 @@ def display_specific_designations(df):
         except:
             return str(size)
 
-    # Tailles attendues pour les fournisseurs existants et New Balance
-    homme_sizes = [f"{x}.0" for x in range(7, 15)] + [f"{x}.5" for x in range(7, 15)]
-    femme_sizes = [f"{x}.0" for x in range(5, 11)] + [f"{x}.5" for x in range(5, 11)]
+    # Menu déroulant pour sélectionner le fournisseur
+    selected_supplier = st.selectbox(
+        "Sélectionnez un fournisseur:",
+        options=sorted(suppliers.keys()),
+        index=0
+    )
 
-    # Tri alphabétique des fournisseurs
-    for supplier in sorted(suppliers.keys()):
-        designations = suppliers[supplier]
-        df_filtered = df[df['designation'].str.upper().isin([d.upper() for d in designations])].copy()
-        
-        if df_filtered.empty:
-            st.warning(f"Aucune donnée trouvée pour {supplier}")
-            continue
+    # Traitement pour le fournisseur sélectionné
+    designations = suppliers[selected_supplier]
+    df_filtered = df[df['designation'].str.upper().isin([d.upper() for d in designations])].copy()
+    
+    if df_filtered.empty:
+        st.warning(f"Aucune donnée trouvée pour {selected_supplier}")
+        return
 
-        df_filtered['taille_normalisee'] = df_filtered['taille'].apply(normalize_size)
+    df_filtered['taille_normalisee'] = df_filtered['taille'].apply(normalize_size)
 
-        results = []
-        for designation in sorted(designations):  # Tri alphabétique des modèles
-            df_design = df_filtered[df_filtered['designation'].str.upper() == designation.upper()]
-            is_woman = "W" in designation.upper() or "WOMAN" in designation.upper()
+    results = []
+    for designation in sorted(designations):
+        df_design = df_filtered[df_filtered['designation'].str.upper() == designation.upper()]
+        is_woman = "W" in designation.upper() or "WOMAN" in designation.upper()
 
-            # Détermination des tailles attendues selon le fournisseur et le modèle
-            expected_sizes = []
-            if supplier == "SALOMON":
-                if "AERO GLIDE 3 GRVL" in designation.upper():
-                    if is_woman:
-                        start, end = 4, 9
-                    else:
-                        start, end = 6, 13
-                else:  # Pour les autres modèles Salomon comme ULTRA GLIDE 3
-                    if is_woman:
-                        start, end = 6, 13
-                    else:
-                        start, end = 4, 9
-                # Génération des tailles UK
-                expected_sizes = []
-                for x in range(start, end + 1):
-                    expected_sizes.append(f"{x}.0")
-                    if x != end:
-                        expected_sizes.append(f"{x}.5")
-            elif supplier == "LA SPORTIVA":
-                if "AKASHA II" in designation.upper():
-                    if is_woman:
-                        start, end = 36, 42
-                    else:
-                        start, end = 40, 48
+        # Détermination des tailles attendues
+        if selected_supplier == "SALOMON":
+            if "AERO GLIDE 3 GRVL" in designation.upper():
+                if is_woman:
+                    start, end = 4, 9
                 else:
-                    if is_woman:
-                        start, end = 36, 42
-                    else:
-                        start, end = 40, 48
-                # Génération des tailles EU avec pas de 0.5
-                current = start
-                expected_sizes = []
-                while current <= end:
-                    expected_sizes.append(f"{current:.1f}")
-                    current += 0.5
-                    if current > end:
-                        break
-            elif supplier == "MIZUNO":
-                # Tailles UK
+                    start, end = 6, 13
+            else:
                 if is_woman:
                     start, end = 6, 13
                 else:
                     start, end = 4, 9
-                expected_sizes = []
-                for x in range(start, end + 1):
-                    expected_sizes.append(f"{x}.0")
-                    if x != end:
-                        expected_sizes.append(f"{x}.5")
-            elif supplier == "HOKA":
-                expected_sizes = femme_sizes if is_woman else homme_sizes
+            expected_sizes = []
+            for x in range(start, end + 1):
+                expected_sizes.append(f"{x}.0")
+                if x != end:
+                    expected_sizes.append(f"{x}.5")
+        elif selected_supplier == "LA SPORTIVA":
+            if "AKASHA II" in designation.upper():
+                if is_woman:
+                    start, end = 36, 42
+                else:
+                    start, end = 40, 48
             else:
-                # Autres fournisseurs (ASICS, BROOKS, SAUCONY)
-                expected_sizes = femme_sizes if is_woman else homme_sizes
+                if is_woman:
+                    start, end = 36, 42
+                else:
+                    start, end = 40, 48
+            current = start
+            expected_sizes = []
+            while current <= end:
+                expected_sizes.append(f"{current:.1f}")
+                current += 0.5
+                if current > end:
+                    break
+        elif selected_supplier == "MIZUNO":
+            if is_woman:
+                start, end = 6, 13
+            else:
+                start, end = 4, 9
+            expected_sizes = []
+            for x in range(start, end + 1):
+                expected_sizes.append(f"{x}.0")
+                if x != end:
+                    expected_sizes.append(f"{x}.5")
+        elif selected_supplier == "HOKA":
+            expected_sizes = [f"{x}.0" for x in range(5, 11)] + [f"{x}.5" for x in range(5, 11)] if is_woman else [f"{x}.0" for x in range(7, 15)] + [f"{x}.5" for x in range(7, 15)]
+        else:
+            expected_sizes = [f"{x}.0" for x in range(5, 11)] + [f"{x}.5" for x in range(5, 11)] if is_woman else [f"{x}.0" for x in range(7, 15)] + [f"{x}.5" for x in range(7, 15)]
 
-            available_sizes = df_design['taille_normalisee'].dropna().unique()
-            missing_sizes = [size for size in expected_sizes if size not in available_sizes]
+        available_sizes = df_design['taille_normalisee'].dropna().unique()
+        missing_sizes = [size for size in expected_sizes if size not in available_sizes]
 
-            results.append({
-                'Modèle': designation,
-                'Tailles manquantes': ", ".join(missing_sizes) if missing_sizes else "Complet"
-            })
+        results.append({
+            'Modèle': designation,
+            'Tailles manquantes': ", ".join(missing_sizes) if missing_sizes else "Complet"
+        })
 
-        # Affichage du tableau
-        st.subheader(supplier)
-        st.dataframe(
-            pd.DataFrame(results)
-            .style.format({'Tailles manquantes': lambda x: x if x else ''})
-            .set_properties(**{'text-align': 'left'})
-        )
+    # Affichage du tableau
+    st.subheader(selected_supplier)
+    st.dataframe(
+        pd.DataFrame(results)
+        .style.format({'Tailles manquantes': lambda x: x if x else ''})
+        .set_properties(**{'text-align': 'left'})
+    )
 #### --- Configuration de l'application Streamlit ---
 st.set_page_config(
     page_title="Application d'Analyse TDR",
