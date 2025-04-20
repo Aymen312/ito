@@ -8,3 +8,6 @@ LinearRegression
 reportlab
 PyMuPDF
 PyPDF2
+dataframe-image
+xlsxwriter
+pillow
