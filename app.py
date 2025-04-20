@@ -491,7 +491,6 @@ def display_specific_designations(df):
         background-color: #FFFFFF !important;
         color: #000000 !important;
         border: 2px solid #000000 !important;
-        transform: scale(1.02);
     }
     .stock-table {
         border: 1px solid #000000;
@@ -500,10 +499,14 @@ def display_specific_designations(df):
         background-color: black !important;
         color: white !important;
     }
-    .export-buttons {
-        display: flex;
-        gap: 10px;
-        margin-top: 20px;
+    .export-btn {
+        background-color: #4CAF50 !important;
+        color: white !important;
+        border: none !important;
+        margin-top: 10px !important;
+    }
+    .export-btn:hover {
+        background-color: #45a049 !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -512,15 +515,15 @@ def display_specific_designations(df):
     st.markdown("## LISTE DES FOURNISSEURS")
 
     # Création des boutons fournisseurs
-    cols = st.columns(3)  # 3 colonnes pour organiser les boutons
+    cols = st.columns(3)
     for i, supplier in enumerate(sorted(suppliers.keys())):
         with cols[i % 3]:
             if st.button(supplier, key=f"btn_{supplier}"):
-                selected_supplier = supplier
+                st.session_state.selected_supplier = supplier
 
     # Affichage des résultats si un fournisseur est sélectionné
-    if 'selected_supplier' in locals():
-        supplier = selected_supplier
+    if 'selected_supplier' in st.session_state:
+        supplier = st.session_state.selected_supplier
         designations = suppliers[supplier]
         df_filtered = df[df['designation'].str.upper().isin([d.upper() for d in designations])].copy()
         
@@ -565,7 +568,7 @@ def display_specific_designations(df):
             results_df = pd.DataFrame(results)
             
             # Affichage du tableau
-            st.markdown(f"**{supplier} - Stock disponible**")
+            st.markdown(f"### {supplier} - Stock disponible")
             st.table(
                 results_df.style
                 .set_properties(**{
@@ -579,42 +582,59 @@ def display_specific_designations(df):
             )
             
             # Boutons d'export
+            st.markdown("---")
+            st.markdown("### Options d'export")
+            
             col1, col2 = st.columns(2)
+            
             with col1:
-                if st.button("📷 Exporter en PNG", key=f"export_png_{supplier}"):
-                    import io
-                    from PIL import Image
-                    import dataframe_image as dfi
-                    
-                    # Sauvegarder le DataFrame en image
-                    img_path = f"{supplier}_stock.png"
-                    dfi.export(results_df.style
-                              .set_properties(**{'text-align': 'left', 'border': '1px solid black'})
-                              .set_table_styles([{'selector': 'th', 'props': [('background-color', 'black'), ('color', 'white')]}),
-                              img_path)
-                    
-                    # Lire et afficher l'image
-                    img = Image.open(img_path)
-                    buf = io.BytesIO()
-                    img.save(buf, format="PNG")
-                    st.download_button(
-                        label="⬇ Télécharger l'image",
-                        data=buf.getvalue(),
-                        file_name=img_path,
-                        mime="image/png"
-                    )
+                # Export PNG
+                if st.button("📷 Exporter en image (PNG)", key=f"export_png_{supplier}", 
+                            help="Télécharger le tableau au format image PNG"):
+                    try:
+                        import io
+                        from PIL import Image
+                        import dataframe_image as dfi
+                        
+                        # Configure le style pour l'export
+                        styled_df = results_df.style\
+                            .set_properties(**{'text-align': 'left', 'border': '1px solid black'})\
+                            .set_table_styles([{'selector': 'th', 
+                                              'props': [('background-color', 'black'), 
+                                                        ('color', 'white')]}])
+                        
+                        # Export en image
+                        img_path = f"{supplier}_stock.png"
+                        dfi.export(styled_df, img_path)
+                        
+                        # Lire et proposer le téléchargement
+                        with open(img_path, "rb") as file:
+                            btn = st.download_button(
+                                label="⬇ Télécharger l'image PNG",
+                                data=file,
+                                file_name=img_path,
+                                mime="image/png"
+                            )
+                    except Exception as e:
+                        st.error(f"Erreur lors de l'export PNG: {str(e)}")
             
             with col2:
-                if st.button("📊 Exporter en Excel", key=f"export_excel_{supplier}"):
-                    output = io.BytesIO()
-                    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                        results_df.to_excel(writer, sheet_name=f"{supplier}_Stock", index=False)
-                    st.download_button(
-                        label="⬇ Télécharger Excel",
-                        data=output.getvalue(),
-                        file_name=f"{supplier}_stock.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                    )
+                # Export Excel
+                if st.button("📊 Exporter en Excel (XLSX)", key=f"export_excel_{supplier}", 
+                            help="Télécharger le tableau au format Excel"):
+                    try:
+                        output = io.BytesIO()
+                        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                            results_df.to_excel(writer, sheet_name=f"{supplier}_Stock", index=False)
+                        
+                        st.download_button(
+                            label="⬇ Télécharger le fichier Excel",
+                            data=output.getvalue(),
+                            file_name=f"{supplier}_stock.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        )
+                    except Exception as e:
+                        st.error(f"Erreur lors de l'export Excel: {str(e)}")
         else:
             st.warning(f"Aucun modèle {supplier} trouvé dans les données")
 #### --- Configuration de l'application Streamlit ---
