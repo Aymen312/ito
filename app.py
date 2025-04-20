@@ -419,7 +419,7 @@ def display_specific_designations(df):
             "GEL-CUMULUS 27", "GEL-CUMULUS 27 W", "GEL-TRABUCO 13 GTX",
             "GT-2000 13 TR", "GT-2000 13 TR W", "GT-2000 13 W",
             "MAGIC SPEED 4", "METASPEED EDGE+", "NOVABLAST 5", "NOVABLAST 5 W",
-            "NOOSA TRI 16", "NOOSA TRI 16 W"
+            "NOOSA TRI 16", "NOOSA TRI 16 W", "GEL-NIMBUS 27", "GEL-NIMBUS 27 W"
         ],
         "BROOKS": [
             "CALDERA 8", "CALDERA 8 W", "CASCADIA 18", "CASCADIA 18 GTX",
@@ -445,6 +445,9 @@ def display_specific_designations(df):
             "WAVE DAICHI 9", "WAVE DAICHI 9 W",
             "WAVE RIDER TT 2", "WAVE RIDER TT 2 W",
             "WAVE RIDER 28", "WAVE RIDER 28 W"
+        ],
+        "NEW BALANCE": [
+            "880 V15", "880 V15 W"
         ],
         "SALOMON": [
             "ULTRA GLIDE 3", "ULTRA GLIDE 3 W",
@@ -497,6 +500,11 @@ def display_specific_designations(df):
         background-color: black !important;
         color: white !important;
     }
+    .export-buttons {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -537,6 +545,9 @@ def display_specific_designations(df):
                 elif supplier == "MIZUNO":
                     sizes = list(range(6, 14)) if is_woman else list(range(4, 10))
                     expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1]]
+                elif supplier == "NEW BALANCE":
+                    sizes = list(range(5, 11)) if is_woman else list(range(7, 15))
+                    expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1]]
                 else:
                     sizes = list(range(5, 11)) if is_woman else list(range(7, 15))
                     expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1]]
@@ -550,11 +561,13 @@ def display_specific_designations(df):
                     'Tailles manquantes': ", ".join(missing_sizes) if missing_sizes else "Complet"
                 })
 
+            # Création du DataFrame de résultats
+            results_df = pd.DataFrame(results)
+            
             # Affichage du tableau
             st.markdown(f"**{supplier} - Stock disponible**")
             st.table(
-                pd.DataFrame(results)
-                .style
+                results_df.style
                 .set_properties(**{
                     'text-align': 'left',
                     'border': '1px solid black'
@@ -564,6 +577,44 @@ def display_specific_designations(df):
                     'props': [('background-color', 'black'), ('color', 'white')]
                 }])
             )
+            
+            # Boutons d'export
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("📷 Exporter en PNG", key=f"export_png_{supplier}"):
+                    import io
+                    from PIL import Image
+                    import dataframe_image as dfi
+                    
+                    # Sauvegarder le DataFrame en image
+                    img_path = f"{supplier}_stock.png"
+                    dfi.export(results_df.style
+                              .set_properties(**{'text-align': 'left', 'border': '1px solid black'})
+                              .set_table_styles([{'selector': 'th', 'props': [('background-color', 'black'), ('color', 'white')]}),
+                              img_path)
+                    
+                    # Lire et afficher l'image
+                    img = Image.open(img_path)
+                    buf = io.BytesIO()
+                    img.save(buf, format="PNG")
+                    st.download_button(
+                        label="⬇ Télécharger l'image",
+                        data=buf.getvalue(),
+                        file_name=img_path,
+                        mime="image/png"
+                    )
+            
+            with col2:
+                if st.button("📊 Exporter en Excel", key=f"export_excel_{supplier}"):
+                    output = io.BytesIO()
+                    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                        results_df.to_excel(writer, sheet_name=f"{supplier}_Stock", index=False)
+                    st.download_button(
+                        label="⬇ Télécharger Excel",
+                        data=output.getvalue(),
+                        file_name=f"{supplier}_stock.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    )
         else:
             st.warning(f"Aucun modèle {supplier} trouvé dans les données")
 #### --- Configuration de l'application Streamlit ---
