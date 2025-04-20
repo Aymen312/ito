@@ -588,41 +588,10 @@ def display_specific_designations(df):
             col1, col2 = st.columns(2)
             
             with col1:
-                # Export PNG
-                if st.button("📷 Exporter en image (PNG)", key=f"export_png_{supplier}", 
-                            help="Télécharger le tableau au format image PNG"):
+                # Export Excel
+                if st.button("📊 Exporter en Excel (XLSX)", key=f"export_excel_{supplier}"):
                     try:
                         import io
-                        from PIL import Image
-                        import dataframe_image as dfi
-                        
-                        # Configure le style pour l'export
-                        styled_df = results_df.style\
-                            .set_properties(**{'text-align': 'left', 'border': '1px solid black'})\
-                            .set_table_styles([{'selector': 'th', 
-                                              'props': [('background-color', 'black'), 
-                                                        ('color', 'white')]}])
-                        
-                        # Export en image
-                        img_path = f"{supplier}_stock.png"
-                        dfi.export(styled_df, img_path)
-                        
-                        # Lire et proposer le téléchargement
-                        with open(img_path, "rb") as file:
-                            btn = st.download_button(
-                                label="⬇ Télécharger l'image PNG",
-                                data=file,
-                                file_name=img_path,
-                                mime="image/png"
-                            )
-                    except Exception as e:
-                        st.error(f"Erreur lors de l'export PNG: {str(e)}")
-            
-            with col2:
-                # Export Excel
-                if st.button("📊 Exporter en Excel (XLSX)", key=f"export_excel_{supplier}", 
-                            help="Télécharger le tableau au format Excel"):
-                    try:
                         output = io.BytesIO()
                         with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
                             results_df.to_excel(writer, sheet_name=f"{supplier}_Stock", index=False)
@@ -635,8 +604,21 @@ def display_specific_designations(df):
                         )
                     except Exception as e:
                         st.error(f"Erreur lors de l'export Excel: {str(e)}")
-        else:
-            st.warning(f"Aucun modèle {supplier} trouvé dans les données")
+                        st.info("Assurez-vous que le module xlsxwriter est installé: pip install xlsxwriter")
+            
+            with col2:
+                # Export CSV comme alternative à PNG
+                if st.button("📄 Exporter en CSV", key=f"export_csv_{supplier}"):
+                    try:
+                        csv = results_df.to_csv(index=False, sep=';')
+                        st.download_button(
+                            label="⬇ Télécharger le fichier CSV",
+                            data=csv,
+                            file_name=f"{supplier}_stock.csv",
+                            mime="text/csv"
+                        )
+                    except Exception as e:
+                        st.error(f"Erreur lors de l'export CSV: {str(e)}")
 #### --- Configuration de l'application Streamlit ---
 st.set_page_config(
     page_title="Application d'Analyse TDR",
