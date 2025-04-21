@@ -447,7 +447,8 @@ def display_specific_designations(df):
             "WAVE RIDER 28", "WAVE RIDER 28 W"
         ],
         "NEW BALANCE": [
-            "880 V15", "880 V15 W"
+            "880 V15", "880 V15 W",
+            "FUELCELL REBEL"  # Added FUELCELL REBEL model
         ],
         "SALOMON": [
             "ULTRA GLIDE 3", "ULTRA GLIDE 3 W",
@@ -549,12 +550,15 @@ def display_specific_designations(df):
                     sizes = list(range(6, 14)) if is_woman else list(range(4, 10))
                     expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1]]
                 elif supplier == "NEW BALANCE":
-                    sizes = list(range(5, 11)) if is_woman else list(range(7, 15))
-                    # Remove 13.5 and 14.5 from expected sizes
-                    expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1] and x < 13]
+                    if "FUELCELL REBEL" in designation.upper():
+                        # Special size range for FUELCELL REBEL (7-14)
+                        sizes = list(range(7, 15))
+                        expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1] and x < 13]
+                    else:
+                        sizes = list(range(5, 11)) if is_woman else list(range(7, 15))
+                        expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1] and x < 13]
                 else:
                     sizes = list(range(5, 11)) if is_woman else list(range(7, 15))
-                    # Remove 13.5 and 14.5 from expected sizes
                     expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1] and x < 13]
 
                 available_sizes = df_design['taille_normalisee'].dropna().unique()
