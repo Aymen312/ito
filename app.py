@@ -415,12 +415,12 @@ def display_stock_by_family(df):
 def display_specific_designations(df):
     # Dictionnaire des fournisseurs et leurs modèles
     suppliers = {
-        "ASICS": [
-            "GEL-CUMULUS 27", "GEL-CUMULUS 27 W", "GEL-TRABUCO 13 GTX",
-            "GT-2000 13 TR", "GT-2000 13 TR W", "GT-2000 13 W",
-            "MAGIC SPEED 4", "METASPEED EDGE+", "NOVABLAST 5", "NOVABLAST 5 W",
-            "NOOSA TRI 16", "NOOSA TRI 16 W", "GEL-NIMBUS 27", "GEL-NIMBUS 27 W"
-        ],
+    "ASICS": [
+        "GEL-CUMULUS 27", "GEL-CUMULUS 27 W", "GEL-TRABUCO 13 GTX", "GEL-TRABUCO 13 GTX W",
+        "GT-2000 13 TR", "GT-2000 13 TR W", "GT-2000 13 W",
+        "MAGIC SPEED 4", "METASPEED EDGE+", "NOVABLAST 5", "NOVABLAST 5 W",
+        "NOOSA TRI 16", "NOOSA TRI 16 W", "GEL-NIMBUS 27", "GEL-NIMBUS 27 W"
+    ],
         "BROOKS": [
             "CALDERA 8", "CALDERA 8 W", "CASCADIA 18", "CASCADIA 18 GTX",
             "CASCADIA 18 GTX W", "CASCADIA 18 W", "CASCADIA 18 W",
