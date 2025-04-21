@@ -550,10 +550,12 @@ def display_specific_designations(df):
                     expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1]]
                 elif supplier == "NEW BALANCE":
                     sizes = list(range(5, 11)) if is_woman else list(range(7, 15))
-                    expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1]]
+                    # Remove 13.5 and 14.5 from expected sizes
+                    expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1] and x < 13]
                 else:
                     sizes = list(range(5, 11)) if is_woman else list(range(7, 15))
-                    expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1]]
+                    # Remove 13.5 and 14.5 from expected sizes
+                    expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1] and x < 13]
 
                 available_sizes = df_design['taille_normalisee'].dropna().unique()
                 missing_sizes = [size for size in expected_sizes if size not in available_sizes]
