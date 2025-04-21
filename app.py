@@ -413,22 +413,25 @@ def display_stock_by_family(df):
                      f"dans la catégorie {rayon_filter}.")
 
 def display_specific_designations(df):
+    # Dictionnaire des fournisseurs et leurs modèles
     suppliers = {
         "ASICS": [
-            "GEL-CUMULUS 27", "GEL-CUMULUS 27 W", "GEL-TRABUCO 13 GTX", "GEL-TRABUCO 13 GTX W",
+            "GEL-CUMULUS 27", "GEL-CUMULUS 27 W", "GEL-TRABUCO 13 GTX",
             "GT-2000 13 TR", "GT-2000 13 TR W", "GT-2000 13 W",
             "MAGIC SPEED 4", "METASPEED EDGE+", "NOVABLAST 5", "NOVABLAST 5 W",
             "NOOSA TRI 16", "NOOSA TRI 16 W", "GEL-NIMBUS 27", "GEL-NIMBUS 27 W"
         ],
         "BROOKS": [
             "CALDERA 8", "CALDERA 8 W", "CASCADIA 18", "CASCADIA 18 GTX",
-            "CASCADIA 18 GTX W", "CASCADIA 18 W", "GHOST 16", "GHOST 16 W",
-            "GHOST MAX 2", "GHOST MAX 2 W", "GLYCERIN 22", "GLYCERIN 22 W",
-            "HYPERION 2", "HYPERION MAX 2"
+            "CASCADIA 18 GTX W", "CASCADIA 18 W", "CASCADIA 18 W",
+            "GHOST 16", "GHOST 16 W", "GHOST MAX 2", "GHOST MAX 2 W",
+            "GLYCERIN 22", "GLYCERIN 22 W", "HYPERION 2", "HYPERION MAX 2"
         ],
         "HOKA": [
-            "SPEEDGOAT 6", "SPEEDGOAT 6 W", "MACH 6", "MACH 6 W",
-            "CLIFTON 10", "CLIFTON 10 W", "CHALLENGER 7 W", "CHALLENGER 7",
+            "SPEEDGOAT 6", "SPEEDGOAT 6 W",
+            "MACH 6", "MACH 6 W",
+            "CLIFTON 10", "CLIFTON 10 W",
+            "CHALLENGER 7 W", "CHALLENGER 7",
             "MAFATE SPEED 4", "MAFATE SPEED 4 W"
         ],
         "LA SPORTIVA": [
@@ -444,7 +447,8 @@ def display_specific_designations(df):
             "WAVE RIDER 28", "WAVE RIDER 28 W"
         ],
         "NEW BALANCE": [
-            "880 V15", "880 V15 W", "FUELCELL REBEL"
+            "880 V15", "880 V15 W",
+            "FUELCELL REBEL"
         ],
         "SALOMON": [
             "ULTRA GLIDE 3", "ULTRA GLIDE 3 W",
@@ -454,14 +458,15 @@ def display_specific_designations(df):
             "ENDORPHIN PRO 4", "ENDORPHIN SPEED 4", "ENDORPHIN SPEED 4 W",
             "KINVARA 15", "KINVARA 15 W", "PEREGRINE 15", "PEREGRINE 15 W",
             "RIDE 18", "RIDE 18 W", "RIDE TR2", "RIDE TR2 W",
-            "TRIUMPH 22", "TRIUMPH 22 W",
-            "XODUS 3 ULTRA W", "XODUS ULTRA 3", "XODUS ULTRA 3 W"
+            "TRIUMPH 22", "TRIUMPH 22", "TRIUMPH 22 W",
+            "XODUS 3 ULTRA W", "XODUS ULTRA 3", "XODUS ULTRA 3", "XODUS ULTRA 3 W"
         ]
     }
 
+    # Normalisation des tailles
     def normalize_size(size):
         try:
-            size_str = str(size).upper().replace('US','').replace('UK','').replace('EU','').strip()
+            size_str = str(size).upper().replace('US', '').replace('UK', '').replace('EU', '').strip()
             if '.' in size_str:
                 parts = size_str.split('.')
                 return f"{int(parts[0])}.{parts[1]}"
@@ -469,6 +474,7 @@ def display_specific_designations(df):
         except:
             return str(size)
 
+    # Style minimaliste avec boutons contrastés
     st.markdown("""
     <style>
     div.stButton > button:first-child {
@@ -487,20 +493,36 @@ def display_specific_designations(df):
         color: #000000 !important;
         border: 2px solid #000000 !important;
     }
-    .stock-table { border: 1px solid #000000; }
-    .table-header { background-color: black !important; color: white !important; }
-    .export-btn { background-color: #4CAF50 !important; color: white !important; border: none !important; margin-top: 10px !important; }
-    .export-btn:hover { background-color: #45a049 !important; }
+    .stock-table {
+        border: 1px solid #000000;
+    }
+    .table-header {
+        background-color: black !important;
+        color: white !important;
+    }
+    .export-btn {
+        background-color: #4CAF50 !important;
+        color: white !important;
+        border: none !important;
+        margin-top: 10px !important;
+    }
+    .export-btn:hover {
+        background-color: #45a049 !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
+    # Titre principal
     st.markdown("## LISTE DES FOURNISSEURS")
+
+    # Création des boutons fournisseurs
     cols = st.columns(3)
     for i, supplier in enumerate(sorted(suppliers.keys())):
         with cols[i % 3]:
             if st.button(supplier, key=f"btn_{supplier}"):
                 st.session_state.selected_supplier = supplier
 
+    # Affichage des résultats si un fournisseur est sélectionné
     if 'selected_supplier' in st.session_state:
         supplier = st.session_state.selected_supplier
         designations = suppliers[supplier]
@@ -512,8 +534,15 @@ def display_specific_designations(df):
             results = []
             for designation in sorted(designations):
                 df_design = df_filtered[df_filtered['designation'].str.upper() == designation.upper()]
-                is_woman = "W" in designation.upper() or "WOMAN" in designation.upper()
+                
+                # Détection homme/femme basée sur la colonne 'rayon' si elle existe
+                if 'rayon' in df_design.columns:
+                    is_woman = (df_design['rayon'].str.upper() == 'FEMME').any()
+                else:
+                    # Fallback sur l'ancienne méthode si colonne rayon n'existe pas
+                    is_woman = "W" in designation.upper() or "WOMAN" in designation.upper()
 
+                # Détermination des tailles attendues
                 if supplier == "SALOMON":
                     if "AERO GLIDE 3 GRVL" in designation.upper():
                         sizes = list(range(4, 10)) if is_woman else list(range(6, 14))
@@ -540,34 +569,67 @@ def display_specific_designations(df):
                 available_sizes = df_design['taille_normalisee'].dropna().unique()
                 missing_sizes = [size for size in expected_sizes if size not in available_sizes]
 
+                # Ajout de la catégorie (homme/femme) dans les résultats
+                category = "Femme" if is_woman else "Homme"
                 results.append({
-                    'Modèle': designation,
+                    'Modèle': f"{designation} ({category})",
                     'Tailles disponibles': len(available_sizes),
                     'Tailles manquantes': ", ".join(missing_sizes) if missing_sizes else "Complet"
                 })
 
+            # Création du DataFrame de résultats
             results_df = pd.DataFrame(results)
-            st.markdown(f"### {supplier} - Stock disponible")
-            st.table(results_df.style.set_properties(**{'text-align':'left','border':'1px solid black'}).set_table_styles([{'selector':'th','props':[('background-color','black'),('color','white')]}]))
             
+            # Affichage du tableau
+            st.markdown(f"### {supplier} - Stock disponible")
+            st.table(
+                results_df.style
+                .set_properties(**{
+                    'text-align': 'left',
+                    'border': '1px solid black'
+                })
+                .set_table_styles([{
+                    'selector': 'th',
+                    'props': [('background-color', 'black'), ('color', 'white')]
+                }])
+            )
+            
+            # Boutons d'export
             st.markdown("---")
             st.markdown("### Options d'export")
+            
             col1, col2 = st.columns(2)
+            
             with col1:
+                # Export Excel
                 if st.button("📊 Exporter en Excel (XLSX)", key=f"export_excel_{supplier}"):
                     try:
                         import io
                         output = io.BytesIO()
                         with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
                             results_df.to_excel(writer, sheet_name=f"{supplier}_Stock", index=False)
-                        st.download_button(label="⬇ Télécharger le fichier Excel",data=output.getvalue(),file_name=f"{supplier}_stock.xlsx",mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                        
+                        st.download_button(
+                            label="⬇ Télécharger le fichier Excel",
+                            data=output.getvalue(),
+                            file_name=f"{supplier}_stock.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        )
                     except Exception as e:
                         st.error(f"Erreur lors de l'export Excel: {str(e)}")
+                        st.info("Assurez-vous que le module xlsxwriter est installé: pip install xlsxwriter")
+            
             with col2:
+                # Export CSV comme alternative à PNG
                 if st.button("📄 Exporter en CSV", key=f"export_csv_{supplier}"):
                     try:
                         csv = results_df.to_csv(index=False, sep=';')
-                        st.download_button(label="⬇ Télécharger le fichier CSV",data=csv,file_name=f"{supplier}_stock.csv",mime="text/csv")
+                        st.download_button(
+                            label="⬇ Télécharger le fichier CSV",
+                            data=csv,
+                            file_name=f"{supplier}_stock.csv",
+                            mime="text/csv"
+                        )
                     except Exception as e:
                         st.error(f"Erreur lors de l'export CSV: {str(e)}")
 #### --- Configuration de l'application Streamlit ---
