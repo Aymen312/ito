@@ -448,7 +448,7 @@ def display_specific_designations(df):
         ],
         "NEW BALANCE": [
             "880 V15", "880 V15 W",
-            "FUELCELL REBEL"  # Added FUELCELL REBEL model
+            "FUELCELL REBEL"
         ],
         "SALOMON": [
             "ULTRA GLIDE 3", "ULTRA GLIDE 3 W",
@@ -536,36 +536,48 @@ def display_specific_designations(df):
                 df_design = df_filtered[df_filtered['designation'].str.upper() == designation.upper()]
                 is_woman = "W" in designation.upper() or "WOMAN" in designation.upper()
 
-                # Détermination des tailles attendues
-                if supplier == "SALOMON":
-                    if "AERO GLIDE 3 GRVL" in designation.upper():
-                        sizes = list(range(4, 10)) if is_woman else list(range(6, 14))
+                # Traitement spécial pour ASICS GEL-NIMBUS 27
+                if supplier == "ASICS" and "GEL-NIMBUS 27" in designation.upper():
+                    if "W" in designation.upper():
+                        # Version femme
+                        expected_sizes = [f"{x}.0" for x in range(5, 11)] + [f"{x}.5" for x in range(5, 10)]
+                        display_name = "(Femme) GEL-NIMBUS 27"
                     else:
+                        # Version homme
+                        expected_sizes = [f"{x}.0" for x in range(7, 15)] + [f"{x}.5" for x in range(7, 13)]
+                        display_name = "(Homme) GEL-NIMBUS 27"
+                else:
+                    # Détermination des tailles attendues standard
+                    if supplier == "SALOMON":
+                        if "AERO GLIDE 3 GRVL" in designation.upper():
+                            sizes = list(range(4, 10)) if is_woman else list(range(6, 14))
+                        else:
+                            sizes = list(range(6, 14)) if is_woman else list(range(4, 10))
+                        expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1]]
+                    elif supplier == "LA SPORTIVA":
+                        sizes = list(range(36, 43)) if is_woman else list(range(40, 49))
+                        expected_sizes = [f"{x/2:.1f}" for x in range(sizes[0]*2, sizes[-1]*2+1)]
+                    elif supplier == "MIZUNO":
                         sizes = list(range(6, 14)) if is_woman else list(range(4, 10))
-                    expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1]]
-                elif supplier == "LA SPORTIVA":
-                    sizes = list(range(36, 43)) if is_woman else list(range(40, 49))
-                    expected_sizes = [f"{x/2:.1f}" for x in range(sizes[0]*2, sizes[-1]*2+1)]
-                elif supplier == "MIZUNO":
-                    sizes = list(range(6, 14)) if is_woman else list(range(4, 10))
-                    expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1]]
-                elif supplier == "NEW BALANCE":
-                    if "FUELCELL REBEL" in designation.upper():
-                        # Special size range for FUELCELL REBEL (7-14)
-                        sizes = list(range(7, 15))
-                        expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1] and x < 13]
+                        expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1]]
+                    elif supplier == "NEW BALANCE":
+                        if "FUELCELL REBEL" in designation.upper():
+                            sizes = list(range(7, 15))
+                            expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1] and x < 13]
+                        else:
+                            sizes = list(range(5, 11)) if is_woman else list(range(7, 15))
+                            expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1] and x < 13]
                     else:
                         sizes = list(range(5, 11)) if is_woman else list(range(7, 15))
                         expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1] and x < 13]
-                else:
-                    sizes = list(range(5, 11)) if is_woman else list(range(7, 15))
-                    expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1] and x < 13]
+                    
+                    display_name = designation
 
                 available_sizes = df_design['taille_normalisee'].dropna().unique()
                 missing_sizes = [size for size in expected_sizes if size not in available_sizes]
 
                 results.append({
-                    'Modèle': designation,
+                    'Modèle': display_name,
                     'Tailles disponibles': len(available_sizes),
                     'Tailles manquantes': ", ".join(missing_sizes) if missing_sizes else "Complet"
                 })
@@ -613,7 +625,7 @@ def display_specific_designations(df):
                         st.info("Assurez-vous que le module xlsxwriter est installé: pip install xlsxwriter")
             
             with col2:
-                # Export CSV comme alternative à PNG
+                # Export CSV
                 if st.button("📄 Exporter en CSV", key=f"export_csv_{supplier}"):
                     try:
                         csv = results_df.to_csv(index=False, sep=';')
