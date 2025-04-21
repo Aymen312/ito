@@ -448,7 +448,7 @@ def display_specific_designations(df):
         ],
         "NEW BALANCE": [
             "880 V15", "880 V15 W",
-            "FUELCELL REBEL"
+            "FUELCELL REBEL"  # Added FUELCELL REBEL model
         ],
         "SALOMON": [
             "ULTRA GLIDE 3", "ULTRA GLIDE 3 W",
@@ -534,13 +534,7 @@ def display_specific_designations(df):
             results = []
             for designation in sorted(designations):
                 df_design = df_filtered[df_filtered['designation'].str.upper() == designation.upper()]
-                
-                # Détection homme/femme basée sur la colonne 'rayon' si elle existe
-                if 'rayon' in df_design.columns:
-                    is_woman = (df_design['rayon'].str.upper() == 'FEMME').any()
-                else:
-                    # Fallback sur l'ancienne méthode si colonne rayon n'existe pas
-                    is_woman = "W" in designation.upper() or "WOMAN" in designation.upper()
+                is_woman = "W" in designation.upper() or "WOMAN" in designation.upper()
 
                 # Détermination des tailles attendues
                 if supplier == "SALOMON":
@@ -557,6 +551,7 @@ def display_specific_designations(df):
                     expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1]]
                 elif supplier == "NEW BALANCE":
                     if "FUELCELL REBEL" in designation.upper():
+                        # Special size range for FUELCELL REBEL (7-14)
                         sizes = list(range(7, 15))
                         expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1] and x < 13]
                     else:
@@ -569,10 +564,8 @@ def display_specific_designations(df):
                 available_sizes = df_design['taille_normalisee'].dropna().unique()
                 missing_sizes = [size for size in expected_sizes if size not in available_sizes]
 
-                # Ajout de la catégorie (homme/femme) dans les résultats
-                category = "Femme" if is_woman else "Homme"
                 results.append({
-                    'Modèle': f"{designation} ({category})",
+                    'Modèle': designation,
                     'Tailles disponibles': len(available_sizes),
                     'Tailles manquantes': ", ".join(missing_sizes) if missing_sizes else "Complet"
                 })
