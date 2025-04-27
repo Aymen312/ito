@@ -447,7 +447,7 @@ def display_specific_designations(df):
             "WAVE RIDER 28", "WAVE RIDER 28 W"
         ],
         "NEW BALANCE": [
-            "880 V15", "880 V15 W",
+            "880 V15", "880 V15 W", "REBEL V4",
             "FUELCELL REBEL"  # Added FUELCELL REBEL model
         ],
         "SALOMON": [
