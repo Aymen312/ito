@@ -459,7 +459,7 @@ def display_specific_designations(df):
             "KINVARA 15", "KINVARA 15 W", "PEREGRINE 15", "PEREGRINE 15 W",
             "RIDE 18", "RIDE 18 W", "RIDE TR2", "RIDE TR2 W",
             "TRIUMPH 22", "TRIUMPH 22", "TRIUMPH 22 W",
-            "XODUS 3 ULTRA W", "XODUS ULTRA 3", "XODUS ULTRA 3", "XODUS ULTRA 3 W"
+             "XODUS ULTRA 3", "XODUS ULTRA 3", "XODUS ULTRA 3 W"
         ]
     }
 
