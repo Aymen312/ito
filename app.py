@@ -459,10 +459,7 @@ def display_specific_designations(df):
             "ENDORPHIN PRO 4", "ENDORPHIN SPEED 4", "ENDORPHIN SPEED 4 W",
             "KINVARA 15", "KINVARA 15 W", "PEREGRINE 15", "PEREGRINE 15 W",
             "RIDE 18", "RIDE 18 W", "RIDE TR2", "RIDE TR2 W",
-            "TRIUMPH 22", "TRIUMPH 22 W",
-            "XODUS ULTRA 3", "XODUS ULTRA 3 W",
-            "XODUS ULTRA 4", "XODUS ULTRA 4 W",  # Ajout pour Saucony
-            "TRIUMPH 23", "TRIUMPH 23 W"      # Ajout pour Saucony
+            "TRIUMPH 22", "TRIUMPH 22 W","XODUS ULTRA 3", "XODUS ULTRA 3 W","XODUS ULTRA 4", "XODUS ULTRA 4 W", "TRIUMPH 23", "TRIUMPH 23 W",      # Ajout pour Saucony
         ]
     }
 
