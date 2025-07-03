@@ -426,7 +426,8 @@ def display_specific_designations(df):
             "CASCADIA 18 GTX W", "CASCADIA 18 W",
             "GHOST 16", "GHOST 16 W", "GHOST MAX 2", "GHOST MAX 2 W",
             "GLYCERIN 22", "GLYCERIN 22 W", "HYPERION 2", "HYPERION MAX 2",
-            "GHOST 17", "GHOST 17 W"  # Ajout pour Brooks
+            "GHOST 17", "GHOST 17 W",
+            "CASCADIA 19", "CASCADIA 19 W"  # Ajout des nouveaux modèles pour Brooks
         ],
         "HOKA": [
             "SPEEDGOAT 6", "SPEEDGOAT 6 W",
@@ -459,9 +460,12 @@ def display_specific_designations(df):
             "ENDORPHIN PRO 4", "ENDORPHIN SPEED 4", "ENDORPHIN SPEED 4 W",
             "KINVARA 15", "KINVARA 15 W", "PEREGRINE 15", "PEREGRINE 15 W",
             "RIDE 18", "RIDE 18 W", "RIDE TR2", "RIDE TR2 W",
-            "TRIUMPH 22", "TRIUMPH 22 W","XODUS ULTRA 3", "XODUS ULTRA 3 W","XODUS ULTRA 4", "XODUS ULTRA 4 W", "TRIUMPH 23", "TRIUMPH 23 W",      # Ajout pour Saucony
+            "TRIUMPH 22", "TRIUMPH 22 W", "XODUS ULTRA 3", "XODUS ULTRA 3 W",
+            "XODUS ULTRA 4", "XODUS ULTRA 4 W", "TRIUMPH 23", "TRIUMPH 23 W",
+            "ENDORPHIN SPEED 5", "ENDORPHIN SPEED 5 W", "KINVARA 16", "KINVARA 16 W"  # Ajout pour Saucony
         ]
     }
+
 
     # Normalisation des tailles
     def normalize_size(size):
