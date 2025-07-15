@@ -414,7 +414,10 @@ def display_stock_by_family(df):
                      f"dans la catégorie {rayon_filter}.")
 
 def display_specific_designations(df):
-    # Dictionnaire des fournisseurs et leurs modèles
+    """
+    Définit un dictionnaire de fournisseurs et de leurs modèles de chaussures.
+    Notez que la structure de données pour MIZUNO est différente des autres marques.
+    """
     suppliers = {
         "ASICS": [
             "GEL-CUMULUS 27", "GEL-CUMULUS 27 W", "GEL-TRABUCO 13 GTX", "GEL-TRABUCO 13 GTX W",
@@ -454,8 +457,8 @@ def display_specific_designations(df):
             {"model": "WAVE RIDER TT 2 W", "sizes": list(range(4, 10))},
             {"model": "WAVE RIDER 28", "sizes": list(range(6, 13))},
             {"model": "WAVE RIDER 28 W", "sizes": list(range(4, 10))},
-            {"model": "WAVE RIDER 29", "sizes": list(range(6, 13))},      # Ajout
-            {"model": "WAVE RIDER 29 W", "sizes": list(range(4, 10))}       # Ajout
+            {"model": "WAVE RIDER 29", "sizes": list(range(6, 13))},
+            {"model": "WAVE RIDER 29 W", "sizes": list(range(4, 10))}
         ],
         "NEW BALANCE": [
             "880 V15", "880 V15 W", "REBEL V4",
@@ -474,6 +477,16 @@ def display_specific_designations(df):
             "ENDORPHIN SPEED 5", "ENDORPHIN SPEED 5 W", "KINVARA 16", "KINVARA 16 W"
         ]
     }
+    
+    # Rappel : Le code qui suit doit pouvoir gérer le fait que les modèles MIZUNO
+    # sont des dictionnaires, alors que les autres sont des chaînes de caractères.
+    # Exemple de traitement :
+    # for brand, models in suppliers.items():
+    #     for item in models:
+    #         model_name = item['model'] if isinstance(item, dict) else item
+    #         # ... faire quelque chose avec model_name ...
+
+    return suppliers
  
 
 
