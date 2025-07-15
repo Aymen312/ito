@@ -24,8 +24,8 @@ def highlight_row_if_one(row):
 
 #### --- Fonctions modifiées pour afficher les colonnes spécifiques ---
 def display_supplier_info(df, fournisseur):
-    colonnes_afficher = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 
-                        'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
+    colonnes_afficher = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation',
+                         'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
     fournisseur = fournisseur.strip().upper()
     df['fournisseur'] = df['fournisseur'].fillna('')
     
@@ -271,7 +271,7 @@ def display_designation_info(df, designation):
         
         # Identifier les tailles canoniques (sans les zéros initiaux) et les trier
         canonical_sizes = sorted({size.lstrip('0') for size in sorted_sizes}, 
-                               key=lambda x: size_order.get(x, x))
+                                 key=lambda x: size_order.get(x, x))
         
         unavailable = []
         for size in canonical_sizes:
@@ -365,10 +365,10 @@ def total_stock_value_by_supplier(df):
 
 def sort_sizes(df):
     df['taille'] = pd.Categorical(df['taille'],
-                                 categories=sorted(df['taille'].unique(),
-                                                   key=lambda x: (int(x[:-1]), x[-1]) if x[:-1].isdigit() else (
-                                                       float('inf'), x)),
-                                 ordered=True)
+                                  categories=sorted(df['taille'].unique(),
+                                                    key=lambda x: (int(x[:-1]), x[-1]) if x[:-1].isdigit() else (
+                                                        float('inf'), x)),
+                                  ordered=True)
     df = df.sort_values('taille')
     return df
 
@@ -387,8 +387,8 @@ def display_stock_by_family(df):
 
         rayon_options = ['Tous', 'Homme', 'Femme', 'Autre']
         rayon_filter = st.selectbox(f"Filtrer par Rayon pour {famille}:",
-                                    options=rayon_options,
-                                    key=f"rayon_{famille}")
+                                     options=rayon_options,
+                                     key=f"rayon_{famille}")
 
         if rayon_filter == 'Tous':
             pass
@@ -471,9 +471,6 @@ def display_specific_designations(df):
             "ENDORPHIN SPEED 5", "ENDORPHIN SPEED 5 W", "KINVARA 16", "KINVARA 16 W"
         ]
     }
-
-
-
 
     # Normalisation des tailles
     def normalize_size(size):
@@ -558,9 +555,19 @@ def display_specific_designations(df):
                 elif supplier == "LA SPORTIVA":
                     sizes = list(range(36, 43)) if is_woman else list(range(40, 49))
                     expected_sizes = [f"{x/2:.1f}" for x in range(sizes[0]*2, sizes[-1]*2+1)]
+                
+                # MODIFICATION APPLIQUÉE ICI POUR MIZUNO
                 elif supplier == "MIZUNO":
-                    sizes = list(range(6, 14)) if is_woman else list(range(4, 10))
-                    expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1]]
+                    # Femme (W) : Tailles 4 à 9, sans demi-pointures
+                    # Homme : Tailles 6 à 12, sans demi-pointures
+                    if is_woman:
+                        sizes = list(range(4, 10))  # [4, 5, 6, 7, 8, 9]
+                    else:
+                        sizes = list(range(6, 13))  # [6, 7, 8, 9, 10, 11, 12]
+                    # Formatter les tailles attendues en chaînes de caractères (ex: '4.0', '5.0')
+                    expected_sizes = [f"{x}.0" for x in sizes]
+                # FIN DE LA MODIFICATION
+                
                 elif supplier == "NEW BALANCE":
                     if "FUELCELL REBEL" in designation.upper():
                         # Special size range for FUELCELL REBEL (7-14)
@@ -654,12 +661,12 @@ st.markdown(
     /* --- Styles globaux --- */
     body {
         font-family: 'Roboto', sans-serif;
-        background-color: # #f5f5f5; /* Gris très clair */
+        background-color: #f5f5f5; /* Gris très clair */
     }
 
     /* --- Titres --- */
     h1, h2, h3 {
-        color: # #212121; /* Gris foncé */
+        color: #212121; /* Gris foncé */
     }
 
     /* --- Tableaux de données --- */
@@ -672,7 +679,7 @@ st.markdown(
     th, td {
         text-align: left;
         padding: 12px 16px;
-        border-bottom: 1px solid # #EEEEEE; /* Gris très clair */
+        border-bottom: 1px solid #EEEEEE; /* Gris très clair */
     }
     th {
         font-weight: bold;
@@ -680,23 +687,23 @@ st.markdown(
 
     /* --- Messages d'état --- */
     .st-success {
-        color: # #448a50; /* Vert */
+        color: #448a50; /* Vert */
     }
     .st-warning {
-        color: # #f0ad4e; /* Orange */
+        color: #f0ad4e; /* Orange */
     }
     .st-error {
-        color: # #d9534f; /* Rouge */
+        color: #d9534f; /* Rouge */
     }
 
     /* --- Onglets (style Material Design) --- */
     .stTabs [data-baseweb="tab-list"] {
-        border-bottom: 2px solid # #EEEEEE; /* Gris très clair */
+        border-bottom: 2px solid #EEEEEE; /* Gris très clair */
     }
     .stTabs [data-baseweb="tab-list"] button {
         background-color: transparent;
         border: none;
-        color: # #757575; /* Gris moyen */
+        color: #757575; /* Gris moyen */
         font-size: 16px;
         margin-right: 32px;
         padding: 12px 16px;
@@ -704,16 +711,16 @@ st.markdown(
         border-top-right-radius: 4px;
     }
     .stTabs [data-baseweb="tab-list"] button:hover {
-        color: # #212121; /* Gris foncé */
+        color: #212121; /* Gris foncé */
     }
     .stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {
-        color: # #2196f3; /* Bleu Material Design */
-        border-bottom: 2px solid # #2196f3; /* Bleu Material Design */
+        color: #2196f3; /* Bleu Material Design */
+        border-bottom: 2px solid #2196f3; /* Bleu Material Design */
     }
 
     /* --- Boutons --- */
     .stButton>button {
-        background-color: # #2196f3; /* Bleu Material Design */
+        background-color: #2196f3; /* Bleu Material Design */
         color: white;
         border: none;
         padding: 8px 16px;
@@ -721,14 +728,14 @@ st.markdown(
         cursor: pointer;
     }
     .stButton>button:hover {
-        background-color: # #1976d2; /* Bleu Material Design plus foncé */
+        background-color: #1976d2; /* Bleu Material Design plus foncé */
     }
 
     /* --- Autres éléments --- */
     .stSelectbox [data-baseweb="select"] {
         padding: 8px 12px;
         border-radius: 4px;
-        border: 1px solid # #bdbdbd; /* Gris clair */
+        border: 1px solid #bdbdbd; /* Gris clair */
     }
     </style>
     """,
@@ -813,4 +820,4 @@ if fichier_telecharge is not None:
     except Exception as e:
         st.error(f"Erreur lors du traitement du fichier: {str(e)}")
 else:
-    st.warning("Veuillez télécharger  fichier pour commencer l'analyse.")
+    st.warning("Veuillez télécharger un fichier pour commencer l'analyse.")
