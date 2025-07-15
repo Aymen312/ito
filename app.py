@@ -451,7 +451,7 @@ def display_specific_designations(df):
             "WAVE DAICHI 9", "WAVE DAICHI 9 W",
             "WAVE RIDER TT 2", "WAVE RIDER TT 2 W",
             "WAVE RIDER 28", "WAVE RIDER 28 W",
-            "WAVE RIDER 29", "WAVE RIDER 29 W"  # ✅ Nouveaux modèles ajoutés
+            "WAVE RIDER 29", "WAVE RIDER 29 W"
         ],
         "NEW BALANCE": [
             "880 V15", "880 V15 W", "REBEL V4",
@@ -471,19 +471,30 @@ def display_specific_designations(df):
         ]
     }
 
-    # -- Code optionnel si tu veux filtrer par désignation & taille :
-    # Exemple : filtrer uniquement les WAVE RIDER 29 de taille correcte
-    # pour les femmes : 4.0 à 9.0 / pour les hommes : 6.0 à 12.0
+    # Définir les tailles valides pour femmes et hommes
+    femme_sizes = [f"{x:.1f}" for x in np.arange(4.0, 9, 0.5)]
+    homme_sizes = [f"{x:.1f}" for x in np.arange(6.0, 12, 0.5)]
 
-    # Conversion tailles en string pour correspondance avec colonne 'taille'
-    femme_sizes = [f"{x:.1f}" for x in list(np.arange(4.0, 9, 0.5))]
-    homme_sizes = [f"{x:.1f}" for x in list(np.arange(6.0, 12.5, 0.5))]
+    results = {}
 
-    # Exemple de filtre
-    # femmes = df[(df['designation'] == "WAVE RIDER 29 W") & (df['taille'].isin(femme_sizes))]
-    # hommes = df[(df['designation'] == "WAVE RIDER 29") & (df['taille'].isin(homme_sizes))]
-    # st.dataframe(femmes)
-    # st.dataframe(hommes)
+    for supplier, models in suppliers.items():
+        df_filtered = df[
+            (df['fournisseur'].str.upper() == supplier)
+            & (df['designation'].isin(models))
+        ].copy()
+
+        # Appliquer filtre des tailles uniquement pour MIZUNO
+        if supplier == "MIZUNO":
+            df_filtered['sexe'] = df_filtered['designation'].apply(lambda x: 'femme' if 'W' in x else 'homme')
+            df_filtered = df_filtered[
+                ((df_filtered['sexe'] == 'femme') & (df_filtered['taille'].astype(str).isin(femme_sizes))) |
+                ((df_filtered['sexe'] == 'homme') & (df_filtered['taille'].astype(str).isin(homme_sizes)))
+            ]
+
+        results[supplier] = df_filtered
+
+    return results
+    
 
 
 
