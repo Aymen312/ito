@@ -476,7 +476,7 @@ def display_specific_designations(df):
     # pour les femmes : 4.0 à 9.0 / pour les hommes : 6.0 à 12.0
 
     # Conversion tailles en string pour correspondance avec colonne 'taille'
-    femme_sizes = [f"{x:.1f}" for x in list(np.arange(4.0, 9.5, 0.5))]
+    femme_sizes = [f"{x:.1f}" for x in list(np.arange(4.0, 9, 0.5))]
     homme_sizes = [f"{x:.1f}" for x in list(np.arange(6.0, 12.5, 0.5))]
 
     # Exemple de filtre
