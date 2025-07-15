@@ -472,30 +472,7 @@ def display_specific_designations(df):
         ]
     }
 
-    # Itérer sur chaque fournisseur
-    for supplier, models in suppliers.items():
-        sub_df = df[df['fournisseur'] == supplier]
-        # Filtrer les désignations spécifiques
-        sub_df = sub_df[sub_df['designation'].isin(models)]
 
-        # Logic spécifique pour MIZUNO
-        if supplier == "MIZUNO":
-            # Déterminer sexe d'après le suffixe W (femme) ou non (homme)
-            def size_filter(row):
-                try:
-                    sz = float(row['taille'])
-                except:
-                    return False
-                is_woman = row['designation'].endswith('W')
-                # Femmes: 4.0 à 9.0; Hommes: 6.0 à 12.0; pas de .5
-                if not row['taille'].replace('.', '').isdigit():
-                    return False
-                if is_woman:
-                    return 4.0 <= sz <= 9.0 and sz.is_integer()
-                else:
-                    return 6.0 <= sz <= 12.0 and sz.is_integer()
-
-            sub_df = sub_df[sub_df.apply(size_filter, axis=1)]
 
 
     # Normalisation des tailles
