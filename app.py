@@ -429,16 +429,16 @@ def display_specific_designations(df):
             "GLYCERIN 22", "GLYCERIN 22 W", "HYPERION 2", "HYPERION MAX 2",
             "GHOST 17", "GHOST 17 W",
             "CASCADIA 19", "CASCADIA 19 W",
-            "HYPERION MAX 3", "HYPERION MAX 3 W"  # Ajout pour Brooks
+            "HYPERION MAX 3", "HYPERION MAX 3 W"
         ],
         "HOKA": [
             "SPEEDGOAT 6", "SPEEDGOAT 6 W",
             "MACH 6", "MACH 6 W",
             "CLIFTON 10", "CLIFTON 10 W",
             "CHALLENGER 7", "CHALLENGER 7 W",
-            "CHALLENGER 8", "CHALLENGER 8 W",  # Ajout
+            "CHALLENGER 8", "CHALLENGER 8 W",
             "MAFATE SPEED 4", "MAFATE SPEED 4 W",
-            "MAFATE SPEED 5", "MAFATE SPEED 5 W"  # Ajout
+            "MAFATE SPEED 5", "MAFATE SPEED 5 W"
         ],
         "LA SPORTIVA": [
             "AKASHA II", "AKASHA II WOMAN",
@@ -448,9 +448,14 @@ def display_specific_designations(df):
             "ULTRA RAPTOR II LTH W GTX"
         ],
         "MIZUNO": [
-            "WAVE DAICHI 9", "WAVE DAICHI 9 W",
-            "WAVE RIDER TT 2", "WAVE RIDER TT 2 W",
-            "WAVE RIDER 28", "WAVE RIDER 28 W"
+            {"model": "WAVE DAICHI 9", "sizes": list(range(6, 13))},
+            {"model": "WAVE DAICHI 9 W", "sizes": list(range(4, 10))},
+            {"model": "WAVE RIDER TT 2", "sizes": list(range(6, 13))},
+            {"model": "WAVE RIDER TT 2 W", "sizes": list(range(4, 10))},
+            {"model": "WAVE RIDER 28", "sizes": list(range(6, 13))},
+            {"model": "WAVE RIDER 28 W", "sizes": list(range(4, 10))},
+            {"model": "WAVE RIDER 29", "sizes": list(range(6, 13))},      # Ajout
+            {"model": "WAVE RIDER 29 W", "sizes": list(range(4, 10))}       # Ajout
         ],
         "NEW BALANCE": [
             "880 V15", "880 V15 W", "REBEL V4",
@@ -469,7 +474,6 @@ def display_specific_designations(df):
             "ENDORPHIN SPEED 5", "ENDORPHIN SPEED 5 W", "KINVARA 16", "KINVARA 16 W"
         ]
     }
-
  
 
 
