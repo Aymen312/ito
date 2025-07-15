@@ -429,16 +429,16 @@ def display_specific_designations(df):
             "GLYCERIN 22", "GLYCERIN 22 W", "HYPERION 2", "HYPERION MAX 2",
             "GHOST 17", "GHOST 17 W",
             "CASCADIA 19", "CASCADIA 19 W",
-            "HYPERION MAX 3", "HYPERION MAX 3 W"
+            "HYPERION MAX 3", "HYPERION MAX 3 W"  # Ajout pour Brooks
         ],
         "HOKA": [
             "SPEEDGOAT 6", "SPEEDGOAT 6 W",
             "MACH 6", "MACH 6 W",
             "CLIFTON 10", "CLIFTON 10 W",
             "CHALLENGER 7", "CHALLENGER 7 W",
-            "CHALLENGER 8", "CHALLENGER 8 W",
+            "CHALLENGER 8", "CHALLENGER 8 W",  # Ajout
             "MAFATE SPEED 4", "MAFATE SPEED 4 W",
-            "MAFATE SPEED 5", "MAFATE SPEED 5 W"
+            "MAFATE SPEED 5", "MAFATE SPEED 5 W"  # Ajout
         ],
         "LA SPORTIVA": [
             "AKASHA II", "AKASHA II WOMAN",
@@ -450,8 +450,7 @@ def display_specific_designations(df):
         "MIZUNO": [
             "WAVE DAICHI 9", "WAVE DAICHI 9 W",
             "WAVE RIDER TT 2", "WAVE RIDER TT 2 W",
-            "WAVE RIDER 28", "WAVE RIDER 28 W",
-            "WAVE RIDER 29", "WAVE RIDER 29 W"
+            "WAVE RIDER 28", "WAVE RIDER 28 W"
         ],
         "NEW BALANCE": [
             "880 V15", "880 V15 W", "REBEL V4",
@@ -470,30 +469,6 @@ def display_specific_designations(df):
             "ENDORPHIN SPEED 5", "ENDORPHIN SPEED 5 W", "KINVARA 16", "KINVARA 16 W"
         ]
     }
-
-    # Tailles valides uniquement
-    femme_sizes = [f"{x:.1f}" for x in np.arange(4.0, 9.5, 0.5)]
-    homme_sizes = [f"{x:.1f}" for x in np.arange(6.0, 12.5, 0.5)]
-
-    results = {}
-
-    for supplier, models in suppliers.items():
-        df_filtered = df[
-            (df['fournisseur'].str.upper() == supplier)
-            & (df['designation'].isin(models))
-        ].copy()
-
-        if supplier == "MIZUNO":
-            # Déterminer sexe via 'W' dans la désignation
-            df_filtered['sexe'] = df_filtered['designation'].apply(lambda x: 'femme' if 'W' in x else 'homme')
-
-            # Appliquer la règle stricte pour les tailles
-            df_filtered = df_filtered[
-                ((df_filtered['sexe'] == 'femme') & (df_filtered['taille'].astype(str).isin(femme_sizes))) |
-                ((df_filtered['sexe'] == 'homme') & (df_filtered['taille'].astype(str).isin(homme_sizes)))
-            ]
-
-        results[supplier] = df_filtered
 
  
 
