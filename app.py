@@ -414,10 +414,7 @@ def display_stock_by_family(df):
                      f"dans la catégorie {rayon_filter}.")
 
 def display_specific_designations(df):
-    """
-    Définit un dictionnaire de fournisseurs et de leurs modèles de chaussures.
-    Notez que la structure de données pour MIZUNO est différente des autres marques.
-    """
+    # Dictionnaire des fournisseurs et leurs modèles
     suppliers = {
         "ASICS": [
             "GEL-CUMULUS 27", "GEL-CUMULUS 27 W", "GEL-TRABUCO 13 GTX", "GEL-TRABUCO 13 GTX W",
@@ -451,14 +448,11 @@ def display_specific_designations(df):
             "ULTRA RAPTOR II LTH W GTX"
         ],
         "MIZUNO": [
-            {"model": "WAVE DAICHI 9", "sizes": list(range(6, 13))},
-            {"model": "WAVE DAICHI 9 W", "sizes": list(range(4, 10))},
-            {"model": "WAVE RIDER TT 2", "sizes": list(range(6, 13))},
-            {"model": "WAVE RIDER TT 2 W", "sizes": list(range(4, 10))},
-            {"model": "WAVE RIDER 28", "sizes": list(range(6, 13))},
-            {"model": "WAVE RIDER 28 W", "sizes": list(range(4, 10))},
-            {"model": "WAVE RIDER 29", "sizes": list(range(6, 13))},
-            {"model": "WAVE RIDER 29 W", "sizes": list(range(4, 10))}
+            "WAVE DAICHI 9", "WAVE DAICHI 9 W",
+            "WAVE RIDER TT 2", "WAVE RIDER TT 2 W",
+            "WAVE RIDER 28", "WAVE RIDER 28 W",
+            # Ajout des nouveaux modèles
+            "WAVE RIDER 29", "WAVE RIDER 29 W"
         ],
         "NEW BALANCE": [
             "880 V15", "880 V15 W", "REBEL V4",
@@ -477,17 +471,31 @@ def display_specific_designations(df):
             "ENDORPHIN SPEED 5", "ENDORPHIN SPEED 5 W", "KINVARA 16", "KINVARA 16 W"
         ]
     }
-    
-    # Rappel : Le code qui suit doit pouvoir gérer le fait que les modèles MIZUNO
-    # sont des dictionnaires, alors que les autres sont des chaînes de caractères.
-    # Exemple de traitement :
-    # for brand, models in suppliers.items():
-    #     for item in models:
-    #         model_name = item['model'] if isinstance(item, dict) else item
-    #         # ... faire quelque chose avec model_name ...
 
-    return suppliers
- 
+    # Itérer sur chaque fournisseur
+    for supplier, models in suppliers.items():
+        sub_df = df[df['fournisseur'] == supplier]
+        # Filtrer les désignations spécifiques
+        sub_df = sub_df[sub_df['designation'].isin(models)]
+
+        # Logic spécifique pour MIZUNO
+        if supplier == "MIZUNO":
+            # Déterminer sexe d'après le suffixe W (femme) ou non (homme)
+            def size_filter(row):
+                try:
+                    sz = float(row['taille'])
+                except:
+                    return False
+                is_woman = row['designation'].endswith('W')
+                # Femmes: 4.0 à 9.0; Hommes: 6.0 à 12.0; pas de .5
+                if not row['taille'].replace('.', '').isdigit():
+                    return False
+                if is_woman:
+                    return 4.0 <= sz <= 9.0 and sz.is_integer()
+                else:
+                    return 6.0 <= sz <= 12.0 and sz.is_integer()
+
+            sub_df = sub_df[sub_df.apply(size_filter, axis=1)]
 
 
     # Normalisation des tailles
