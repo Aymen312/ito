@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from io import BytesIO
+import numpy as np
 
 #### --- Fonctions pour le traitement des données ---
 def clean_numeric_columns(df):
