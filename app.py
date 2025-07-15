@@ -493,8 +493,7 @@ def display_specific_designations(df):
 
         results[supplier] = df_filtered
 
-    return results
-
+ 
 
 
     # Normalisation des tailles
