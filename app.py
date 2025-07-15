@@ -216,108 +216,6 @@ def display_designation_info(df, designation):
             styled_femme = sum_femme[['Taille', 'Total Qté dispo']].style.applymap(highlight_total_if_one, subset=['Total Qté dispo'])
             st.dataframe(styled_femme)
 
-    # --- Tailles possibles ---
-    specific_designations = [
-        'PRODIGIO', 'PRODIGIO WOMAN', 'AKASHA II', 'AKASHA II WOMAN', 'JACKAL',
-        'ULTRA RAPTOR II MID LEATHER GTX', 'ULTRA RAPTOR II MID GTX',
-        'ULTRA RAPTOR II LEATHER W GTX', 'ULTRA RAPTOR II LEATHER WOMAN',
-        'ULTRA RAPTOR II GTX', 'AKASHA'
-    ]
-
-    possible_sizes_us = []
-    possible_sizes_uk = []
-
-    if any(desig in designation for desig in specific_designations):
-        for size in range(36, 48):
-            possible_sizes_us.append(f'{size}')
-            possible_sizes_us.append(f'0{size}')
-            possible_sizes_us.append(f'{size}.0')
-            possible_sizes_us.append(f'0{size}.0')
-            if size != 47:
-                possible_sizes_us.append(f'{size}.5')
-                possible_sizes_us.append(f'0{size}.5')
-    else:
-        # Tailles étendues jusqu'au 14 comme demandé
-        for size in ['4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14']:
-            possible_sizes_us.append(f'{size}.0US')
-            possible_sizes_us.append(f'0{size}.0US')
-            possible_sizes_us.append(f'{size}.5US')
-            possible_sizes_us.append(f'0{size}.5US')
-            possible_sizes_uk.append(f'{size}.0UK')
-            possible_sizes_uk.append(f'0{size}.0UK')
-            possible_sizes_uk.append(f'{size}.5UK')
-            possible_sizes_uk.append(f'0{size}.5UK')
-
-    # --- Tailles indisponibles par rayon ---
-    st.subheader("Tailles indisponibles par rayon:")
-    
-    # Séparer les tailles disponibles par rayon
-    available_sizes_homme = df_filtered[df_filtered['rayon'] == 'HOMME']['taille_normalisee'].unique() if 'taille_normalisee' in df_filtered.columns else []
-    available_sizes_femme = df_filtered[df_filtered['rayon'] == 'FEMME']['taille_normalisee'].unique() if 'taille_normalisee' in df_filtered.columns else []
-
-    def find_unavailable_canonical_sizes(possible_sizes, available_normalized):
-        # Créer un dictionnaire pour trier les tailles
-        size_order = {}
-        for i, size in enumerate(possible_sizes):
-            # Nettoyer la taille pour la comparaison
-            clean_size = size.replace('US', '').replace('UK', '').replace('0', '').strip('.')
-            try:
-                size_order[size] = float(clean_size)
-            except:
-                size_order[size] = 0
-        
-        # Trier les tailles possibles par ordre numérique croissant
-        sorted_sizes = sorted(possible_sizes, key=lambda x: size_order[x])
-        
-        # Identifier les tailles canoniques (sans les zéros initiaux) et les trier
-        canonical_sizes = sorted({size.lstrip('0') for size in sorted_sizes}, 
-                                 key=lambda x: size_order.get(x, x))
-        
-        unavailable = []
-        for size in canonical_sizes:
-            normalized = normalize_size(size)
-            if normalized not in available_normalized:
-                unavailable.append(size)
-        
-        # Trier les tailles indisponibles par ordre numérique croissant
-        unavailable_sorted = sorted(unavailable, key=lambda x: size_order.get(x, x))
-        
-        return unavailable_sorted
-
-    def format_sizes(sizes):
-        if not sizes:
-            return "Toutes disponibles"
-        return ", ".join(sizes)
-
-    # Calculer les tailles indisponibles pour chaque rayon
-    unavailable_sizes_us_homme = find_unavailable_canonical_sizes(possible_sizes_us, available_sizes_homme)
-    unavailable_sizes_uk_homme = find_unavailable_canonical_sizes(possible_sizes_uk, available_sizes_homme)
-    unavailable_sizes_us_femme = find_unavailable_canonical_sizes(possible_sizes_us, available_sizes_femme)
-    unavailable_sizes_uk_femme = find_unavailable_canonical_sizes(possible_sizes_uk, available_sizes_femme)
-
-    # Afficher les résultats dans des onglets
-    tab1, tab2 = st.tabs(["HOMME", "FEMME"])
-    
-    with tab1:
-        st.subheader("Rayon HOMME")
-        col1, col2 = st.columns(2)
-        with col1:
-            st.write("Tailles US indisponibles:")
-            st.write(format_sizes(unavailable_sizes_us_homme))
-        with col2:
-            st.write("Tailles UK indisponibles:")
-            st.write(format_sizes(unavailable_sizes_uk_homme))
-    
-    with tab2:
-        st.subheader("Rayon FEMME")
-        col1, col2 = st.columns(2)
-        with col1:
-            st.write("Tailles US indisponibles:")
-            st.write(format_sizes(unavailable_sizes_us_femme))
-        with col2:
-            st.write("Tailles UK indisponibles:")
-            st.write(format_sizes(unavailable_sizes_uk_femme))
-
 #### --- Fonction modifiée pour "Stock Négatif" ---
 def filter_negative_stock(df):
     colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
@@ -365,10 +263,10 @@ def total_stock_value_by_supplier(df):
 
 def sort_sizes(df):
     df['taille'] = pd.Categorical(df['taille'],
-                                  categories=sorted(df['taille'].unique(),
-                                                    key=lambda x: (int(x[:-1]), x[-1]) if x[:-1].isdigit() else (
-                                                        float('inf'), x)),
-                                  ordered=True)
+                                     categories=sorted(df['taille'].unique(),
+                                                       key=lambda x: (int(x[:-1]), x[-1]) if x[:-1].isdigit() else (
+                                                           float('inf'), x)),
+                                     ordered=True)
     df = df.sort_values('taille')
     return df
 
@@ -387,8 +285,8 @@ def display_stock_by_family(df):
 
         rayon_options = ['Tous', 'Homme', 'Femme', 'Autre']
         rayon_filter = st.selectbox(f"Filtrer par Rayon pour {famille}:",
-                                     options=rayon_options,
-                                     key=f"rayon_{famille}")
+                                          options=rayon_options,
+                                          key=f"rayon_{famille}")
 
         if rayon_filter == 'Tous':
             pass
@@ -411,7 +309,7 @@ def display_stock_by_family(df):
             st.markdown(f"Valeur totale du stock pour {rayon_filter} : {total_stock_value_filtered:.2f}")
         else:
             st.write(f"Aucune information disponible pour {famille} "
-                     f"dans la catégorie {rayon_filter}.")
+                         f"dans la catégorie {rayon_filter}.")
 
 def display_specific_designations(df):
     # Dictionnaire des fournisseurs et leurs modèles
