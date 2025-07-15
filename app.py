@@ -428,16 +428,16 @@ def display_specific_designations(df):
             "GLYCERIN 22", "GLYCERIN 22 W", "HYPERION 2", "HYPERION MAX 2",
             "GHOST 17", "GHOST 17 W",
             "CASCADIA 19", "CASCADIA 19 W",
-            "HYPERION MAX 3", "HYPERION MAX 3 W"  # Ajout pour Brooks
+            "HYPERION MAX 3", "HYPERION MAX 3 W"
         ],
         "HOKA": [
             "SPEEDGOAT 6", "SPEEDGOAT 6 W",
             "MACH 6", "MACH 6 W",
             "CLIFTON 10", "CLIFTON 10 W",
             "CHALLENGER 7", "CHALLENGER 7 W",
-            "CHALLENGER 8", "CHALLENGER 8 W",  # Ajout
+            "CHALLENGER 8", "CHALLENGER 8 W",
             "MAFATE SPEED 4", "MAFATE SPEED 4 W",
-            "MAFATE SPEED 5", "MAFATE SPEED 5 W"  # Ajout
+            "MAFATE SPEED 5", "MAFATE SPEED 5 W"
         ],
         "LA SPORTIVA": [
             "AKASHA II", "AKASHA II WOMAN",
@@ -449,7 +449,8 @@ def display_specific_designations(df):
         "MIZUNO": [
             "WAVE DAICHI 9", "WAVE DAICHI 9 W",
             "WAVE RIDER TT 2", "WAVE RIDER TT 2 W",
-            "WAVE RIDER 28", "WAVE RIDER 28 W"
+            "WAVE RIDER 28", "WAVE RIDER 28 W",
+            "WAVE RIDER 29", "WAVE RIDER 29 W"  # ✅ Nouveaux modèles ajoutés
         ],
         "NEW BALANCE": [
             "880 V15", "880 V15 W", "REBEL V4",
@@ -468,6 +469,21 @@ def display_specific_designations(df):
             "ENDORPHIN SPEED 5", "ENDORPHIN SPEED 5 W", "KINVARA 16", "KINVARA 16 W"
         ]
     }
+
+    # -- Code optionnel si tu veux filtrer par désignation & taille :
+    # Exemple : filtrer uniquement les WAVE RIDER 29 de taille correcte
+    # pour les femmes : 4.0 à 9.0 / pour les hommes : 6.0 à 12.0
+
+    # Conversion tailles en string pour correspondance avec colonne 'taille'
+    femme_sizes = [f"{x:.1f}" for x in list(np.arange(4.0, 9.5, 0.5))]
+    homme_sizes = [f"{x:.1f}" for x in list(np.arange(6.0, 12.5, 0.5))]
+
+    # Exemple de filtre
+    # femmes = df[(df['designation'] == "WAVE RIDER 29 W") & (df['taille'].isin(femme_sizes))]
+    # hommes = df[(df['designation'] == "WAVE RIDER 29") & (df['taille'].isin(homme_sizes))]
+    # st.dataframe(femmes)
+    # st.dataframe(hommes)
+
 
 
 
