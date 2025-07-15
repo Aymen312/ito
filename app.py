@@ -471,9 +471,9 @@ def display_specific_designations(df):
         ]
     }
 
-    # Définir les tailles valides pour femmes et hommes
-    femme_sizes = [f"{x:.1f}" for x in np.arange(4.0, 9, 0.5)]
-    homme_sizes = [f"{x:.1f}" for x in np.arange(6.0, 12, 0.5)]
+    # Tailles valides uniquement
+    femme_sizes = [f"{x:.1f}" for x in np.arange(4.0, 9.5, 0.5)]
+    homme_sizes = [f"{x:.1f}" for x in np.arange(6.0, 12.5, 0.5)]
 
     results = {}
 
@@ -483,7 +483,7 @@ def display_specific_designations(df):
             & (df['designation'].isin(models))
         ].copy()
 
-        # Appliquer filtre des tailles uniquement pour MIZUNO
+        # Appliquer filtre spécial pour MIZUNO
         if supplier == "MIZUNO":
             df_filtered['sexe'] = df_filtered['designation'].apply(lambda x: 'femme' if 'W' in x else 'homme')
             df_filtered = df_filtered[
@@ -494,8 +494,6 @@ def display_specific_designations(df):
         results[supplier] = df_filtered
 
     return results
-    
-
 
 
 
