@@ -558,14 +558,16 @@ def display_specific_designations(df):
                 
                 # MODIFICATION APPLIQUÉE ICI POUR MIZUNO
                 elif supplier == "MIZUNO":
-                    # Femme (W) : Tailles 4 à 9, sans demi-pointures
-                    # Homme : Tailles 6 à 12, sans demi-pointures
+                    # Logique spécifique pour MIZUNO avec les listes de tailles exactes fournies
                     if is_woman:
-                        sizes = list(range(4, 10))  # [4, 5, 6, 7, 8, 9]
+                        # Tailles femme (avec W)
+                        sizes = [4, 4.5, 5, 5.5, 6.5, 7, 7.5, 8, 8.8, 9]
                     else:
-                        sizes = list(range(6, 13))  # [6, 7, 8, 9, 10, 11, 12]
-                    # Formatter les tailles attendues en chaînes de caractères (ex: '4.0', '5.0')
-                    expected_sizes = [f"{x}.0" for x in sizes]
+                        # Tailles homme (sans W)
+                        sizes = [6, 6.5, 7, 7.7, 8, 8.8, 9, 9.9, 10, 10.5, 11, 11.5, 12]
+                    
+                    # Formatter les tailles attendues en chaînes de caractères (ex: '4.0', '4.5', '8.8')
+                    expected_sizes = [f"{s:.1f}" for s in sizes]
                 # FIN DE LA MODIFICATION
                 
                 elif supplier == "NEW BALANCE":
