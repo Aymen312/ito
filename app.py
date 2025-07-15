@@ -558,14 +558,12 @@ def display_specific_designations(df):
                 
                 # MODIFICATION APPLIQUÉE ICI POUR MIZUNO
                 elif supplier == "MIZUNO":
-                    # Logique INVERSÉE spécifique pour MIZUNO selon la clarification
-                    # Les modèles SANS 'W' sont pour FEMME
-                    # Les modèles AVEC 'W' sont pour HOMME
-                    if not is_woman: # NOTE: La condition est inversée ici
-                        # Tailles femme (modèles SANS W)
+                    # Logique standard : AVEC W = Femme, SANS W = Homme
+                    if is_woman:
+                        # Tailles femme (modèles AVEC W)
                         sizes = [4, 4.5, 5, 5.5, 6.5, 7, 7.5, 8, 8.8, 9]
                     else:
-                        # Tailles homme (modèles AVEC W)
+                        # Tailles homme (modèles SANS W)
                         sizes = [6, 6.5, 7, 7.7, 8, 8.8, 9, 9.9, 10, 10.5, 11, 11.5, 12]
                     
                     # Formatter les tailles attendues en chaînes de caractères (ex: '4.0', '4.5', '8.8')
