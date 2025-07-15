@@ -544,33 +544,37 @@ def display_specific_designations(df):
             for designation in sorted(designations):
                 df_design = df_filtered[df_filtered['designation'].str.upper() == designation.upper()]
                 is_woman = "W" in designation.upper() or "WOMAN" in designation.upper()
+                
+                # Variable pour le débogage
+                applied_logic = ""
+                expected_sizes = []
 
                 # Détermination des tailles attendues
                 if supplier == "SALOMON":
+                    applied_logic = "Logique standard"
                     if "AERO GLIDE 3 GRVL" in designation.upper():
                         sizes = list(range(4, 10)) if is_woman else list(range(6, 14))
                     else:
                         sizes = list(range(6, 14)) if is_woman else list(range(4, 10))
                     expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1]]
                 elif supplier == "LA SPORTIVA":
+                    applied_logic = "Logique standard"
                     sizes = list(range(36, 43)) if is_woman else list(range(40, 49))
                     expected_sizes = [f"{x/2:.1f}" for x in range(sizes[0]*2, sizes[-1]*2+1)]
                 
-                # MODIFICATION APPLIQUÉE ICI POUR MIZUNO
                 elif supplier == "MIZUNO":
                     # Logique standard : AVEC W = Femme, SANS W = Homme
                     if is_woman:
-                        # Tailles femme (modèles AVEC W)
+                        applied_logic = "Logique FEMME"
                         sizes = [4, 4.5, 5, 5.5, 6.5, 7, 7.5, 8, 8.8, 9]
                     else:
-                        # Tailles homme (modèles SANS W)
+                        applied_logic = "Logique HOMME"
                         sizes = [6, 6.5, 7, 7.7, 8, 8.8, 9, 9.9, 10, 10.5, 11, 11.5, 12]
                     
-                    # Formatter les tailles attendues en chaînes de caractères (ex: '4.0', '4.5', '8.8')
                     expected_sizes = [f"{s:.1f}" for s in sizes]
-                # FIN DE LA MODIFICATION
                 
                 elif supplier == "NEW BALANCE":
+                    applied_logic = "Logique standard"
                     if "FUELCELL REBEL" in designation.upper():
                         # Special size range for FUELCELL REBEL (7-14)
                         sizes = list(range(7, 15))
@@ -579,6 +583,8 @@ def display_specific_designations(df):
                         sizes = list(range(5, 11)) if is_woman else list(range(7, 15))
                         expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1] and x < 13]
                 else:
+                    # Logique par défaut pour les autres marques
+                    applied_logic = "Logique par défaut"
                     sizes = list(range(5, 11)) if is_woman else list(range(7, 15))
                     expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1] and x < 13]
 
@@ -587,6 +593,7 @@ def display_specific_designations(df):
 
                 results.append({
                     'Modèle': designation,
+                    'Logique Appliquée': applied_logic,  # Ajout de la colonne de débogage
                     'Tailles disponibles': len(available_sizes),
                     'Tailles manquantes': ", ".join(missing_sizes) if missing_sizes else "Complet"
                 })
