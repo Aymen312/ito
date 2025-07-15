@@ -483,9 +483,11 @@ def display_specific_designations(df):
             & (df['designation'].isin(models))
         ].copy()
 
-        # Appliquer filtre spécial pour MIZUNO
         if supplier == "MIZUNO":
+            # Déterminer sexe via 'W' dans la désignation
             df_filtered['sexe'] = df_filtered['designation'].apply(lambda x: 'femme' if 'W' in x else 'homme')
+
+            # Appliquer la règle stricte pour les tailles
             df_filtered = df_filtered[
                 ((df_filtered['sexe'] == 'femme') & (df_filtered['taille'].astype(str).isin(femme_sizes))) |
                 ((df_filtered['sexe'] == 'homme') & (df_filtered['taille'].astype(str).isin(homme_sizes)))
