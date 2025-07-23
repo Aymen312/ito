@@ -335,8 +335,7 @@ def display_specific_designations(df):
             "CLIFTON 10", "CLIFTON 10 W",
             "CHALLENGER 7", "CHALLENGER 7 W",
             "CHALLENGER 8", "CHALLENGER 8 W",
-            "MAFATE SPEED 4", "MAFATE SPEED 4 W",
-            "MAFATE SPEED 5", "MAFATE SPEED 5 W"
+            "MAFATE SPEED 4", "MAFATE SPEED 4 W"
         ],
         "LA SPORTIVA": [
             "AKASHA II", "AKASHA II WOMAN",
