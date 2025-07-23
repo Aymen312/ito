@@ -639,7 +639,7 @@ st.markdown(
 )
 
 #### --- Interface principale de l'application ---
-st.title("Application d'Analyse TDR")
+st.title("Application d'Analyse Terre De itomohen")
 st.sidebar.markdown("############ Menu")
 st.sidebar.info("Téléchargez un fichier CSV ou Excel pour commencer l'analyse.")
 fichier_telecharge = st.file_uploader("Téléchargez un fichier CSV ou Excel", type=['csv', 'xlsx'])
