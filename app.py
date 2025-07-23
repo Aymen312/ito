@@ -542,7 +542,7 @@ def display_specific_designations(df):
                         st.error(f"Erreur lors de l'export CSV: {str(e)}")
 #### --- Configuration de l'application Streamlit ---
 st.set_page_config(
-    page_title="Application d'Analyse TDR",
+    page_title="Application d'Analyse Terre De ito mmohen",
     layout="wide",
     initial_sidebar_state="expanded"
 )
