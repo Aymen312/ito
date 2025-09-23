@@ -639,7 +639,7 @@ st.markdown(
 )
 
 #### --- Interface principale de l'application ---
-st.title("Application d'Analyse Terre De itomohen")
+st.title("Ayada TDR")
 st.sidebar.markdown("############ Menu")
 st.sidebar.info("Téléchargez un fichier CSV ou Excel pour commencer l'analyse.")
 fichier_telecharge = st.file_uploader("Téléchargez un fichier CSV ou Excel", type=['csv', 'xlsx'])
@@ -717,4 +717,5 @@ if fichier_telecharge is not None:
         st.error(f"Erreur lors du traitement du fichier: {str(e)}")
 else:
     st.warning("Veuillez télécharger un fichier pour commencer l'analyse.")
+
 
