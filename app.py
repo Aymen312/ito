@@ -318,7 +318,7 @@ def display_specific_designations(df):
             "GEL-CUMULUS 27", "GEL-CUMULUS 27 W", "GEL-TRABUCO 13 GTX", "GEL-TRABUCO 13 GTX W",
             "GT-2000 13 W", "MAGIC SPEED 4", "METASPEED EDGE+", 
             "NOVABLAST 5", "NOVABLAST 5 W", "NOOSA TRI 16", "NOOSA TRI 16 W",
-            "GEL-NIMBUS 27", "GEL-NIMBUS 27 W"
+            "GEL-NIMBUS 27", "GEL-NIMBUS 27 W", "GEL-TRABUCO 13", "GEL-TRABUCO 13 W"
         ],
         "BROOKS": [
             "CALDERA 8", "CALDERA 8 W",
@@ -334,7 +334,7 @@ def display_specific_designations(df):
             "MACH 6", "MACH 6 W",
             "CLIFTON 10", "CLIFTON 10 W",
             "CHALLENGER 8", "CHALLENGER 8 W",
-            "MAFATE 5", "MAFATE 5 W", "GEL-TRABUCO 13", "GEL-TRABUCO 13 W", "GEL-TRABUCO 13 GTX" , "GEL-TRABUCO 13 GTX W"
+            "MAFATE 5", "MAFATE 5 W",
         ],
         "LA SPORTIVA": [
             "AKASHA II", "AKASHA II WOMAN",
@@ -717,6 +717,7 @@ if fichier_telecharge is not None:
         st.error(f"Erreur lors du traitement du fichier: {str(e)}")
 else:
     st.warning("Veuillez télécharger un fichier pour commencer l'analyse.")
+
 
 
 
