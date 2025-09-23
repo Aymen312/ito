@@ -316,26 +316,25 @@ def display_specific_designations(df):
     suppliers = {
         "ASICS": [
             "GEL-CUMULUS 27", "GEL-CUMULUS 27 W", "GEL-TRABUCO 13 GTX", "GEL-TRABUCO 13 GTX W",
-            "GT-2000 13 TR", "GT-2000 13 TR W", "GT-2000 13 W",
-            "MAGIC SPEED 4", "METASPEED EDGE+", "NOVABLAST 5", "NOVABLAST 5 W",
-            "NOOSA TRI 16", "NOOSA TRI 16 W", "GEL-NIMBUS 27", "GEL-NIMBUS 27 W"
+            "GT-2000 13 W", "MAGIC SPEED 4", "METASPEED EDGE+", 
+            "NOVABLAST 5", "NOVABLAST 5 W", "NOOSA TRI 16", "NOOSA TRI 16 W",
+            "GEL-NIMBUS 27", "GEL-NIMBUS 27 W"
         ],
         "BROOKS": [
-            "CALDERA 8", "CALDERA 8 W", "CASCADIA 18", "CASCADIA 18 GTX",
-            "CASCADIA 18 GTX W", "CASCADIA 18 W",
-            "GHOST 16", "GHOST 16 W", "GHOST MAX 2", "GHOST MAX 2 W",
-            "GLYCERIN 22", "GLYCERIN 22 W", "HYPERION 2", "HYPERION MAX 2",
+            "CALDERA 8", "CALDERA 8 W",
             "GHOST 17", "GHOST 17 W",
             "CASCADIA 19", "CASCADIA 19 W",
-            "HYPERION MAX 3", "HYPERION MAX 3 W"
+            "GLYCERIN 22", "GLYCERIN 22 W",
+            "HYPERION MAX 3", "HYPERION MAX 3 W",
+            "GHOST MAX 3", "GHOST MAX 3 W",
+            "HYPERION 3", "HYPERION 3 W"
         ],
         "HOKA": [
             "SPEEDGOAT 6", "SPEEDGOAT 6 W",
             "MACH 6", "MACH 6 W",
             "CLIFTON 10", "CLIFTON 10 W",
-            "CHALLENGER 7", "CHALLENGER 7 W",
             "CHALLENGER 8", "CHALLENGER 8 W",
-            "MAFATE SPEED 4", "MAFATE SPEED 4 W","MAFATE 5","MAFATE 5 W"
+            "MAFATE SPEED 4", "MAFATE SPEED 4 W", "MAFATE 5", "MAFATE 5 W"
         ],
         "LA SPORTIVA": [
             "AKASHA II", "AKASHA II WOMAN",
@@ -360,11 +359,12 @@ def display_specific_designations(df):
         ],
         "SAUCONY": [
             "ENDORPHIN PRO 4", "ENDORPHIN SPEED 4", "ENDORPHIN SPEED 4 W",
-            "KINVARA 15", "KINVARA 15 W", "PEREGRINE 15", "PEREGRINE 15 W",
+            "PEREGRINE 15", "PEREGRINE 15 W",
             "RIDE 18", "RIDE 18 W", "RIDE TR2", "RIDE TR2 W",
-            "TRIUMPH 22", "TRIUMPH 22 W", "XODUS ULTRA 3", "XODUS ULTRA 3 W",
-            "XODUS ULTRA 4", "XODUS ULTRA 4 W", "TRIUMPH 23", "TRIUMPH 23 W",
-            "ENDORPHIN SPEED 5", "ENDORPHIN SPEED 5 W", "KINVARA 16", "KINVARA 16 W"
+            "TRIUMPH 23", "TRIUMPH 23 W",
+            "XODUS ULTRA 4", "XODUS ULTRA 4 W",
+            "ENDORPHIN SPEED 5", "ENDORPHIN SPEED 5 W",
+            "KINVARA 16", "KINVARA 16 W"
         ]
     }
 
@@ -542,7 +542,7 @@ def display_specific_designations(df):
                         st.error(f"Erreur lors de l'export CSV: {str(e)}")
 #### --- Configuration de l'application Streamlit ---
 st.set_page_config(
-    page_title="Application d'Analyse Terre De ito mmohen",
+    page_title="Ayada TDR",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -717,3 +717,4 @@ if fichier_telecharge is not None:
         st.error(f"Erreur lors du traitement du fichier: {str(e)}")
 else:
     st.warning("Veuillez télécharger un fichier pour commencer l'analyse.")
+
