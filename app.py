@@ -334,7 +334,7 @@ def display_specific_designations(df):
             "MACH 6", "MACH 6 W",
             "CLIFTON 10", "CLIFTON 10 W",
             "CHALLENGER 8", "CHALLENGER 8 W",
-            "MAFATE 5", "MAFATE 5 W", " BONDI 9", " BONDI 9 W", " SKYFLOW W", " SKYFLOW"
+            "MAFATE 5", "MAFATE 5 W", "BONDI 9", "BONDI 9 W", "SKYFLOW W" , "SKYFLOW"
         ],
         "LA SPORTIVA": [
             "AKASHA II", "AKASHA II WOMAN",
@@ -717,6 +717,7 @@ if fichier_telecharge is not None:
         st.error(f"Erreur lors du traitement du fichier: {str(e)}")
 else:
     st.warning("Veuillez télécharger un fichier pour commencer l'analyse.")
+
 
 
 
