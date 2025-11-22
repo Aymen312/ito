@@ -348,6 +348,7 @@ def display_specific_designations(df):
             "WAVE RIDER TT 2", "WAVE RIDER TT 2 W",
             "WAVE RIDER 28", "WAVE RIDER 28 W",
             "WAVE RIDER 29", "WAVE RIDER 29 W", "WAVE SKY 9 W", "WAVE SKY 9", "WAVE SKYRISE 6", "WAVE SKYRISE 6 W"
+            ],
         "NEW BALANCE": [
             "880 V15", "880 V15 W", "REBEL V4",
             "FUELCELL REBEL"
@@ -716,6 +717,7 @@ if fichier_telecharge is not None:
         st.error(f"Erreur lors du traitement du fichier: {str(e)}")
 else:
     st.warning("Veuillez télécharger un fichier pour commencer l'analyse.")
+
 
 
 
