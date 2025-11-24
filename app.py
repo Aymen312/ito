@@ -315,10 +315,9 @@ def display_specific_designations(df):
     # Dictionnaire des fournisseurs et leurs modèles
     suppliers = {
         "ASICS": [
-            "GEL-CUMULUS 27", "GEL-CUMULUS 27 W", "GEL-TRABUCO 13 GTX", "GEL-TRABUCO 13 GTX W",
-            "GT-2000 13 W", "MAGIC SPEED 4", "METASPEED EDGE+", 
+            "GEL-CUMULUS 27", "GEL-CUMULUS 27 W", "GEL-TRABUCO 13 GTX", "GEL-TRABUCO 13 GTX W","MAGIC SPEED 4",
             "NOVABLAST 5", "NOVABLAST 5 W", "NOOSA TRI 16", "NOOSA TRI 16 W",
-            "GEL-NIMBUS 27", "GEL-NIMBUS 27 W", "GEL-TRABUCO 13", "GEL-TRABUCO 13 W"
+            "GEL-NIMBUS 27", "GEL-NIMBUS 27 W", "GEL-TRABUCO 13", "GEL-TRABUCO 13 W", "METASPEED SKY TOKYO", "GT-2000 14 TR", "GT-2000 14 TR W"
         ],
         "BROOKS": [
             "CALDERA 8", "CALDERA 8 W",
@@ -337,7 +336,7 @@ def display_specific_designations(df):
             "MAFATE 5", "MAFATE 5 W", "BONDI 9", "BONDI 9 W", "SKYFLOW W", "SKYFLOW"
         ],
         "LA SPORTIVA": [
-            "AKASHA II", "AKASHA II WOMAN",
+            "AKASHA II", "AKASHA II W",
             "ULTRA RAPTOR II GTX", "ULTRA RAPTOR II WOMAN GTX",
             "ULTRA RAPTOR II MID LEATHERGTX",
             "ULTRA RAPTOR II MID LEATHER WM",
@@ -345,9 +344,7 @@ def display_specific_designations(df):
         ],
         "MIZUNO": [
             "WAVE DAICHI 9", "WAVE DAICHI 9 W",
-            "WAVE RIDER TT 2", "WAVE RIDER TT 2 W",
-            "WAVE RIDER 28", "WAVE RIDER 28 W",
-            "WAVE RIDER 29", "WAVE RIDER 29 W", "WAVE SKY 9 W", "WAVE SKY 9", "WAVE SKYRISE 6", "WAVE SKYRISE 6 W"
+            "WAVE RIDER 29", "WAVE RIDER 29 W", "WAVE SKY 9 W", "WAVE SKY 9", "WAVE SKYRISE 6", "WAVE SKYRISE 6 W", "WAVE MUJIN 11", "WAVE RIDER TT 3" 
             ],
         "NEW BALANCE": [
             "880 V15", "880 V15 W", "REBEL V4",
@@ -717,6 +714,7 @@ if fichier_telecharge is not None:
         st.error(f"Erreur lors du traitement du fichier: {str(e)}")
 else:
     st.warning("Veuillez télécharger un fichier pour commencer l'analyse.")
+
 
 
 
