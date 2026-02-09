@@ -361,7 +361,7 @@ def display_specific_designations(df):
             "TRIUMPH 23", "TRIUMPH 23 W",
             "XODUS ULTRA 4", "XODUS ULTRA 4 W",
             "ENDORPHIN SPEED 5", "ENDORPHIN SPEED 5 W",
-            "KINVARA 16", "KINVARA 16 W"
+            "KINVARA 16", "KINVARA 16 W", "RIDE 19 W", "RIDE 19"
         ]
     }
 
@@ -714,6 +714,7 @@ if fichier_telecharge is not None:
         st.error(f"Erreur lors du traitement du fichier: {str(e)}")
 else:
     st.warning("Veuillez télécharger un fichier pour commencer l'analyse.")
+
 
 
 
