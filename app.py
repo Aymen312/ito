@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 import numpy as np
-
+import re
 #### --- Fonctions pour le traitement des données ---
 def clean_numeric_columns(df):
     numeric_columns = ['Prix Achat', 'Qté stock dispo', 'Valeur Stock']
@@ -312,69 +312,117 @@ def display_stock_by_family(df):
                          f"dans la catégorie {rayon_filter}.")
 
 def display_specific_designations(df):
-    # Dictionnaire des fournisseurs et leurs modèles
-    suppliers = {
-        "ASICS": [
-            "GEL-CUMULUS 27", "GEL-CUMULUS 27 W", "GEL-TRABUCO 13 GTX", "GEL-TRABUCO 13 GTX W","MAGIC SPEED 4",
-            "NOVABLAST 5", "NOVABLAST 5 W", "NOOSA TRI 16", "NOOSA TRI 16 W",
-            "GEL-NIMBUS 27", "GEL-NIMBUS 27 W", "GEL-TRABUCO 13", "GEL-TRABUCO 13 W", "METASPEED SKY TOKYO", "GT-2000 14 TR", "GT-2000 14 TR W"
-        ],
-        "BROOKS": [
-            "CALDERA 8", "CALDERA 8 W",
-            "GHOST 17", "GHOST 17 W",
-            "CASCADIA 19", "CASCADIA 19 W",
-            "GLYCERIN 22", "GLYCERIN 22 W",
-            "HYPERION MAX 3", "HYPERION MAX 3 W",
-            "GHOST MAX 3", "GHOST MAX 3 W",
-            "HYPERION 3", "HYPERION 3 W"
-        ],
-        "HOKA": [
-            "SPEEDGOAT 6", "SPEEDGOAT 6 W",
-            "MACH 6", "MACH 6 W",
-            "CLIFTON 10", "CLIFTON 10 W",
-            "CHALLENGER 8", "CHALLENGER 8 W",
-            "MAFATE 5", "MAFATE 5 W", "BONDI 9", "BONDI 9 W", "SKYFLOW W", "SKYFLOW"
-        ],
-        "LA SPORTIVA": [
-            "AKASHA II", "AKASHA II W",
-            "ULTRA RAPTOR II GTX", "ULTRA RAPTOR II WOMAN GTX",
-            "ULTRA RAPTOR II MID LEATHERGTX",
-            "ULTRA RAPTOR II MID LEATHER WM",
-            "ULTRA RAPTOR II LTH W GTX"
-        ],
-        "MIZUNO": [
-            "WAVE DAICHI 9", "WAVE DAICHI 9 W",
-            "WAVE RIDER 29", "WAVE RIDER 29 W", "WAVE SKY 9 W", "WAVE SKY 9", "WAVE SKYRISE 6", "WAVE SKYRISE 6 W", "WAVE MUJIN 11", "WAVE RIDER TT 3" 
-            ],
-        "NEW BALANCE": [
-            "880 V15", "880 V15 W", "REBEL V4",
-            "FUELCELL REBEL"
-        ],
-        "SALOMON": [
-            "ULTRA GLIDE 3", "ULTRA GLIDE 3 W",
-            "AERO GLIDE 3 GRVL", "AERO GLIDE 3 GRVL W"
-        ],
-        "SAUCONY": [
-            "ENDORPHIN PRO 4", "ENDORPHIN SPEED 4", "ENDORPHIN SPEED 4 W",
-            "PEREGRINE 15", "PEREGRINE 15 W",
-            "RIDE 18", "RIDE 18 W", "RIDE TR2", "RIDE TR2 W",
-            "TRIUMPH 23", "TRIUMPH 23 W",
-            "XODUS ULTRA 4", "XODUS ULTRA 4 W",
-            "ENDORPHIN SPEED 5", "ENDORPHIN SPEED 5 W",
-            "KINVARA 16", "KINVARA 16 W", "RIDE 19 W", "RIDE 19"
-        ]
-    }
+    # =========================================================
+    # ✅ AUTO: fournisseurs/marques + modèles détectés depuis df
+    # =========================================================
 
-    # Normalisation des tailles
+    import re  # (si pas déjà importé en haut du fichier)
+
+    # 1) Choisir la colonne "marque" si elle existe, sinon "fournisseur"
+    brand_col = "marque" if "marque" in df.columns else "fournisseur"
+
+    # 2) Sécuriser les colonnes utilisées
+    for c in [brand_col, "designation", "taille", "famille", "ssfamille", "rayon"]:
+        if c not in df.columns:
+            df[c] = ""
+        df[c] = df[c].fillna("").astype(str)
+
+    # 3) Garder surtout les chaussures (filtre auto)
+    shoe_mask = (
+        df["famille"].str.upper().str.contains("CHAUSS", na=False) |
+        df["ssfamille"].str.upper().str.contains("CHAUSS", na=False) |
+        df["designation"].str.upper().str.contains(r"RUN|TRAIL|RANDO|CHAUSS|SHOE", na=False)
+    )
+    df_shoes = df[shoe_mask].copy()
+    if df_shoes.empty:
+        df_shoes = df.copy()
+
+    # 4) Construire automatiquement le dictionnaire suppliers = {MARQUE: [designations...]}
+    #    - si tes grandes marques existent, on les garde en priorité
+    preferred = ["ASICS", "BROOKS", "HOKA", "LA SPORTIVA", "MIZUNO", "NEW BALANCE", "SALOMON", "SAUCONY"]
+
+    brands_series = df_shoes[brand_col].str.upper().str.strip()
+    brand_counts = brands_series.value_counts()
+
+    # marques à afficher: d'abord les préférées présentes, sinon top 12
+    brands = [b for b in preferred if b in brand_counts.index]
+    if not brands:
+        brands = brand_counts.head(12).index.tolist()
+
+    suppliers = {}
+    for b in brands:
+        desigs = df_shoes.loc[brands_series == b, "designation"].astype(str).str.strip()
+        desigs = [d for d in sorted(desigs.unique()) if d]
+        suppliers[b] = desigs
+
+    # =========================================================
+    # ✅ Normalisation des tailles (plus robuste)
+    # =========================================================
     def normalize_size(size):
-        try:
-            size_str = str(size).upper().replace('US', '').replace('UK', '').replace('EU', '').strip()
-            if '.' in size_str:
-                parts = size_str.split('.')
-                return f"{int(parts[0])}.{parts[1]}"
-            return str(int(size_str)) if size_str.isdigit() else size_str
-        except:
-            return str(size)
+        """
+        Retourne une taille normalisée (string) pour comparaison:
+          - enlève US/UK/EU, espaces, virgules
+          - convertit fractions (7 1/3, 7⅔) vers format 1 décimale (7.3, 7.7)
+          - garde tailles type 85A
+        """
+        if pd.isna(size):
+            return ""
+
+        s = str(size).upper().strip()
+        s = s.replace(",", ".")
+        s = re.sub(r"\b(US|UK|EU)\b", "", s).strip()
+        s = re.sub(r"\s+", " ", s)
+
+        # Garder tailles type "85A"
+        if re.fullmatch(r"\d+[A-Z]", s):
+            return s
+
+        # Mapping fractions unicode
+        unicode_frac = {
+            "½": (1, 2),
+            "⅓": (1, 3),
+            "⅔": (2, 3),
+            "¼": (1, 4),
+            "¾": (3, 4),
+            "⅙": (1, 6),
+            "⅚": (5, 6),
+        }
+
+        def frac_to_one_decimal(num, den):
+            # Mapping “style POS”: 1/3->.3, 2/3->.7, 1/6->.2, 5/6->.8, 1/4->.2, 3/4->.8
+            mapping = {
+                (1, 2): 0.5,
+                (1, 3): 0.3, (2, 3): 0.7,
+                (1, 4): 0.2, (2, 4): 0.5, (3, 4): 0.8,
+                (1, 6): 0.2, (2, 6): 0.3, (3, 6): 0.5, (4, 6): 0.7, (5, 6): 0.8,
+            }
+            return mapping.get((num, den), num / den)
+
+        # Cas unicode "7⅔"
+        for symb, (num, den) in unicode_frac.items():
+            if symb in s:
+                base_match = re.search(r"(\d+(\.\d+)?)", s.replace(symb, ""))
+                base = float(base_match.group(1)) if base_match else 0.0
+                v = base + frac_to_one_decimal(num, den)
+                return f"{v:.1f}"
+
+        # Cas "7 1/3"
+        m = re.match(r"^(\d+)\s+(\d+)\s*/\s*(\d+)$", s)
+        if m:
+            whole = int(m.group(1))
+            num = int(m.group(2))
+            den = int(m.group(3)) if int(m.group(3)) != 0 else 1
+            v = whole + frac_to_one_decimal(num, den)
+            return f"{v:.1f}"
+
+        # Cas numérique simple "07.0" / "40" / "7.5"
+        m = re.search(r"(\d+(\.\d+)?)", s)
+        if m:
+            v = float(m.group(1))
+            return f"{v:.1f}"
+
+        # sinon (ex: XS, S, M, etc.)
+        return s
 
     # Style minimaliste avec boutons contrastés
     st.markdown("""
@@ -714,3 +762,4 @@ if fichier_telecharge is not None:
         st.error(f"Erreur lors du traitement du fichier: {str(e)}")
 else:
     st.warning("Veuillez télécharger un fichier pour commencer l'analyse.")
+
