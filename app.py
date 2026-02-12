@@ -404,21 +404,3 @@ def display_specific_designations_auto(df: pd.DataFrame):
                 )
             except Exception as e:
                 st.error(f"Erreur export CSV: {e}")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
