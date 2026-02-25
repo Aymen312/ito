@@ -3,6 +3,7 @@ import pandas as pd
 from io import BytesIO
 import numpy as np
 import re
+
 #### --- Fonctions pour le traitement des données ---
 def clean_numeric_columns(df):
     numeric_columns = ['Prix Achat', 'Qté stock dispo', 'Valeur Stock']
@@ -18,13 +19,13 @@ def clean_size_column(df):
 def highlight_row_if_one(row):
     """Met en surbrillance la ligne en rouge si 'Qté stock dispo' est égale à 1."""
     if row['Qté stock dispo'] == 1:
-        return ['background-color: red' for _ in row]
+        return['background-color: red' for _ in row]
     else:
         return [''] * len(row)
 
 #### --- Fonctions modifiées pour afficher les colonnes spécifiques ---
 def display_supplier_info(df, fournisseur):
-    colonnes_afficher = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation',
+    colonnes_afficher =['fournisseur', 'barcode', 'couleur', 'taille', 'designation',
                          'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
     fournisseur = fournisseur.strip().upper()
     df['fournisseur'] = df['fournisseur'].fillna('')
@@ -61,9 +62,9 @@ def display_supplier_info(df, fournisseur):
             
             # Définir les plages de tailles attendues selon le rayon
             if selected_rayon.upper() == 'FEMME':
-                expected_sizes = [round(x*0.5, 1) for x in range(10, 21)]  # 5.0 à 10.0 par pas de 0.5
+                expected_sizes =[round(x*0.5, 1) for x in range(10, 21)]  # 5.0 à 10.0 par pas de 0.5
             elif selected_rayon.upper() == 'HOMME':
-                expected_sizes = [round(x*0.5, 1) for x in range(14, 29)]  # 7.0 à 14.0 par pas de 0.5
+                expected_sizes =[round(x*0.5, 1) for x in range(14, 29)]  # 7.0 à 14.0 par pas de 0.5
             else:  # UNISEX ou autres
                 existing_sizes = filtered['taille'].unique()
                 expected_sizes = sorted([float(x.replace(',', '.')) for x in existing_sizes if str(x).replace('.', '').isdigit()])
@@ -106,20 +107,20 @@ def display_supplier_info(df, fournisseur):
                     size_qtys[size] += qty
             
             # Trouver les tailles manquantes
-            if selected_rayon.upper() in ['FEMME', 'HOMME']:
-                missing_sizes = []
+            if selected_rayon.upper() in['FEMME', 'HOMME']:
+                missing_sizes =[]
                 for expected in expected_sizes:
                     expected_float = float(expected)
-                    if expected_float not in [s for s in size_qtys.keys() if isinstance(s, float)]:
+                    if expected_float not in[s for s in size_qtys.keys() if isinstance(s, float)]:
                         missing_sizes.append(str(expected))
             else:
-                missing_sizes = []
+                missing_sizes =[]
             
             # Afficher les résultats
             st.write(f"Tailles disponibles pour {selected_design} ({selected_rayon}):")
             
             # Préparer l'affichage des tailles avec quantités
-            display_sizes = []
+            display_sizes =[]
             for size in sorted(size_qtys.keys()):
                 qty = size_qtys[size]
                 display_size = size_mapping.get(size, str(size))
@@ -142,7 +143,7 @@ def display_supplier_info(df, fournisseur):
 
 def display_designation_info(df, designation):
     # Colonnes à afficher dans le tableau principal
-    colonnes_a_afficher = ['barcode', 'taille', 'rayon', 'couleur', 'designation', 'Qté stock dispo']
+    colonnes_a_afficher =['barcode', 'taille', 'rayon', 'couleur', 'designation', 'Qté stock dispo']
     designation = designation.strip().upper()
     df['designation'] = df['designation'].fillna('')
     
@@ -218,14 +219,14 @@ def display_designation_info(df, designation):
 
 #### --- Fonction modifiée pour "Stock Négatif" ---
 def filter_negative_stock(df):
-    colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
+    colonnes_affichier =['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
     df['Qté stock dispo'] = df['Qté stock dispo'].fillna(0)
     df_filtered = df[df['Qté stock dispo'] < 0]
     return df_filtered[colonnes_affichier]
 
 def display_anita_sizes(df):
     df_anita = df[df['fournisseur'].str.upper() == "ANITA"]
-    tailles = [f"{num}{letter}" for num in [85, 90, 95, 100, 105, 110] for letter in 'ABCDEF']
+    tailles = [f"{num}{letter}" for num in[85, 90, 95, 100, 105, 110] for letter in 'ABCDEF']
     df_anita_sizes = df_anita[df_anita['taille'].isin(tailles)]
     df_anita_sizes = df_anita_sizes.groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
     df_anita_sizes = df_anita_sizes.replace(0, "Nul")
@@ -248,7 +249,7 @@ def display_sidas_levels(df):
 
         # # Affichage des tailles indisponibles
         available_sizes = df_sidas_level['taille'].unique()
-        unavailable_sizes = [size for size in sizes if size not in available_sizes]
+        unavailable_sizes =[size for size in sizes if size not in available_sizes]
         st.write(f"Tailles indisponibles pour SIDAS niveau {level}: {', '.join(unavailable_sizes) if unavailable_sizes else 'Aucune'}")
 
     return results
@@ -271,7 +272,7 @@ def sort_sizes(df):
     return df
 
 def display_stock_by_family(df):
-    familles = ["CHAUSSURES RANDO", "CHAUSSURES RUNN", "CHAUSSURE TRAIL"]
+    familles =["CHAUSSURES RANDO", "CHAUSSURES RUNN", "CHAUSSURE TRAIL"]
     for famille in familles:
         st.subheader(f"Stock pour {famille}")
         df['famille'] = df['famille'].fillna('')
@@ -283,7 +284,7 @@ def display_stock_by_family(df):
         st.markdown(f"Qté dispo totale pour {famille} : {total_stock}")
         st.markdown(f"Valeur totale du stock pour {famille} : {total_stock_value:.2f}")
 
-        rayon_options = ['Tous', 'Homme', 'Femme', 'Autre']
+        rayon_options =['Tous', 'Homme', 'Femme', 'Autre']
         rayon_filter = st.selectbox(f"Filtrer par Rayon pour {famille}:",
                                           options=rayon_options,
                                           key=f"rayon_{famille}")
@@ -299,8 +300,7 @@ def display_stock_by_family(df):
 
         if not df_family.empty:
             df_family = sort_sizes(df_family.copy())
-            st.dataframe(df_family[
-                             ['rayon', 'fournisseur', 'couleur', 'taille', 'designation', 'marque', 'ssfamille',
+            st.dataframe(df_family[['rayon', 'fournisseur', 'couleur', 'taille', 'designation', 'marque', 'ssfamille',
                               'Qté stock dispo', 'Valeur Stock']].style.apply(highlight_row_if_one, axis=1))
 
             total_stock_filtered = df_family['Qté stock dispo'].sum()
@@ -316,13 +316,13 @@ def display_specific_designations(df):
     # ✅ AUTO: fournisseurs/marques + modèles détectés depuis df
     # =========================================================
 
-    import re  # (si pas déjà importé en haut du fichier)
+    import re
 
     # 1) Choisir la colonne "marque" si elle existe, sinon "fournisseur"
     brand_col = "marque" if "marque" in df.columns else "fournisseur"
 
     # 2) Sécuriser les colonnes utilisées
-    for c in [brand_col, "designation", "taille", "famille", "ssfamille", "rayon"]:
+    for c in[brand_col, "designation", "taille", "famille", "ssfamille", "rayon"]:
         if c not in df.columns:
             df[c] = ""
         df[c] = df[c].fillna("").astype(str)
@@ -338,14 +338,13 @@ def display_specific_designations(df):
         df_shoes = df.copy()
 
     # 4) Construire automatiquement le dictionnaire suppliers = {MARQUE: [designations...]}
-    #    - si tes grandes marques existent, on les garde en priorité
-    preferred = ["ASICS", "BROOKS", "HOKA", "LA SPORTIVA", "MIZUNO", "NEW BALANCE", "SALOMON", "SAUCONY"]
+    preferred =["ASICS", "BROOKS", "HOKA", "LA SPORTIVA", "MIZUNO", "NEW BALANCE", "SALOMON", "SAUCONY"]
 
     brands_series = df_shoes[brand_col].str.upper().str.strip()
     brand_counts = brands_series.value_counts()
 
     # marques à afficher: d'abord les préférées présentes, sinon top 12
-    brands = [b for b in preferred if b in brand_counts.index]
+    brands =[b for b in preferred if b in brand_counts.index]
     if not brands:
         brands = brand_counts.head(12).index.tolist()
 
@@ -356,14 +355,13 @@ def display_specific_designations(df):
         suppliers[b] = desigs
 
     # =========================================================
-    # ✅ Normalisation des tailles (plus robuste)
+    # ✅ Normalisation des tailles (FORCÉE À .0 OU .5 UNIQUEMENT)
     # =========================================================
     def normalize_size(size):
         """
         Retourne une taille normalisée (string) pour comparaison:
           - enlève US/UK/EU, espaces, virgules
-          - convertit fractions (7 1/3, 7⅔) vers format 1 décimale (7.3, 7.7)
-          - garde tailles type 85A
+          - arrondit au 0.5 le plus proche pour n'avoir QUE des tailles finissant par .0 ou .5
         """
         if pd.isna(size):
             return ""
@@ -377,34 +375,25 @@ def display_specific_designations(df):
         if re.fullmatch(r"\d+[A-Z]", s):
             return s
 
+        def format_half(v):
+            # Arrondir mathématiquement au 0.5 le plus proche
+            # Ex: 7.8 -> 8.0, 7.6 -> 7.5, 7.3 -> 7.5, 7.2 -> 7.0
+            rounded = round(float(v) * 2) / 2
+            return f"{rounded:.1f}"
+
         # Mapping fractions unicode
         unicode_frac = {
-            "½": (1, 2),
-            "⅓": (1, 3),
-            "⅔": (2, 3),
-            "¼": (1, 4),
-            "¾": (3, 4),
-            "⅙": (1, 6),
-            "⅚": (5, 6),
+            "½": (1, 2), "⅓": (1, 3), "⅔": (2, 3),
+            "¼": (1, 4), "¾": (3, 4), "⅙": (1, 6), "⅚": (5, 6),
         }
-
-        def frac_to_one_decimal(num, den):
-            # Mapping “style POS”: 1/3->.3, 2/3->.7, 1/6->.2, 5/6->.8, 1/4->.2, 3/4->.8
-            mapping = {
-                (1, 2): 0.5,
-                (1, 3): 0.3, (2, 3): 0.7,
-                (1, 4): 0.2, (2, 4): 0.5, (3, 4): 0.8,
-                (1, 6): 0.2, (2, 6): 0.3, (3, 6): 0.5, (4, 6): 0.7, (5, 6): 0.8,
-            }
-            return mapping.get((num, den), num / den)
 
         # Cas unicode "7⅔"
         for symb, (num, den) in unicode_frac.items():
             if symb in s:
                 base_match = re.search(r"(\d+(\.\d+)?)", s.replace(symb, ""))
                 base = float(base_match.group(1)) if base_match else 0.0
-                v = base + frac_to_one_decimal(num, den)
-                return f"{v:.1f}"
+                v = base + (num / den)
+                return format_half(v)
 
         # Cas "7 1/3"
         m = re.match(r"^(\d+)\s+(\d+)\s*/\s*(\d+)$", s)
@@ -412,14 +401,14 @@ def display_specific_designations(df):
             whole = int(m.group(1))
             num = int(m.group(2))
             den = int(m.group(3)) if int(m.group(3)) != 0 else 1
-            v = whole + frac_to_one_decimal(num, den)
-            return f"{v:.1f}"
+            v = whole + (num / den)
+            return format_half(v)
 
-        # Cas numérique simple "07.0" / "40" / "7.5"
+        # Cas numérique simple (ex: "07.0", "40", "7.8", "7.6")
         m = re.search(r"(\d+(\.\d+)?)", s)
         if m:
             v = float(m.group(1))
-            return f"{v:.1f}"
+            return format_half(v)
 
         # sinon (ex: XS, S, M, etc.)
         return s
@@ -481,13 +470,13 @@ def display_specific_designations(df):
         if not df_filtered.empty:
             df_filtered['taille_normalisee'] = df_filtered['taille'].apply(normalize_size)
 
-            results = []
+            results =[]
             for designation in sorted(designations):
                 df_design = df_filtered[df_filtered['designation'].str.upper() == designation.upper()]
                 
                 is_woman = " W" in designation.upper() or "WOMAN" in designation.upper()
                 
-                expected_sizes = []
+                expected_sizes =[]
 
                 # Détermination des tailles attendues
                 if supplier == "SALOMON":
@@ -495,31 +484,31 @@ def display_specific_designations(df):
                         sizes = list(range(4, 10)) if is_woman else list(range(6, 14))
                     else:
                         sizes = list(range(6, 14)) if is_woman else list(range(4, 10))
-                    expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1]]
+                    expected_sizes =[f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1]]
                 
                 elif supplier == "LA SPORTIVA":
                     sizes = list(range(36, 43)) if is_woman else list(range(40, 49))
-                    expected_sizes = [f"{x/2:.1f}" for x in range(sizes[0]*2, sizes[-1]*2+1)]
+                    expected_sizes =[f"{x/2:.1f}" for x in range(sizes[0]*2, sizes[-1]*2+1)]
                 
                 elif supplier == "MIZUNO":
+                    # Pour respecter les .0 ou .5 on réécrit simplement la logique d'attente
                     if is_woman:
-                        sizes = [4, 4.5, 5, 5.5, 6.5, 7, 7.5, 8, 8.8, 9]
+                        sizes =[4.0, 4.5, 5.0, 5.5, 6.5, 7.0, 7.5, 8.0, 9.0]
                     else:
-                        sizes = [6, 6.5, 7, 7.7, 8, 8.8, 9, 9.9, 10, 10.5, 11, 11.5, 12]
-                    
-                    expected_sizes = [f"{s:.1f}" for s in sizes]
+                        sizes =[6.0, 6.5, 7.0, 7.5, 8.0, 9.0, 10.0, 10.5, 11.0, 11.5, 12.0]
+                    expected_sizes =[f"{s:.1f}" for s in sizes]
                 
                 elif supplier == "NEW BALANCE":
                     if "FUELCELL REBEL" in designation.upper():
                         sizes = list(range(7, 15))
-                        expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1] and x < 13]
+                        expected_sizes = [f"{x}.0" for x in sizes] +[f"{x}.5" for x in sizes if x != sizes[-1] and x < 13]
                     else:
                         sizes = list(range(5, 11)) if is_woman else list(range(7, 15))
-                        expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1] and x < 13]
+                        expected_sizes = [f"{x}.0" for x in sizes] +[f"{x}.5" for x in sizes if x != sizes[-1] and x < 13]
                 
                 else: # Logique par défaut pour ASICS, BROOKS, HOKA, SAUCONY
                     sizes = list(range(5, 11)) if is_woman else list(range(7, 15))
-                    expected_sizes = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1] and x < 13]
+                    expected_sizes =[f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1] and x < 13]
 
                 available_sizes = df_design['taille_normalisee'].dropna().unique()
                 missing_sizes = [size for size in expected_sizes if size not in available_sizes]
@@ -543,7 +532,7 @@ def display_specific_designations(df):
                 })
                 .set_table_styles([{
                     'selector': 'th',
-                    'props': [('background-color', 'black'), ('color', 'white')]
+                    'props':[('background-color', 'black'), ('color', 'white')]
                 }])
             )
             
@@ -585,6 +574,8 @@ def display_specific_designations(df):
                         )
                     except Exception as e:
                         st.error(f"Erreur lors de l'export CSV: {str(e)}")
+
+
 #### --- Configuration de l'application Streamlit ---
 st.set_page_config(
     page_title="Ayada TDR",
@@ -641,7 +632,7 @@ st.markdown(
     .stTabs [data-baseweb="tab-list"] {
         border-bottom: 2px solid #EEEEEE; /* Gris très clair */
     }
-    .stTabs [data-baseweb="tab-list"] button {
+    .stTabs[data-baseweb="tab-list"] button {
         background-color: transparent;
         border: none;
         color: #757575; /* Gris moyen */
@@ -673,7 +664,7 @@ st.markdown(
     }
 
     /* --- Autres éléments --- */
-    .stSelectbox [data-baseweb="select"] {
+    .stSelectbox[data-baseweb="select"] {
         padding: 8px 12px;
         border-radius: 4px;
         border: 1px solid #bdbdbd; /* Gris clair */
@@ -762,4 +753,3 @@ if fichier_telecharge is not None:
         st.error(f"Erreur lors du traitement du fichier: {str(e)}")
 else:
     st.warning("Veuillez télécharger un fichier pour commencer l'analyse.")
-
