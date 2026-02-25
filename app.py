@@ -4,15 +4,6 @@ from io import BytesIO
 import numpy as np
 import re
 
-#### --- Configuration de l'application Streamlit ---
-# Doit être la première commande Streamlit
-st.set_page_config(
-    page_title="Terre de Running - Ayada",
-    page_icon="🏃‍♂️",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
-
 #### --- Fonctions pour le traitement des données ---
 def clean_numeric_columns(df):
     numeric_columns = ['Prix Achat', 'Qté stock dispo', 'Valeur Stock']
@@ -28,7 +19,7 @@ def clean_size_column(df):
 def highlight_row_if_one(row):
     """Met en surbrillance la ligne en rouge si 'Qté stock dispo' est égale à 1."""
     if row['Qté stock dispo'] == 1:
-        return['background-color: #ffcccc' for _ in row]
+        return['background-color: red' for _ in row]
     else:
         return [''] * len(row)
 
@@ -81,8 +72,11 @@ def display_supplier_info(df, fournisseur):
             # Fonction pour extraire la valeur numérique de la taille
             def extract_size_value(size_str):
                 try:
+                    # Nettoyer la chaîne
                     cleaned = str(size_str).upper().replace('US', '').strip()
+                    # Remplacer les virgules par des points
                     cleaned = cleaned.replace(',', '.')
+                    # Supprimer les zéros initiaux
                     if '.' in cleaned:
                         int_part, dec_part = cleaned.split('.', 1)
                         int_part = int_part.lstrip('0') or '0'
@@ -93,6 +87,7 @@ def display_supplier_info(df, fournisseur):
                 except:
                     return None
             
+            # Préparer les tailles existantes avec leurs quantités
             size_qtys = {}
             size_mapping = {}
             
@@ -104,7 +99,7 @@ def display_supplier_info(df, fournisseur):
                 if size_value is not None:
                     if size_value not in size_qtys:
                         size_qtys[size_value] = 0
-                        size_mapping[size_value] = str(size)
+                        size_mapping[size_value] = str(size)  # Garder le format original pour l'affichage
                     size_qtys[size_value] += qty
                 else:
                     if size not in size_qtys:
@@ -112,7 +107,7 @@ def display_supplier_info(df, fournisseur):
                     size_qtys[size] += qty
             
             # Trouver les tailles manquantes
-            if selected_rayon.upper() in ['FEMME', 'HOMME']:
+            if selected_rayon.upper() in['FEMME', 'HOMME']:
                 missing_sizes =[]
                 for expected in expected_sizes:
                     expected_float = float(expected)
@@ -121,8 +116,10 @@ def display_supplier_info(df, fournisseur):
             else:
                 missing_sizes =[]
             
+            # Afficher les résultats
             st.write(f"Tailles disponibles pour {selected_design} ({selected_rayon}):")
             
+            # Préparer l'affichage des tailles avec quantités
             display_sizes =[]
             for size in sorted(size_qtys.keys()):
                 qty = size_qtys[size]
@@ -130,9 +127,10 @@ def display_supplier_info(df, fournisseur):
                 display_text = f"{display_size} ({qty})"
                 
                 if qty == 1:
-                    display_text = f"<span style='color:red; font-weight:bold;'>{display_text}</span>"
+                    display_text = f"<span style='color:red'>{display_text}</span>"
                 display_sizes.append(display_text)
             
+            # Afficher avec markdown pour permettre le HTML
             st.markdown(", ".join(display_sizes), unsafe_allow_html=True)
             
             if missing_sizes:
@@ -144,12 +142,15 @@ def display_supplier_info(df, fournisseur):
     return df_filtered[colonnes_afficher]
 
 def display_designation_info(df, designation):
+    # Colonnes à afficher dans le tableau principal
     colonnes_a_afficher =['barcode', 'taille', 'rayon', 'couleur', 'designation', 'Qté stock dispo']
     designation = designation.strip().upper()
     df['designation'] = df['designation'].fillna('')
     
+    # Filtre exact sur la désignation
     df_filtered = df[df['designation'].str.upper() == designation] if designation else pd.DataFrame(columns=colonnes_a_afficher)
 
+    # Normalisation des tailles
     def normalize_size(size):
         if pd.isna(size):
             return ''
@@ -165,37 +166,47 @@ def display_designation_info(df, designation):
     if 'taille' in df_filtered.columns:
         df_filtered['taille_normalisee'] = df_filtered['taille'].apply(normalize_size)
 
+    # Calculer la somme des quantités par taille et rayon
     sum_by_size = pd.DataFrame()
     if not df_filtered.empty and 'taille_normalisee' in df_filtered.columns:
+        # Convertir en numérique pour un tri correct
         df_filtered['taille_num'] = pd.to_numeric(df_filtered['taille_normalisee'], errors='coerce')
+        # Somme par taille et rayon
         sum_by_size = df_filtered.groupby(['taille_normalisee', 'rayon'])['Qté stock dispo'].sum().reset_index()
         sum_by_size.columns = ['Taille', 'Rayon', 'Total Qté dispo']
+        # Trier par taille numérique croissante
         sum_by_size['taille_num'] = pd.to_numeric(sum_by_size['Taille'], errors='coerce')
         sum_by_size = sum_by_size.sort_values('taille_num')
         sum_by_size = sum_by_size.drop(columns=['taille_num'])
 
-    def highlight_row_if_one_designation(row):
+    # Fonction de mise en forme conditionnelle
+    def highlight_row_if_one(row):
         if 'taille_normalisee' in row and row['taille_normalisee'] in sum_by_size['Taille'].values:
             mask = (sum_by_size['Taille'] == row['taille_normalisee']) 
             if 'rayon' in sum_by_size.columns:
                 mask &= (sum_by_size['Rayon'] == row['rayon'])
             total = sum_by_size.loc[mask, 'Total Qté dispo'].values[0] if any(mask) else 0
             if total == 1:
-                return ['background-color: #ffcccc'] * len(row)
+                return ['background-color: red'] * len(row)
         return [''] * len(row)
 
+    # --- Affichage du tableau principal ---
     if not df_filtered.empty and 'taille_num' in df_filtered.columns:
         df_filtered = df_filtered.sort_values('taille_num')
-    st.dataframe(df_filtered[colonnes_a_afficher].style.apply(highlight_row_if_one_designation, axis=1))
+    st.dataframe(df_filtered[colonnes_a_afficher].style.apply(highlight_row_if_one, axis=1))
 
+    # --- Affichage des sommes par taille et rayon ---
     if not sum_by_size.empty:
+        # Séparer les données par rayon
         sum_homme = sum_by_size[sum_by_size['Rayon'] == 'HOMME']
         sum_femme = sum_by_size[sum_by_size['Rayon'] == 'FEMME']
 
+        # Fonction de style conditionnel
         def highlight_total_if_one(val):
-            color = '#ffcccc' if val == 1 else ''
+            color = 'red' if val == 1 else ''
             return f'background-color: {color}'
 
+        # Afficher les tableaux séparés
         if not sum_homme.empty:
             st.subheader("Somme des quantités disponibles par taille - Rayon HOMME")
             styled_homme = sum_homme[['Taille', 'Total Qté dispo']].style.applymap(highlight_total_if_one, subset=['Total Qté dispo'])
@@ -206,6 +217,7 @@ def display_designation_info(df, designation):
             styled_femme = sum_femme[['Taille', 'Total Qté dispo']].style.applymap(highlight_total_if_one, subset=['Total Qté dispo'])
             st.dataframe(styled_femme)
 
+#### --- Fonction modifiée pour "Stock Négatif" ---
 def filter_negative_stock(df):
     colonnes_affichier =['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
     df['Qté stock dispo'] = df['Qté stock dispo'].fillna(0)
@@ -235,8 +247,9 @@ def display_sidas_levels(df):
         df_sizes_with_designation = df_sizes_grouped.stack().reset_index().rename(columns={0: 'Qté stock dispo'})
         results[level] = df_sizes_with_designation
 
+        # # Affichage des tailles indisponibles
         available_sizes = df_sidas_level['taille'].unique()
-        unavailable_sizes = [size for size in sizes if size not in available_sizes]
+        unavailable_sizes =[size for size in sizes if size not in available_sizes]
         st.write(f"Tailles indisponibles pour SIDAS niveau {level}: {', '.join(unavailable_sizes) if unavailable_sizes else 'Aucune'}")
 
     return results
@@ -259,7 +272,7 @@ def sort_sizes(df):
     return df
 
 def display_stock_by_family(df):
-    familles = ["CHAUSSURES RANDO", "CHAUSSURES RUNN", "CHAUSSURE TRAIL"]
+    familles =["CHAUSSURES RANDO", "CHAUSSURES RUNN", "CHAUSSURE TRAIL"]
     for famille in familles:
         st.subheader(f"Stock pour {famille}")
         df['famille'] = df['famille'].fillna('')
@@ -268,8 +281,8 @@ def display_stock_by_family(df):
 
         total_stock = df_family['Qté stock dispo'].sum()
         total_stock_value = df_family['Valeur Stock'].sum()
-        st.markdown(f"Qté dispo totale pour **{famille}** : **{total_stock}**")
-        st.markdown(f"Valeur totale du stock pour **{famille}** : **{total_stock_value:.2f} €**")
+        st.markdown(f"Qté dispo totale pour {famille} : {total_stock}")
+        st.markdown(f"Valeur totale du stock pour {famille} : {total_stock_value:.2f}")
 
         rayon_options =['Tous', 'Homme', 'Femme', 'Autre']
         rayon_filter = st.selectbox(f"Filtrer par Rayon pour {famille}:",
@@ -289,19 +302,32 @@ def display_stock_by_family(df):
             df_family = sort_sizes(df_family.copy())
             st.dataframe(df_family[['rayon', 'fournisseur', 'couleur', 'taille', 'designation', 'marque', 'ssfamille',
                               'Qté stock dispo', 'Valeur Stock']].style.apply(highlight_row_if_one, axis=1))
+
+            total_stock_filtered = df_family['Qté stock dispo'].sum()
+            total_stock_value_filtered = df_family['Valeur Stock'].sum()
+            st.markdown(f"Qté dispo totale pour {rayon_filter} : {total_stock_filtered}")
+            st.markdown(f"Valeur totale du stock pour {rayon_filter} : {total_stock_value_filtered:.2f}")
         else:
-            st.write(f"Aucune information disponible pour {famille} dans la catégorie {rayon_filter}.")
+            st.write(f"Aucune information disponible pour {famille} "
+                         f"dans la catégorie {rayon_filter}.")
 
 def display_specific_designations(df):
+    # =========================================================
+    # ✅ AUTO: fournisseurs/marques + modèles détectés depuis df
+    # =========================================================
+
     import re
 
+    # 1) Choisir la colonne "marque" si elle existe, sinon "fournisseur"
     brand_col = "marque" if "marque" in df.columns else "fournisseur"
 
+    # 2) Sécuriser les colonnes utilisées
     for c in[brand_col, "designation", "taille", "famille", "ssfamille", "rayon"]:
         if c not in df.columns:
             df[c] = ""
         df[c] = df[c].fillna("").astype(str)
 
+    # 3) Garder surtout les chaussures (filtre auto)
     shoe_mask = (
         df["famille"].str.upper().str.contains("CHAUSS", na=False) |
         df["ssfamille"].str.upper().str.contains("CHAUSS", na=False) |
@@ -311,23 +337,32 @@ def display_specific_designations(df):
     if df_shoes.empty:
         df_shoes = df.copy()
 
+    # 4) Construire automatiquement le dictionnaire suppliers = {MARQUE: [designations...]}
     preferred =["ASICS", "BROOKS", "HOKA", "LA SPORTIVA", "MIZUNO", "NEW BALANCE", "SALOMON", "SAUCONY"]
 
     brands_series = df_shoes[brand_col].str.upper().str.strip()
     brand_counts = brands_series.value_counts()
 
-    brands = [b for b in preferred if b in brand_counts.index]
+    # marques à afficher: d'abord les préférées présentes, sinon top 12
+    brands =[b for b in preferred if b in brand_counts.index]
     if not brands:
         brands = brand_counts.head(12).index.tolist()
 
     suppliers = {}
     for b in brands:
         desigs = df_shoes.loc[brands_series == b, "designation"].astype(str).str.strip()
-        desigs =[d for d in sorted(desigs.unique()) if d]
+        desigs = [d for d in sorted(desigs.unique()) if d]
         suppliers[b] = desigs
 
-    # Normalisation FORCÉE À .0 OU .5
+    # =========================================================
+    # ✅ Normalisation des tailles (FORCÉE À .0 OU .5 UNIQUEMENT)
+    # =========================================================
     def normalize_size(size):
+        """
+        Retourne une taille normalisée (string) pour comparaison:
+          - enlève US/UK/EU, espaces, virgules
+          - arrondit au 0.5 le plus proche pour n'avoir QUE des tailles finissant par .0 ou .5
+        """
         if pd.isna(size):
             return ""
 
@@ -336,18 +371,23 @@ def display_specific_designations(df):
         s = re.sub(r"\b(US|UK|EU)\b", "", s).strip()
         s = re.sub(r"\s+", " ", s)
 
+        # Garder tailles type "85A"
         if re.fullmatch(r"\d+[A-Z]", s):
             return s
 
         def format_half(v):
+            # Arrondir mathématiquement au 0.5 le plus proche
+            # Ex: 7.8 -> 8.0, 7.6 -> 7.5, 7.3 -> 7.5, 7.2 -> 7.0
             rounded = round(float(v) * 2) / 2
             return f"{rounded:.1f}"
 
+        # Mapping fractions unicode
         unicode_frac = {
             "½": (1, 2), "⅓": (1, 3), "⅔": (2, 3),
             "¼": (1, 4), "¾": (3, 4), "⅙": (1, 6), "⅚": (5, 6),
         }
 
+        # Cas unicode "7⅔"
         for symb, (num, den) in unicode_frac.items():
             if symb in s:
                 base_match = re.search(r"(\d+(\.\d+)?)", s.replace(symb, ""))
@@ -355,6 +395,7 @@ def display_specific_designations(df):
                 v = base + (num / den)
                 return format_half(v)
 
+        # Cas "7 1/3"
         m = re.match(r"^(\d+)\s+(\d+)\s*/\s*(\d+)$", s)
         if m:
             whole = int(m.group(1))
@@ -363,21 +404,64 @@ def display_specific_designations(df):
             v = whole + (num / den)
             return format_half(v)
 
+        # Cas numérique simple (ex: "07.0", "40", "7.8", "7.6")
         m = re.search(r"(\d+(\.\d+)?)", s)
         if m:
             v = float(m.group(1))
             return format_half(v)
 
+        # sinon (ex: XS, S, M, etc.)
         return s
 
-    st.markdown("## VUE DÉTAILLÉE DES MARQUES")
+    # Style minimaliste avec boutons contrastés
+    st.markdown("""
+    <style>
+    div.stButton > button:first-child {
+        background-color: #000000;
+        color: #FFFFFF;
+        border: 2px solid #FFFFFF;
+        border-radius: 4px;
+        padding: 12px 20px;
+        font-weight: bold;
+        width: 100%;
+        margin: 5px 0;
+        transition: all 0.3s;
+    }
+    div.stButton > button:hover {
+        background-color: #FFFFFF !important;
+        color: #000000 !important;
+        border: 2px solid #000000 !important;
+    }
+    .stock-table {
+        border: 1px solid #000000;
+    }
+    .table-header {
+        background-color: black !important;
+        color: white !important;
+    }
+    .export-btn {
+        background-color: #4CAF50 !important;
+        color: white !important;
+        border: none !important;
+        margin-top: 10px !important;
+    }
+    .export-btn:hover {
+        background-color: #45a049 !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
+    # Titre principal
+    st.markdown("## LISTE DES FOURNISSEURS")
+
+    # Création des boutons fournisseurs
     cols = st.columns(3)
     for i, supplier in enumerate(sorted(suppliers.keys())):
         with cols[i % 3]:
             if st.button(supplier, key=f"btn_{supplier}"):
                 st.session_state.selected_supplier = supplier
 
+    # Affichage des résultats si un fournisseur est sélectionné
     if 'selected_supplier' in st.session_state:
         supplier = st.session_state.selected_supplier
         designations = suppliers[supplier]
@@ -386,44 +470,48 @@ def display_specific_designations(df):
         if not df_filtered.empty:
             df_filtered['taille_normalisee'] = df_filtered['taille'].apply(normalize_size)
 
-            results = []
+            results =[]
             for designation in sorted(designations):
                 df_design = df_filtered[df_filtered['designation'].str.upper() == designation.upper()]
+                
                 is_woman = " W" in designation.upper() or "WOMAN" in designation.upper()
+                
                 expected_sizes =[]
 
+                # Détermination des tailles attendues
                 if supplier == "SALOMON":
                     if "AERO GLIDE 3 GRVL" in designation.upper():
                         sizes = list(range(4, 10)) if is_woman else list(range(6, 14))
                     else:
                         sizes = list(range(6, 14)) if is_woman else list(range(4, 10))
-                    expected_sizes =[f"{x}.0" for x in sizes] +[f"{x}.5" for x in sizes if x != sizes[-1]]
+                    expected_sizes =[f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1]]
                 
                 elif supplier == "LA SPORTIVA":
                     sizes = list(range(36, 43)) if is_woman else list(range(40, 49))
-                    expected_sizes = [f"{x/2:.1f}" for x in range(sizes[0]*2, sizes[-1]*2+1)]
+                    expected_sizes =[f"{x/2:.1f}" for x in range(sizes[0]*2, sizes[-1]*2+1)]
                 
                 elif supplier == "MIZUNO":
+                    # Pour respecter les .0 ou .5 on réécrit simplement la logique d'attente
                     if is_woman:
                         sizes =[4.0, 4.5, 5.0, 5.5, 6.5, 7.0, 7.5, 8.0, 9.0]
                     else:
                         sizes =[6.0, 6.5, 7.0, 7.5, 8.0, 9.0, 10.0, 10.5, 11.0, 11.5, 12.0]
-                    expected_sizes = [f"{s:.1f}" for s in sizes]
+                    expected_sizes =[f"{s:.1f}" for s in sizes]
                 
                 elif supplier == "NEW BALANCE":
                     if "FUELCELL REBEL" in designation.upper():
                         sizes = list(range(7, 15))
-                        expected_sizes =[f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1] and x < 13]
+                        expected_sizes = [f"{x}.0" for x in sizes] +[f"{x}.5" for x in sizes if x != sizes[-1] and x < 13]
                     else:
                         sizes = list(range(5, 11)) if is_woman else list(range(7, 15))
-                        expected_sizes =[f"{x}.0" for x in sizes] +[f"{x}.5" for x in sizes if x != sizes[-1] and x < 13]
+                        expected_sizes = [f"{x}.0" for x in sizes] +[f"{x}.5" for x in sizes if x != sizes[-1] and x < 13]
                 
-                else: 
+                else: # Logique par défaut pour ASICS, BROOKS, HOKA, SAUCONY
                     sizes = list(range(5, 11)) if is_woman else list(range(7, 15))
-                    expected_sizes = [f"{x}.0" for x in sizes] +[f"{x}.5" for x in sizes if x != sizes[-1] and x < 13]
+                    expected_sizes =[f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x != sizes[-1] and x < 13]
 
                 available_sizes = df_design['taille_normalisee'].dropna().unique()
-                missing_sizes =[size for size in expected_sizes if size not in available_sizes]
+                missing_sizes = [size for size in expected_sizes if size not in available_sizes]
 
                 results.append({
                     'Modèle': designation,
@@ -431,236 +519,171 @@ def display_specific_designations(df):
                     'Tailles manquantes': ", ".join(missing_sizes) if missing_sizes else "Complet"
                 })
 
+            # Création du DataFrame de résultats
             results_df = pd.DataFrame(results)
             
-            st.markdown(f"### 📦 Stock disponible pour : **{supplier}**")
+            # Affichage du tableau
+            st.markdown(f"### {supplier} - Stock disponible")
             st.table(
                 results_df.style
                 .set_properties(**{
                     'text-align': 'left',
-                    'border': '1px solid #e0e0e0',
-                    'padding': '10px'
+                    'border': '1px solid black'
                 })
                 .set_table_styles([{
                     'selector': 'th',
-                    'props':[('background-color', '#ff5722'), ('color', 'white'), ('font-size', '16px')]
+                    'props':[('background-color', 'black'), ('color', 'white')]
                 }])
             )
             
+            # Boutons d'export
             st.markdown("---")
+            st.markdown("### Options d'export")
+            
             col1, col2 = st.columns(2)
             
             with col1:
+                # Export Excel
                 if st.button("📊 Exporter en Excel (XLSX)", key=f"export_excel_{supplier}"):
                     try:
                         import io
                         output = io.BytesIO()
                         with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
                             results_df.to_excel(writer, sheet_name=f"{supplier}_Stock", index=False)
-                        st.download_button(label="⬇ Télécharger le fichier Excel", data=output.getvalue(), file_name=f"{supplier}_stock.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                        
+                        st.download_button(
+                            label="⬇ Télécharger le fichier Excel",
+                            data=output.getvalue(),
+                            file_name=f"{supplier}_stock.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        )
                     except Exception as e:
-                        st.error(f"Erreur Excel: {str(e)}. Pensez à installer xlsxwriter.")
+                        st.error(f"Erreur lors de l'export Excel: {str(e)}")
+                        st.info("Assurez-vous que le module xlsxwriter est installé: pip install xlsxwriter")
             
             with col2:
+                # Export CSV comme alternative à PNG
                 if st.button("📄 Exporter en CSV", key=f"export_csv_{supplier}"):
                     try:
                         csv = results_df.to_csv(index=False, sep=';')
-                        st.download_button(label="⬇ Télécharger le fichier CSV", data=csv, file_name=f"{supplier}_stock.csv", mime="text/csv")
+                        st.download_button(
+                            label="⬇ Télécharger le fichier CSV",
+                            data=csv,
+                            file_name=f"{supplier}_stock.csv",
+                            mime="text/csv"
+                        )
                     except Exception as e:
-                        st.error(f"Erreur CSV: {str(e)}")
+                        st.error(f"Erreur lors de l'export CSV: {str(e)}")
 
 
-#### --- CSS Personnalisé Globale ---
+#### --- Configuration de l'application Streamlit ---
+st.set_page_config(
+    page_title="Ayada TDR",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+#### --- CSS Personnalisé pour un style moderne (Material Design) ---
 st.markdown(
     """
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&display=swap');
+    /* --- Importation de la police Roboto (Google Fonts) --- */
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
 
+    /* --- Styles globaux --- */
     body {
         font-family: 'Roboto', sans-serif;
-        background-color: #f8f9fa;
-    }
-    
-    /* Hero Banner CSS */
-    .hero-container {
-        position: relative;
-        text-align: center;
-        color: white;
-        border-radius: 15px;
-        overflow: hidden;
-        box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-        margin-bottom: 40px;
-        background-color: #000;
-    }
-    .hero-image {
-        width: 100%;
-        height: 400px;
-        object-fit: cover;
-        opacity: 0.6;
-        display: block;
-    }
-    .hero-text {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 90%;
-    }
-    .hero-title {
-        font-size: 4.5rem;
-        font-weight: 900;
-        margin: 0;
-        text-transform: uppercase;
-        letter-spacing: 3px;
-        text-shadow: 3px 3px 6px rgba(0,0,0,0.8);
-        color: #ffffff;
-    }
-    .hero-subtitle {
-        font-size: 2.5rem;
-        font-weight: 700;
-        margin: 10px 0;
-        color: #ff5722; /* Orange Terre de Running */
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
-    }
-    .hero-desc {
-        font-size: 1.3rem;
-        margin-top: 15px;
-        font-weight: 400;
-        text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
-    }
-    
-    /* Feature Cards CSS */
-    .feature-box {
-        background-color: white;
-        padding: 25px 20px;
-        border-radius: 12px;
-        text-align: center;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-        height: 100%;
-        border-top: 5px solid #ff5722;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-    .feature-box:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 15px rgba(0,0,0,0.1);
-    }
-    .feature-icon {
-        font-size: 3rem;
-        margin-bottom: 15px;
-    }
-    .feature-title {
-        color: #212529;
-        font-size: 1.2rem;
-        font-weight: 700;
-        margin-bottom: 10px;
-    }
-    .feature-text {
-        color: #6c757d;
-        font-size: 0.95rem;
-        line-height: 1.5;
+        background-color: #f5f5f5; /* Gris très clair */
     }
 
-    /* Tabs Style */
-    .stTabs[data-baseweb="tab-list"] {
-        border-bottom: 2px solid #e0e0e0;
+    /* --- Titres --- */
+    h1, h2, h3 {
+        color: #212121; /* Gris foncé */
     }
-    .stTabs [data-baseweb="tab-list"] button {
-        color: #6c757d;
+
+    /* --- Tableaux de données --- */
+    table {
+        border-collapse: collapse;
+        width: 100%;
+        background-color: white;
+        box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1); /* Ombre subtile */
+    }
+    th, td {
+        text-align: left;
+        padding: 12px 16px;
+        border-bottom: 1px solid #EEEEEE; /* Gris très clair */
+    }
+    th {
+        font-weight: bold;
+    }
+
+    /* --- Messages d'état --- */
+    .st-success {
+        color: #448a50; /* Vert */
+    }
+    .st-warning {
+        color: #f0ad4e; /* Orange */
+    }
+    .st-error {
+        color: #d9534f; /* Rouge */
+    }
+
+    /* --- Onglets (style Material Design) --- */
+    .stTabs [data-baseweb="tab-list"] {
+        border-bottom: 2px solid #EEEEEE; /* Gris très clair */
+    }
+    .stTabs[data-baseweb="tab-list"] button {
+        background-color: transparent;
+        border: none;
+        color: #757575; /* Gris moyen */
         font-size: 16px;
-        font-weight: 600;
+        margin-right: 32px;
+        padding: 12px 16px;
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+    }
+    .stTabs [data-baseweb="tab-list"] button:hover {
+        color: #212121; /* Gris foncé */
     }
     .stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {
-        color: #ff5722;
-        border-bottom: 3px solid #ff5722;
+        color: #2196f3; /* Bleu Material Design */
+        border-bottom: 2px solid #2196f3; /* Bleu Material Design */
     }
 
-    /* Buttons */
-    div.stButton > button:first-child {
-        background-color: #212529;
-        color: #FFFFFF;
-        border: 2px solid #212529;
-        border-radius: 8px;
-        padding: 10px 20px;
-        font-weight: bold;
-        width: 100%;
-        transition: all 0.3s;
+    /* --- Boutons --- */
+    .stButton>button {
+        background-color: #2196f3; /* Bleu Material Design */
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
     }
-    div.stButton > button:hover {
-        background-color: #ff5722 !important;
-        color: #FFFFFF !important;
-        border: 2px solid #ff5722 !important;
+    .stButton>button:hover {
+        background-color: #1976d2; /* Bleu Material Design plus foncé */
+    }
+
+    /* --- Autres éléments --- */
+    .stSelectbox[data-baseweb="select"] {
+        padding: 8px 12px;
+        border-radius: 4px;
+        border: 1px solid #bdbdbd; /* Gris clair */
     }
     </style>
     """,
     unsafe_allow_html=True
 )
 
-#### --- Menu Latéral ---
-st.sidebar.image("https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Running_icon_-_Noun_Project_17825.svg/512px-Running_icon_-_Noun_Project_17825.svg.png", width=80)
-st.sidebar.markdown("## ⚙️ Menu Principal")
-st.sidebar.info("Veuillez importer votre base de données (CSV/Excel) pour activer l'application.")
-fichier_telecharge = st.file_uploader("📂 Charger le fichier d'inventaire", type=['csv', 'xlsx'])
+#### --- Interface principale de l'application ---
+st.title("Ayada TDR")
+st.sidebar.markdown("############ Menu")
+st.sidebar.info("Téléchargez un fichier CSV ou Excel pour commencer l'analyse.")
+fichier_telecharge = st.file_uploader("Téléchargez un fichier CSV ou Excel", type=['csv', 'xlsx'])
 
-#### --- Logique d'affichage Principale ---
-
-# Si AUCUN fichier n'est chargé, on affiche la belle page d'accueil
-if fichier_telecharge is None:
-    st.markdown("""
-    <div class="hero-container">
-        <img class="hero-image" src="https://images.unsplash.com/photo-1515248137880-45e105b710e0?q=80&w=2000&auto=format&fit=crop" alt="Trail Running Shoes">
-        <div class="hero-text">
-            <h1 class="hero-title">Terre de Running</h1>
-            <h2 class="hero-subtitle">Magasin Ayada</h2>
-            <p class="hero-desc">L'outil professionnel pour piloter, analyser et optimiser vos stocks de chaussures et équipements.</p>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Section des fonctionnalités
-    st.markdown("<h3 style='text-align: center; color: #424242; margin-bottom: 30px;'>🚀 Fonctionnalités Principales</h3>", unsafe_allow_html=True)
-    
-    c1, c2, c3, c4 = st.columns(4)
-    with c1:
-        st.markdown("""
-        <div class="feature-box">
-            <div class="feature-icon">👟</div>
-            <div class="feature-title">Analyse par Marque</div>
-            <div class="feature-text">Filtrez vos modèles Asics, Brooks, Salomon, Hoka et visualisez vos stocks en un clin d'œil.</div>
-        </div>
-        """, unsafe_allow_html=True)
-    with c2:
-        st.markdown("""
-        <div class="feature-box">
-            <div class="feature-icon">📏</div>
-            <div class="feature-title">Ruptures de Tailles</div>
-            <div class="feature-text">Détectez automatiquement les tailles manquantes ou en faible quantité pour anticiper vos commandes.</div>
-        </div>
-        """, unsafe_allow_html=True)
-    with c3:
-        st.markdown("""
-        <div class="feature-box">
-            <div class="feature-icon">💶</div>
-            <div class="feature-title">Valorisation Financière</div>
-            <div class="feature-text">Calculez instantanément la valeur totale de votre inventaire, globalement ou par fournisseur.</div>
-        </div>
-        """, unsafe_allow_html=True)
-    with c4:
-        st.markdown("""
-        <div class="feature-box">
-            <div class="feature-icon">⚠️</div>
-            <div class="feature-title">Alertes Stocks</div>
-            <div class="feature-text">Repérez facilement les stocks négatifs ou les dernières paires pour corriger les anomalies.</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    st.markdown("<br><br>", unsafe_allow_html=True)
-    st.success("👈 **Prêt à commencer ? Utilisez le menu à gauche pour importer votre fichier.**")
-
-# Si le fichier EST chargé, on lance l'application normalement
-else:
+if fichier_telecharge is not None:
     extension_fichier = fichier_telecharge.name.split('.')[-1]
     try:
-        with st.spinner("🔄 Traitement des données en cours..."):
+        with st.spinner("Chargement des données..."):
             if extension_fichier == 'csv':
                 df = pd.read_csv(fichier_telecharge, encoding='ISO-8859-1', sep=';')
             elif extension_fichier == 'xlsx':
@@ -672,23 +695,17 @@ else:
             if df is not None:
                 df = clean_numeric_columns(df)
                 df = clean_size_column(df)
-                
-                # Petit Header pour rappeler où on est une fois l'appli lancée
-                st.markdown("""
-                <div style='background-color: #212529; padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: center;'>
-                    <h2 style='color: white; margin:0;'>Terre de Running - Ayada 🏃‍♂️</h2>
-                </div>
-                """, unsafe_allow_html=True)
+                st.success("Données chargées avec succès!")
 
                 tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
-                    "🏢 Par Fournisseur",
-                    "🔍 Par Désignation",
-                    "⚠️ Stock Négatif",
-                    "👙 Anita",
-                    "🦶 Sidas",
-                    "💰 Valorisation",
-                    "📦 Par Famille",
-                    "🎯 Tailles Manquantes"
+                    "Filtrer par Fournisseur",
+                    "Filtrer par Désignation",
+                    "Stock Négatif",
+                    "Anita Tailles",
+                    "Sidas Niveaux",
+                    "Valeur Totale du Stock par Fournisseur",
+                    "Stock par Famille",
+                    "Désignations Spécifiques"  # Nouvel onglet
                 ])
 
                 with tab1:
@@ -715,20 +732,24 @@ else:
                     sidas_results = display_sidas_levels(df)
                     for level, df_level in sidas_results.items():
                         st.write(f"Quantités disponibles pour SIDAS niveau {level}:")
-                        st.dataframe(df_level.style.apply(highlight_row_if_one, axis=1))
+                        st.dataframe(df_level.style.apply(highlight_row_if_one, axis=1))  # # Appliquer le style ici
 
                 with tab6:
                     st.subheader("Valeur Totale du Stock par Fournisseur")
                     df_total_value_by_supplier = total_stock_value_by_supplier(df)
                     st.dataframe(df_total_value_by_supplier)
                     total_value = df_total_value_by_supplier['Valeur Totale HT'].sum()
-                    st.markdown(f"### 💶 Valeur globale : **{total_value:,.2f} €**")
+                    st.markdown(f"Valeur Totale du Stock pour tous les fournisseurs : {total_value:.2f}")
 
                 with tab7:
+                    st.header("Stock par Famille")
                     display_stock_by_family(df)
                     
                 with tab8:
+                    st.header("Tailles manquantes")
                     display_specific_designations(df.copy())
 
     except Exception as e:
-        st.error(f"❌ Erreur lors du traitement du fichier: {str(e)}")
+        st.error(f"Erreur lors du traitement du fichier: {str(e)}")
+else:
+    st.warning("Veuillez télécharger un fichier pour commencer l'analyse.")
