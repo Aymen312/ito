@@ -94,7 +94,7 @@ st.markdown(
 )
 
 # ═══════════════════════════════════════════════════════════════
-# ── STOCK DASHBOARD FUNCTIONS (unchanged) ──────────────────────
+# ── STOCK DASHBOARD FUNCTIONS ──────────────────────────────────
 # ═══════════════════════════════════════════════════════════════
 
 def clean_numeric_columns(df):
@@ -453,9 +453,10 @@ def extract_invoice_saucony(text):
     if m: data["montant_ht"] = parse_french_amount(m.group(1))
     m = re.search(r"TVA\s+[\d.,]+\s*%\s+[\d.,]+\s+([\d.,]+)", text)
     if m: data["montant_tva"] = parse_french_amount(m.group(1))
-    m = re.search(r"Net [àa] payer.*?EUR\s+([\d.,]+)", text, re.DOTALL)
-    if not m: m = re.search(r"EUR\s+([\d.,]+)\s*___", text)
-    if m: data["montant_ttc"] = parse_french_amount(m.group(1))
+    # TTC is always computed as HT + TVA
+    ht  = data.get("montant_ht")  or 0.0
+    tva = data.get("montant_tva") or 0.0
+    data["montant_ttc"] = ht + tva
     products = re.findall(r"(XODUS|ENDORPHIN|KINVARA|TRIUMPH|RIDE|TEMPUS|GUIDE)[^\n]+", text)
     if products and not data.get("designation"):
         data["designation"] = " / ".join(set(products))[:100]
@@ -479,8 +480,10 @@ def extract_invoice_hoka(text):
     if m: data["montant_ht"] = float(m.group(1).replace(",", "."))
     m = re.search(r"Total TVA\s+EUR\s+([\d.,]+)", text)
     if m: data["montant_tva"] = float(m.group(1).replace(",", "."))
-    m = re.search(r"Grand Total\s+EUR\s+([\d.,]+)", text)
-    if m: data["montant_ttc"] = float(m.group(1).replace(",", "."))
+    # TTC is always computed as HT + TVA
+    ht  = data.get("montant_ht")  or 0.0
+    tva = data.get("montant_tva") or 0.0
+    data["montant_ttc"] = ht + tva
     products = re.findall(r"\d{7}-([A-Z0-9 /]+)\n", text)
     if products: data["designation"] = " / ".join(set(products))[:100]
     else:
@@ -497,9 +500,13 @@ def extract_invoice_generic(text):
         if m: data["n_facture"] = m.group(1).strip(); break
     m = re.search(r"(\d{2}[./]\d{2}[./]\d{4})", text)
     if m: data["date_facture"] = parse_date_inv(m.group(1))
-    for label, key in [("Montant HT","montant_ht"),("TVA","montant_tva"),("TTC","montant_ttc"),("Net à payer","montant_ttc")]:
+    for label, key in [("Montant HT","montant_ht"),("TVA","montant_tva")]:
         m = re.search(label + r"[^\d]*([\d.,]+)", text, re.IGNORECASE)
         if m and key not in data: data[key] = parse_french_amount(m.group(1))
+    # TTC is always computed as HT + TVA
+    ht  = data.get("montant_ht")  or 0.0
+    tva = data.get("montant_tva") or 0.0
+    data["montant_ttc"] = ht + tva
     data.update({"beneficiaire": "?", "categorie": "Achats marchandises", "statut": "Attente règlement",
                  "moyen_paiement": "Moyen paiement", "date_transmission": "A transmettre", "source": "Format générique"})
     return data
@@ -524,18 +531,18 @@ def find_next_empty_row(ws):
 def write_invoice_to_excel(wb, d):
     ws = wb["Dépenses"]
     row = find_next_empty_row(ws)
-    df = d.get("date_facture")
+    df_date = d.get("date_facture")
     ech = d.get("echeance")
-    ht = d.get("montant_ht") or 0
+    ht  = d.get("montant_ht")  or 0
     tva = d.get("montant_tva") or 0
-    ttc = d.get("montant_ttc") or (ht + tva)
+    ttc = ht + tva  # Always HT + TVA — never use a raw extracted TTC
     vals = [
-        df, df, ech, None, d.get("n_facture",""), d.get("beneficiaire",""),
+        df_date, df_date, ech, None, d.get("n_facture",""), d.get("beneficiaire",""),
         d.get("categorie","Achats marchandises"), d.get("n_commande",""), d.get("designation",""),
         d.get("moyen_paiement","Moyen paiement"), ht, tva, ttc,
         d.get("date_transmission","A transmettre"), d.get("statut","Attente règlement"),
         None, None,
-        df.month if df else None, df.year if df else None,
+        df_date.month if df_date else None, df_date.year if df_date else None,
         ech.isocalendar()[1] if ech else None, ech.month if ech else None, ech.year if ech else None,
         d.get("commentaire","")
     ]
@@ -568,7 +575,6 @@ def render_invoice_tab():
     st.divider()
     st.markdown("### 📋 Données extraites")
 
-    # Load workbook once and store in session state to allow editing
     if "inv_wb_bytes" not in st.session_state or st.session_state.get("inv_excel_name") != excel_file.name:
         st.session_state.inv_wb_bytes = excel_file.read()
         st.session_state.inv_excel_name = excel_file.name
@@ -582,36 +588,40 @@ def render_invoice_tab():
             try:
                 invoice_data, _ = extract_from_pdf(pdf_file.read())
 
-                # Badge source
                 st.markdown(f"<span class='invoice-badge'>🔍 {invoice_data.get('source','?')}</span>", unsafe_allow_html=True)
 
                 m1, m2, m3 = st.columns(3)
                 df_date = invoice_data.get("date_facture")
                 ech_date = invoice_data.get("echeance")
-                m1.metric("N° Facture", invoice_data.get("n_facture","—"))
-                m1.metric("Bénéficiaire", invoice_data.get("beneficiaire","—").upper())
-                m2.metric("Montant HT", f"{invoice_data.get('montant_ht',0):.2f} €")
-                m2.metric("TVA", f"{invoice_data.get('montant_tva',0):.2f} €")
-                m2.metric("TTC", f"{invoice_data.get('montant_ttc',0):.2f} €")
-                m3.metric("Date facture", df_date.strftime("%d/%m/%Y") if df_date else "—")
-                m3.metric("Échéance", ech_date.strftime("%d/%m/%Y") if ech_date else "—")
-                m3.metric("N° Commande", invoice_data.get("n_commande","—"))
+                # Displayed TTC = HT + TVA
+                ht_display  = invoice_data.get("montant_ht")  or 0.0
+                tva_display = invoice_data.get("montant_tva") or 0.0
+                ttc_display = ht_display + tva_display
+
+                m1.metric("N° Facture",    invoice_data.get("n_facture","—"))
+                m1.metric("Bénéficiaire",  invoice_data.get("beneficiaire","—").upper())
+                m2.metric("Montant HT",    f"{ht_display:.2f} €")
+                m2.metric("TVA",           f"{tva_display:.2f} €")
+                m2.metric("TTC",           f"{ttc_display:.2f} €")
+                m3.metric("Date facture",  df_date.strftime("%d/%m/%Y") if df_date else "—")
+                m3.metric("Échéance",      ech_date.strftime("%d/%m/%Y") if ech_date else "—")
+                m3.metric("N° Commande",   invoice_data.get("n_commande","—"))
                 st.caption(f"Désignation détectée : {invoice_data.get('designation','—')}")
 
-                # Editable fields
                 with st.form(key=f"form_{pdf_file.name}"):
                     st.markdown("**✏️ Corriger si nécessaire**")
                     fc1, fc2 = st.columns(2)
                     with fc1:
-                        invoice_data["n_facture"]     = st.text_input("N° Facture",   value=invoice_data.get("n_facture",""),   key=f"nf_{pdf_file.name}")
-                        invoice_data["beneficiaire"]  = st.text_input("Bénéficiaire", value=invoice_data.get("beneficiaire",""),key=f"bn_{pdf_file.name}")
-                        invoice_data["n_commande"]    = st.text_input("N° Commande",  value=invoice_data.get("n_commande",""),  key=f"nc_{pdf_file.name}")
-                        invoice_data["designation"]   = st.text_input("Désignation",  value=invoice_data.get("designation",""), key=f"dg_{pdf_file.name}")
+                        invoice_data["n_facture"]      = st.text_input("N° Facture",   value=invoice_data.get("n_facture",""),    key=f"nf_{pdf_file.name}")
+                        invoice_data["beneficiaire"]   = st.text_input("Bénéficiaire", value=invoice_data.get("beneficiaire",""), key=f"bn_{pdf_file.name}")
+                        invoice_data["n_commande"]     = st.text_input("N° Commande",  value=invoice_data.get("n_commande",""),   key=f"nc_{pdf_file.name}")
+                        invoice_data["designation"]    = st.text_input("Désignation",  value=invoice_data.get("designation",""),  key=f"dg_{pdf_file.name}")
                     with fc2:
-                        invoice_data["montant_ht"]    = st.number_input("Montant HT (€)", value=float(invoice_data.get("montant_ht") or 0), step=0.01, key=f"ht_{pdf_file.name}")
-                        invoice_data["montant_tva"]   = st.number_input("Montant TVA (€)",value=float(invoice_data.get("montant_tva") or 0), step=0.01, key=f"tv_{pdf_file.name}")
-                        invoice_data["montant_ttc"]   = st.number_input("Montant TTC (€)",value=float(invoice_data.get("montant_ttc") or 0), step=0.01, key=f"tc_{pdf_file.name}")
-                        invoice_data["moyen_paiement"]= st.selectbox("Moyen paiement",
+                        invoice_data["montant_ht"]     = st.number_input("Montant HT (€)",  value=float(ht_display),  step=0.01, key=f"ht_{pdf_file.name}")
+                        invoice_data["montant_tva"]    = st.number_input("Montant TVA (€)", value=float(tva_display), step=0.01, key=f"tv_{pdf_file.name}")
+                        # TTC field pre-filled with HT + TVA — read-only display, actual value recomputed on write
+                        st.number_input("Montant TTC (€) [= HT + TVA]", value=float(invoice_data["montant_ht"] + invoice_data["montant_tva"]), step=0.01, key=f"tc_{pdf_file.name}", disabled=True)
+                        invoice_data["moyen_paiement"] = st.selectbox("Moyen paiement",
                             ["Moyen paiement","LCR","Virement","CB","Chèque","Prélèvement","Traite","?"],
                             key=f"mp_{pdf_file.name}")
                     st.form_submit_button("✅ Confirmer", use_container_width=True)
@@ -657,7 +667,6 @@ st.sidebar.markdown("### Menu Principal")
 st.sidebar.info("Téléchargez un fichier CSV ou Excel pour commencer l'analyse.")
 fichier_telecharge = st.sidebar.file_uploader("📂 Fichier source stock", type=['csv', 'xlsx'])
 
-# ── Stock tabs (only shown when stock file loaded) ──────────────
 if fichier_telecharge is not None:
     extension_fichier = fichier_telecharge.name.split('.')[-1]
     try:
@@ -726,7 +735,6 @@ if fichier_telecharge is not None:
         st.error(f"Erreur lors du traitement du fichier: {str(e)}")
 
 else:
-    # ── No stock file: show invoice tab standalone ──────────────
     st.info("Utilisez la barre latérale pour charger un fichier stock, ou utilisez directement l'onglet Factures ci-dessous.")
     st.markdown("---")
     render_invoice_tab()
