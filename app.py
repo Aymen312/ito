@@ -8,98 +8,38 @@ import openpyxl
 import io
 from datetime import datetime, timedelta
 
-#### --- Configuration de l'application Streamlit ---
-st.set_page_config(
-    page_title="Ayada TDR",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+st.set_page_config(page_title="Ayada TDR", layout="wide", initial_sidebar_state="expanded")
 
-#### --- CSS Personnalisé (Style SaaS Moderne) ---
-st.markdown(
-    """
+st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
     html, body,[class*="css"] { font-family: 'Inter', sans-serif; }
     .stApp { background-color: #F8FAFC; }
     h1, h2, h3 { color: #0F172A; font-weight: 700; letter-spacing: -0.025em; }
-
-    [data-testid="stSidebar"] {
-        background-color: #FFFFFF;
-        border-right: 1px solid #E2E8F0;
-        box-shadow: 2px 0 8px rgba(0,0,0,0.02);
-    }
-
-    .stTabs [data-baseweb="tab-list"] {
-        background-color: #FFFFFF; padding: 4px; border-radius: 12px;
-        border: 1px solid #E2E8F0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); gap: 8px;
-    }
-    .stTabs [data-baseweb="tab"] {
-        padding: 10px 16px; border-radius: 8px !important; border: none !important;
-        color: #64748B; font-weight: 500; background-color: transparent; transition: all 0.2s ease-in-out;
-    }
+    [data-testid="stSidebar"] { background-color: #FFFFFF; border-right: 1px solid #E2E8F0; box-shadow: 2px 0 8px rgba(0,0,0,0.02); }
+    .stTabs [data-baseweb="tab-list"] { background-color: #FFFFFF; padding: 4px; border-radius: 12px; border: 1px solid #E2E8F0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); gap: 8px; }
+    .stTabs [data-baseweb="tab"] { padding: 10px 16px; border-radius: 8px !important; border: none !important; color: #64748B; font-weight: 500; background-color: transparent; transition: all 0.2s ease-in-out; }
     .stTabs [data-baseweb="tab"]:hover { color: #0F172A; background-color: #F1F5F9; }
-    .stTabs [aria-selected="true"] {
-        background-color: #3B82F6 !important; color: #FFFFFF !important;
-        box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
-    }
-
-    .stButton>button {
-        background-color: #0F172A; color: #FFFFFF; border: none; border-radius: 8px;
-        padding: 10px 20px; font-weight: 600; transition: all 0.2s ease;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); width: 100%;
-    }
-    .stButton>button:hover {
-        background-color: #334155; transform: translateY(-1px);
-        box-shadow: 0 6px 8px -1px rgba(0, 0, 0, 0.15); color: white !important;
-    }
-
-    .stTextInput>div>div>input, .stSelectbox>div>div>div {
-        border-radius: 8px; border: 1px solid #CBD5E1; padding: 8px 12px;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.02);
-    }
-
-    [data-testid="stExpander"] {
-        background-color: #FFFFFF; border-radius: 12px;
-        border: 1px solid #E2E8F0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
-
-    [data-testid="stFileUploadDropzone"] {
-        border: 2px dashed #CBD5E1; border-radius: 12px; background-color: #FFFFFF;
-    }
-    [data-testid="stFileUploadDropzone"]:hover {
-        border-color: #3B82F6; background-color: #EFF6FF;
-    }
-
-    table { border-collapse: collapse; width: 100%; background-color: white;
-        box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.1); border-radius: 8px; overflow: hidden; }
+    .stTabs [aria-selected="true"] { background-color: #3B82F6 !important; color: #FFFFFF !important; box-shadow: 0 2px 4px rgba(59,130,246,0.3); }
+    .stButton>button { background-color: #0F172A; color: #FFFFFF; border: none; border-radius: 8px; padding: 10px 20px; font-weight: 600; transition: all 0.2s ease; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); width: 100%; }
+    .stButton>button:hover { background-color: #334155; transform: translateY(-1px); box-shadow: 0 6px 8px -1px rgba(0,0,0,0.15); color: white !important; }
+    .stTextInput>div>div>input, .stSelectbox>div>div>div { border-radius: 8px; border: 1px solid #CBD5E1; padding: 8px 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.02); }
+    [data-testid="stExpander"] { background-color: #FFFFFF; border-radius: 12px; border: 1px solid #E2E8F0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    [data-testid="stFileUploadDropzone"] { border: 2px dashed #CBD5E1; border-radius: 12px; background-color: #FFFFFF; }
+    [data-testid="stFileUploadDropzone"]:hover { border-color: #3B82F6; background-color: #EFF6FF; }
+    table { border-collapse: collapse; width: 100%; background-color: white; box-shadow: 0px 1px 3px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden; }
     th { background-color: #0F172A; color: white; }
     th, td { padding: 12px 16px; border-bottom: 1px solid #E2E8F0; }
-
-    /* --- Invoice card style --- */
-    .invoice-card {
-        background: white; border-radius: 12px; padding: 20px;
-        border: 1px solid #E2E8F0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        margin-bottom: 16px;
-    }
-    .invoice-badge {
-        display: inline-block; padding: 4px 10px; border-radius: 99px;
-        font-size: 12px; font-weight: 600; background: #EFF6FF; color: #3B82F6;
-        margin-bottom: 12px;
-    }
+    .invoice-badge { display: inline-block; padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; background: #EFF6FF; color: #3B82F6; margin-bottom: 12px; }
     </style>
-    """,
-    unsafe_allow_html=True
-)
+""", unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════
-# ── STOCK DASHBOARD FUNCTIONS ──────────────────────────────────
+# STOCK DASHBOARD FUNCTIONS
 # ═══════════════════════════════════════════════════════════════
 
 def clean_numeric_columns(df):
-    numeric_columns = ['Prix Achat', 'Qté stock dispo', 'Valeur Stock']
-    for col in numeric_columns:
+    for col in ['Prix Achat', 'Qté stock dispo', 'Valeur Stock']:
         if col in df.columns:
             df[col] = df[col].astype(str).str.replace(',', '.').astype(float)
     return df
@@ -112,28 +52,22 @@ def clean_size_column(df):
 def highlight_row_if_one(row):
     if row['Qté stock dispo'] == 1:
         return ['background-color: #FEE2E2; color: #991B1B' for _ in row]
-    else:
-        return [''] * len(row)
+    return [''] * len(row)
 
 def display_supplier_info(df, fournisseur):
-    colonnes_afficher = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation',
-                         'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
+    colonnes_afficher = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
     fournisseur = fournisseur.strip().upper()
     df['fournisseur'] = df['fournisseur'].fillna('')
     df_filtered = df[df['fournisseur'].str.upper() == fournisseur] if fournisseur else pd.DataFrame(columns=colonnes_afficher)
-
     if not df_filtered.empty:
         designations_rayons = df_filtered.groupby(['designation', 'rayon']).size().reset_index(name='Nombre de références')
         designations_rayons = designations_rayons.sort_values(['designation', 'rayon'])
-
         with st.expander(f"Désignations disponibles pour {fournisseur}", expanded=True):
-            designations_rayons['selection'] = designations_rayons.apply(
-                lambda x: f"{x['designation']} ({x['rayon']})", axis=1)
+            designations_rayons['selection'] = designations_rayons.apply(lambda x: f"{x['designation']} ({x['rayon']})", axis=1)
             selected = st.selectbox("Sélectionnez une désignation pour voir les tailles manquantes", designations_rayons['selection'])
             selected_design, selected_rayon = selected.split(" (")
             selected_rayon = selected_rayon[:-1]
             filtered = df_filtered[(df_filtered['designation'] == selected_design) & (df_filtered['rayon'] == selected_rayon)]
-
             if selected_rayon.upper() == 'FEMME':
                 expected_sizes = [round(x * 0.5, 1) for x in range(10, 21)]
             elif selected_rayon.upper() == 'HOMME':
@@ -141,7 +75,6 @@ def display_supplier_info(df, fournisseur):
             else:
                 existing_sizes = filtered['taille'].unique()
                 expected_sizes = sorted([float(x.replace(',', '.')) for x in existing_sizes if str(x).replace('.', '').isdigit()])
-
             def extract_size_value(size_str):
                 try:
                     cleaned = str(size_str).upper().replace('US', '').strip().replace(',', '.')
@@ -153,7 +86,6 @@ def display_supplier_info(df, fournisseur):
                     return float(cleaned)
                 except:
                     return None
-
             size_qtys = {}
             size_mapping = {}
             for _, row in filtered.iterrows():
@@ -169,12 +101,10 @@ def display_supplier_info(df, fournisseur):
                     if size not in size_qtys:
                         size_qtys[size] = 0
                     size_qtys[size] += qty
-
             if selected_rayon.upper() in ['FEMME', 'HOMME']:
                 missing_sizes = [str(e) for e in expected_sizes if float(e) not in [s for s in size_qtys.keys() if isinstance(s, float)]]
             else:
                 missing_sizes = []
-
             st.markdown(f"**Tailles disponibles pour {selected_design} ({selected_rayon}):**")
             display_sizes = []
             for size in sorted(size_qtys.keys()):
@@ -185,13 +115,11 @@ def display_supplier_info(df, fournisseur):
                     display_text = f"<span style='color:#DC2626; font-weight:bold;'>{display_text}</span>"
                 display_sizes.append(display_text)
             st.markdown(", ".join(display_sizes), unsafe_allow_html=True)
-
             if missing_sizes:
                 st.markdown(f"**Tailles manquantes ({selected_rayon}):**")
                 st.info(", ".join(missing_sizes))
             else:
                 st.success("Toutes les tailles attendues sont disponibles.")
-
     return df_filtered[colonnes_afficher]
 
 def display_designation_info(df, designation):
@@ -199,7 +127,6 @@ def display_designation_info(df, designation):
     designation = designation.strip().upper()
     df['designation'] = df['designation'].fillna('')
     df_filtered = df[df['designation'].str.upper() == designation] if designation else pd.DataFrame(columns=colonnes_a_afficher)
-
     def normalize_size(size):
         if pd.isna(size): return ''
         size_str = str(size).strip()
@@ -209,10 +136,8 @@ def display_designation_info(df, designation):
         else:
             size_str = size_str.lstrip('0') or '0'
         return size_str
-
     if 'taille' in df_filtered.columns:
         df_filtered['taille_normalisee'] = df_filtered['taille'].apply(normalize_size)
-
     sum_by_size = pd.DataFrame()
     if not df_filtered.empty and 'taille_normalisee' in df_filtered.columns:
         df_filtered['taille_num'] = pd.to_numeric(df_filtered['taille_normalisee'], errors='coerce')
@@ -220,7 +145,6 @@ def display_designation_info(df, designation):
         sum_by_size.columns = ['Taille', 'Rayon', 'Total Qté dispo']
         sum_by_size['taille_num'] = pd.to_numeric(sum_by_size['Taille'], errors='coerce')
         sum_by_size = sum_by_size.sort_values('taille_num').drop(columns=['taille_num'])
-
     def highlight_row_if_one_cond(row):
         if 'taille_normalisee' in row and row['taille_normalisee'] in sum_by_size['Taille'].values:
             mask = (sum_by_size['Taille'] == row['taille_normalisee'])
@@ -230,18 +154,14 @@ def display_designation_info(df, designation):
             if total == 1:
                 return ['background-color: #FEE2E2; color: #991B1B'] * len(row)
         return [''] * len(row)
-
     if not df_filtered.empty and 'taille_num' in df_filtered.columns:
         df_filtered = df_filtered.sort_values('taille_num')
     st.dataframe(df_filtered[colonnes_a_afficher].style.apply(highlight_row_if_one_cond, axis=1), use_container_width=True)
-
     if not sum_by_size.empty:
         sum_homme = sum_by_size[sum_by_size['Rayon'] == 'HOMME']
         sum_femme = sum_by_size[sum_by_size['Rayon'] == 'FEMME']
-
         def highlight_total_if_one(val):
             return 'background-color: #FEE2E2; color: #991B1B' if val == 1 else ''
-
         col1, col2 = st.columns(2)
         if not sum_homme.empty:
             with col1:
@@ -331,7 +251,6 @@ def display_specific_designations(df):
         if c not in df.columns:
             df[c] = ""
         df[c] = df[c].fillna("").astype(str)
-
     shoe_mask = (
         df["famille"].str.upper().str.contains("CHAUSS", na=False) |
         df["ssfamille"].str.upper().str.contains("CHAUSS", na=False) |
@@ -343,7 +262,6 @@ def display_specific_designations(df):
     brand_counts = brands_series.value_counts()
     brands = [b for b in preferred if b in brand_counts.index] or brand_counts.head(12).index.tolist()
     suppliers = {b: [d for d in sorted(df_shoes.loc[brands_series == b, "designation"].astype(str).str.strip().unique()) if d] for b in brands}
-
     def normalize_size(size):
         if pd.isna(size): return ""
         s = str(size).upper().strip().replace(",", ".")
@@ -362,13 +280,11 @@ def display_specific_designations(df):
             return format_half(int(m.group(1)) + int(m.group(2)) / (int(m.group(3)) or 1))
         m = re.search(r"(\d+(\.\d+)?)", s)
         return format_half(float(m.group(1))) if m else s
-
     cols = st.columns(4)
     for i, supplier in enumerate(sorted(suppliers.keys())):
         with cols[i % 4]:
             if st.button(supplier, key=f"btn_{supplier}"):
                 st.session_state.selected_supplier = supplier
-
     if 'selected_supplier' in st.session_state:
         supplier = st.session_state.selected_supplier
         designations = suppliers[supplier]
@@ -397,7 +313,6 @@ def display_specific_designations(df):
                 available = df_design['taille_normalisee'].dropna().unique()
                 missing = [s for s in expected if s not in available]
                 results.append({'Modèle': designation, 'Tailles disponibles': len(available), 'Tailles manquantes': ", ".join(missing) if missing else "Complet"})
-
             results_df = pd.DataFrame(results)
             st.markdown(f"### {supplier} - Stock disponible")
             st.dataframe(results_df, use_container_width=True)
@@ -419,22 +334,150 @@ def display_specific_designations(df):
 
 
 # ═══════════════════════════════════════════════════════════════
-# ── INVOICE EXTRACTOR FUNCTIONS ────────────────────────────────
+# INVOICE EXTRACTOR FUNCTIONS
 # ═══════════════════════════════════════════════════════════════
 
 def parse_french_amount(s):
-    if s is None: return None
-    s = s.strip().replace(" ", "").replace(".", "").replace(",", ".")
-    try: return float(s)
-    except: return None
+    """
+    Convert French-formatted number to float.
+    66,00 → 66.0 | 1.234,56 → 1234.56 | 1 234,56 → 1234.56
+    """
+    if s is None:
+        return None
+    s = str(s).strip().replace(" ", "")
+    if "," in s and "." in s:
+        s = s.replace(".", "").replace(",", ".")
+    elif "," in s:
+        s = s.replace(",", ".")
+    try:
+        return float(s)
+    except:
+        return None
+
 
 def parse_date_inv(s):
-    if not s: return None
-    for fmt in ("%d.%m.%Y", "%d/%m/%Y", "%Y-%m-%d"):
-        try: return datetime.strptime(s.strip(), fmt)
-        except: continue
+    """
+    Parse date string.
+    Supports DD.MM.YYYY, DD/MM/YYYY, YYYY-MM-DD, DD.MM.YY, DD/MM/YY
+    """
+    if not s:
+        return None
+    s = s.strip()
+    for fmt in ("%d.%m.%Y", "%d/%m/%Y", "%Y-%m-%d", "%d.%m.%y", "%d/%m/%y"):
+        try:
+            return datetime.strptime(s, fmt).date()
+        except:
+            pass
     return None
 
+
+# ── VF France brand prefix map ──────────────────────────────────
+# Article code first 2 chars → brand name
+_VF_BRAND_PREFIX = {
+    "AL": "altra",
+    "TM": "timberland",
+    "NF": "the north face",
+    "VN": "vans",
+    "WR": "wrangler",
+    "LV": "lee",
+    "DK": "dickies",
+}
+
+def _vf_brand_from_article(code):
+    return _VF_BRAND_PREFIX.get(str(code).strip()[:2].upper(), "vf france")
+
+
+# ── VF France / ALTRA extractor ─────────────────────────────────
+#
+# Extracted text patterns from altra79_20.pdf:
+#   "Facture 3301194916"
+#   "Référence 3040740834"
+#   "Date 11.03.26"
+#   "No. cmmde.: 0120375559   Votre ref.: ."
+#   "AL0A85U74441  W EXPERIENCE FLOW 3 LIGHT BLUE  1  75,00  12,00  66,00  66,00  L1"
+#   "Total montant net  66,00"
+#   "Total TVA  13,20"
+#   "Date facture  11.03.26"
+#   "Date d échéance  15.05.26"
+#
+def extract_invoice_vf_altra(text):
+    data = {}
+
+    # N° Facture → "Facture 3301194916"
+    m = re.search(r"\bFacture\s+(\d{6,})", text)
+    if m:
+        data["n_facture"] = m.group(1)
+
+    # Date facture (dedicated summary line at bottom)
+    m = re.search(r"Date facture\s+([\d.]+)", text)
+    if m:
+        data["date_facture"] = parse_date_inv(m.group(1))
+    else:
+        # Fallback: header line "Date 11.03.26"
+        m = re.search(r"\bDate\b\s+(\d{2}\.\d{2}\.\d{2,4})", text)
+        if m:
+            data["date_facture"] = parse_date_inv(m.group(1))
+
+    # Date d'échéance → "Date d échéance 15.05.26"
+    m = re.search(r"Date\s+d\s+[ée]ch[ée]ance\s+([\d.]+)", text)
+    if m:
+        data["echeance"] = parse_date_inv(m.group(1))
+
+    # N° commande client → "No. cmmde.: 0120375559"
+    m = re.search(r"No\.\s*cmmde\.\s*:\s*(\S+)", text)
+    if m:
+        data["n_commande"] = m.group(1)
+
+    # Product lines: ARTICLE_CODE  DESCRIPTION  QTY  PRICE…
+    # VF article codes: 2 alpha + 6+ alphanum (e.g. AL0A85U74441)
+    desig_matches = re.findall(
+        r"^([A-Z]{2}[A-Z0-9]{6,})\s+([A-Z][A-Z0-9 /\-]+?)\s+\d+\s+[\d,]+",
+        text, re.MULTILINE
+    )
+    if desig_matches:
+        data["beneficiaire"] = _vf_brand_from_article(desig_matches[0][0])
+        seen = []
+        for _, desc in desig_matches:
+            d = desc.strip()
+            if d not in seen:
+                seen.append(d)
+        data["designation"] = " / ".join(seen)[:120]
+    else:
+        data["beneficiaire"] = "vf france"
+        # Fallback: known Altra model names
+        m = re.search(
+            r"(EXPERIENCE FLOW|LONE PEAK|SUPERIOR|OLYMPUS|TIMP|TORIN|ESCALANTE|RIVERA|PARADIGM|PROVISION)[^\n]*",
+            text, re.IGNORECASE
+        )
+        if m:
+            data["designation"] = m.group(0).strip()[:120]
+
+    # Montant HT → "Total montant net  66,00"
+    m = re.search(r"Total montant net\s+([\d\s.,]+)", text)
+    if m:
+        data["montant_ht"] = parse_french_amount(m.group(1))
+
+    # TVA → "Total TVA  13,20"
+    m = re.search(r"Total TVA\s+([\d\s.,]+)", text)
+    if m:
+        data["montant_tva"] = parse_french_amount(m.group(1))
+
+    # TTC = HT + TVA — always computed, never read from PDF
+    ht  = data.get("montant_ht")  or 0.0
+    tva = data.get("montant_tva") or 0.0
+    data["montant_ttc"] = ht + tva
+
+    data.update({
+        "categorie":         "Achats marchandises",
+        "statut":            "Attente règlement",
+        "moyen_paiement":    "Moyen paiement",
+        "date_transmission": "A transmettre",
+        "source":            "VF France (Altra / Timberland / TNF / Vans)",
+    })
+    return data
+
+
+# ── Saucony / Wolverine ─────────────────────────────────────────
 def extract_invoice_saucony(text):
     data = {}
     m = re.search(r"Num[ée]ro de document\s+(\d+)", text)
@@ -453,7 +496,6 @@ def extract_invoice_saucony(text):
     if m: data["montant_ht"] = parse_french_amount(m.group(1))
     m = re.search(r"TVA\s+[\d.,]+\s*%\s+[\d.,]+\s+([\d.,]+)", text)
     if m: data["montant_tva"] = parse_french_amount(m.group(1))
-    # TTC is always computed as HT + TVA
     ht  = data.get("montant_ht")  or 0.0
     tva = data.get("montant_tva") or 0.0
     data["montant_ttc"] = ht + tva
@@ -461,9 +503,12 @@ def extract_invoice_saucony(text):
     if products and not data.get("designation"):
         data["designation"] = " / ".join(set(products))[:100]
     data.update({"categorie": "Achats marchandises", "statut": "Attente règlement",
-                 "moyen_paiement": "Moyen paiement", "date_transmission": "A transmettre", "source": "Saucony / Wolverine"})
+                 "moyen_paiement": "Moyen paiement", "date_transmission": "A transmettre",
+                 "source": "Saucony / Wolverine"})
     return data
 
+
+# ── HOKA / Deckers ──────────────────────────────────────────────
 def extract_invoice_hoka(text):
     data = {}
     m = re.search(r"Num[ée]ro de facture\s*[:\s]*(\d+)", text)
@@ -480,7 +525,6 @@ def extract_invoice_hoka(text):
     if m: data["montant_ht"] = float(m.group(1).replace(",", "."))
     m = re.search(r"Total TVA\s+EUR\s+([\d.,]+)", text)
     if m: data["montant_tva"] = float(m.group(1).replace(",", "."))
-    # TTC is always computed as HT + TVA
     ht  = data.get("montant_ht")  or 0.0
     tva = data.get("montant_tva") or 0.0
     data["montant_ttc"] = ht + tva
@@ -490,38 +534,63 @@ def extract_invoice_hoka(text):
         m = re.search(r"(CHALLENGER|CLIFTON|BONDI|MAFATE|SPEEDGOAT|RINCON|ARAHI)[^\n]*", text)
         if m: data["designation"] = m.group(0).strip()[:100]
     data.update({"categorie": "Achats marchandises", "statut": "Attente règlement",
-                 "moyen_paiement": "Moyen paiement", "date_transmission": "A transmettre", "source": "HOKA / Deckers"})
+                 "moyen_paiement": "Moyen paiement", "date_transmission": "A transmettre",
+                 "source": "HOKA / Deckers"})
     return data
 
+
+# ── Generic fallback ────────────────────────────────────────────
 def extract_invoice_generic(text):
     data = {}
     for pat in [r"[Ff]acture\s*N[°º]?\s*[:\s]*([\w\-]+)", r"N[°º]\s+[Ff]acture\s*[:\s]*([\w\-]+)"]:
         m = re.search(pat, text)
         if m: data["n_facture"] = m.group(1).strip(); break
-    m = re.search(r"(\d{2}[./]\d{2}[./]\d{4})", text)
+    m = re.search(r"(\d{2}[./]\d{2}[./]\d{2,4})", text)
     if m: data["date_facture"] = parse_date_inv(m.group(1))
-    for label, key in [("Montant HT","montant_ht"),("TVA","montant_tva")]:
+    for label, key in [("Montant HT", "montant_ht"), ("TVA", "montant_tva")]:
         m = re.search(label + r"[^\d]*([\d.,]+)", text, re.IGNORECASE)
         if m and key not in data: data[key] = parse_french_amount(m.group(1))
-    # TTC is always computed as HT + TVA
     ht  = data.get("montant_ht")  or 0.0
     tva = data.get("montant_tva") or 0.0
     data["montant_ttc"] = ht + tva
     data.update({"beneficiaire": "?", "categorie": "Achats marchandises", "statut": "Attente règlement",
-                 "moyen_paiement": "Moyen paiement", "date_transmission": "A transmettre", "source": "Format générique"})
+                 "moyen_paiement": "Moyen paiement", "date_transmission": "A transmettre",
+                 "source": "Format générique"})
     return data
 
+
+# ── Router ──────────────────────────────────────────────────────
 def extract_from_pdf(pdf_bytes):
     with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
         full_text = "\n".join(page.extract_text() or "" for page in pdf.pages)
-    if "Wolverine" in full_text or "XODUS" in full_text or "ENDORPHIN" in full_text:
-        return extract_invoice_saucony(full_text), full_text
-    elif "Deckers" in full_text or "HOKA" in full_text or "CHALLENGER" in full_text:
-        return extract_invoice_hoka(full_text), full_text
-    else:
-        data = extract_invoice_generic(full_text)
-        return data, full_text
 
+    text_upper = full_text.upper()
+
+    # VF France / Altra — signature: company name OR VF article code OR known Altra models
+    if ("VF (J) FRANCE" in full_text
+            or re.search(r"\bAL[0-9A-Z]{6,}\b", full_text)
+            or any(w in text_upper for w in [
+                "EXPERIENCE FLOW", "LONE PEAK", "SUPERIOR", "OLYMPUS",
+                "TIMP", "TORIN", "ESCALANTE", "ALTRA", "TIMBERLAND",
+                "NORTH FACE", "VF FRANCE"
+            ])):
+        return extract_invoice_vf_altra(full_text), full_text
+
+    # Saucony / Wolverine
+    elif any(w in full_text for w in ["Wolverine", "XODUS", "ENDORPHIN", "KINVARA",
+                                       "TRIUMPH", "RIDE", "TEMPUS", "GUIDE"]):
+        return extract_invoice_saucony(full_text), full_text
+
+    # HOKA / Deckers
+    elif any(w in full_text for w in ["Deckers", "HOKA", "CHALLENGER", "CLIFTON",
+                                       "BONDI", "SPEEDGOAT"]):
+        return extract_invoice_hoka(full_text), full_text
+
+    else:
+        return extract_invoice_generic(full_text), full_text
+
+
+# ── Excel helpers ───────────────────────────────────────────────
 def find_next_empty_row(ws):
     for row in range(2, ws.max_row + 2):
         if ws.cell(row=row, column=1).value is None and ws.cell(row=row, column=5).value is None:
@@ -532,23 +601,37 @@ def write_invoice_to_excel(wb, d):
     ws = wb["Dépenses"]
     row = find_next_empty_row(ws)
     df_date = d.get("date_facture")
-    ech = d.get("echeance")
-    ht  = d.get("montant_ht")  or 0
-    tva = d.get("montant_tva") or 0
-    ttc = ht + tva  # Always HT + TVA — never use a raw extracted TTC
+    ech     = d.get("echeance")
+    ht      = d.get("montant_ht")  or 0
+    tva     = d.get("montant_tva") or 0
+    ttc     = ht + tva  # Always HT + TVA
     vals = [
-        df_date, df_date, ech, None, d.get("n_facture",""), d.get("beneficiaire",""),
-        d.get("categorie","Achats marchandises"), d.get("n_commande",""), d.get("designation",""),
-        d.get("moyen_paiement","Moyen paiement"), ht, tva, ttc,
-        d.get("date_transmission","A transmettre"), d.get("statut","Attente règlement"),
+        df_date, df_date, ech, None,
+        d.get("n_facture", ""),
+        d.get("beneficiaire", ""),
+        d.get("categorie", "Achats marchandises"),
+        d.get("n_commande", ""),
+        d.get("designation", ""),
+        d.get("moyen_paiement", "Moyen paiement"),
+        ht, tva, ttc,
+        d.get("date_transmission", "A transmettre"),
+        d.get("statut", "Attente règlement"),
         None, None,
-        df_date.month if df_date else None, df_date.year if df_date else None,
-        ech.isocalendar()[1] if ech else None, ech.month if ech else None, ech.year if ech else None,
-        d.get("commentaire","")
+        df_date.month        if df_date else None,
+        df_date.year         if df_date else None,
+        ech.isocalendar()[1] if ech     else None,
+        ech.month            if ech     else None,
+        ech.year             if ech     else None,
+        d.get("commentaire", "")
     ]
     for col, val in enumerate(vals, start=1):
         ws.cell(row=row, column=col).value = val
     return row
+
+
+# ═══════════════════════════════════════════════════════════════
+# INVOICE TAB UI
+# ═══════════════════════════════════════════════════════════════
 
 def render_invoice_tab():
     st.subheader("📄 Extraction de Factures → Excel")
@@ -557,7 +640,7 @@ def render_invoice_tab():
     col1, col2 = st.columns([1, 2])
     with col1:
         st.markdown("#### 📊 Fichier Excel")
-        excel_file = st.file_uploader("Classeur .xlsm / .xlsx", type=["xlsm","xlsx"], key="inv_excel")
+        excel_file = st.file_uploader("Classeur .xlsm / .xlsx", type=["xlsm", "xlsx"], key="inv_excel")
     with col2:
         st.markdown("#### 🧾 Factures PDF")
         pdf_files = st.file_uploader("Une ou plusieurs factures", type=["pdf"], accept_multiple_files=True, key="inv_pdfs")
@@ -575,8 +658,9 @@ def render_invoice_tab():
     st.divider()
     st.markdown("### 📋 Données extraites")
 
-    if "inv_wb_bytes" not in st.session_state or st.session_state.get("inv_excel_name") != excel_file.name:
-        st.session_state.inv_wb_bytes = excel_file.read()
+    if ("inv_wb_bytes" not in st.session_state
+            or st.session_state.get("inv_excel_name") != excel_file.name):
+        st.session_state.inv_wb_bytes   = excel_file.read()
         st.session_state.inv_excel_name = excel_file.name
 
     wb = openpyxl.load_workbook(io.BytesIO(st.session_state.inv_wb_bytes), keep_vba=True)
@@ -588,42 +672,56 @@ def render_invoice_tab():
             try:
                 invoice_data, _ = extract_from_pdf(pdf_file.read())
 
-                st.markdown(f"<span class='invoice-badge'>🔍 {invoice_data.get('source','?')}</span>", unsafe_allow_html=True)
+                st.markdown(
+                    f"<span class='invoice-badge'>🔍 {invoice_data.get('source', '?')}</span>",
+                    unsafe_allow_html=True
+                )
+
+                df_date  = invoice_data.get("date_facture")
+                ech_date = invoice_data.get("echeance")
+                ht_disp  = float(invoice_data.get("montant_ht")  or 0.0)
+                tva_disp = float(invoice_data.get("montant_tva") or 0.0)
+                ttc_disp = ht_disp + tva_disp
 
                 m1, m2, m3 = st.columns(3)
-                df_date = invoice_data.get("date_facture")
-                ech_date = invoice_data.get("echeance")
-                # Displayed TTC = HT + TVA
-                ht_display  = invoice_data.get("montant_ht")  or 0.0
-                tva_display = invoice_data.get("montant_tva") or 0.0
-                ttc_display = ht_display + tva_display
-
-                m1.metric("N° Facture",    invoice_data.get("n_facture","—"))
-                m1.metric("Bénéficiaire",  invoice_data.get("beneficiaire","—").upper())
-                m2.metric("Montant HT",    f"{ht_display:.2f} €")
-                m2.metric("TVA",           f"{tva_display:.2f} €")
-                m2.metric("TTC",           f"{ttc_display:.2f} €")
-                m3.metric("Date facture",  df_date.strftime("%d/%m/%Y") if df_date else "—")
+                m1.metric("N° Facture",    invoice_data.get("n_facture", "—"))
+                m1.metric("Bénéficiaire",  invoice_data.get("beneficiaire", "—").upper())
+                m2.metric("Montant HT",    f"{ht_disp:.2f} €")
+                m2.metric("TVA",           f"{tva_disp:.2f} €")
+                m2.metric("TTC (HT+TVA)",  f"{ttc_disp:.2f} €")
+                m3.metric("Date facture",  df_date.strftime("%d/%m/%Y")  if df_date  else "—")
                 m3.metric("Échéance",      ech_date.strftime("%d/%m/%Y") if ech_date else "—")
-                m3.metric("N° Commande",   invoice_data.get("n_commande","—"))
-                st.caption(f"Désignation détectée : {invoice_data.get('designation','—')}")
+                m3.metric("N° Commande",   invoice_data.get("n_commande", "—"))
+                st.caption(f"Désignation : {invoice_data.get('designation', '—')}")
 
                 with st.form(key=f"form_{pdf_file.name}"):
                     st.markdown("**✏️ Corriger si nécessaire**")
                     fc1, fc2 = st.columns(2)
                     with fc1:
-                        invoice_data["n_facture"]      = st.text_input("N° Facture",   value=invoice_data.get("n_facture",""),    key=f"nf_{pdf_file.name}")
-                        invoice_data["beneficiaire"]   = st.text_input("Bénéficiaire", value=invoice_data.get("beneficiaire",""), key=f"bn_{pdf_file.name}")
-                        invoice_data["n_commande"]     = st.text_input("N° Commande",  value=invoice_data.get("n_commande",""),   key=f"nc_{pdf_file.name}")
-                        invoice_data["designation"]    = st.text_input("Désignation",  value=invoice_data.get("designation",""),  key=f"dg_{pdf_file.name}")
+                        invoice_data["n_facture"]    = st.text_input("N° Facture",
+                            value=invoice_data.get("n_facture", ""),    key=f"nf_{pdf_file.name}")
+                        invoice_data["beneficiaire"] = st.text_input("Bénéficiaire",
+                            value=invoice_data.get("beneficiaire", ""), key=f"bn_{pdf_file.name}")
+                        invoice_data["n_commande"]   = st.text_input("N° Commande",
+                            value=invoice_data.get("n_commande", ""),   key=f"nc_{pdf_file.name}")
+                        invoice_data["designation"]  = st.text_input("Désignation",
+                            value=invoice_data.get("designation", ""),  key=f"dg_{pdf_file.name}")
                     with fc2:
-                        invoice_data["montant_ht"]     = st.number_input("Montant HT (€)",  value=float(ht_display),  step=0.01, key=f"ht_{pdf_file.name}")
-                        invoice_data["montant_tva"]    = st.number_input("Montant TVA (€)", value=float(tva_display), step=0.01, key=f"tv_{pdf_file.name}")
-                        # TTC field pre-filled with HT + TVA — read-only display, actual value recomputed on write
-                        st.number_input("Montant TTC (€) [= HT + TVA]", value=float(invoice_data["montant_ht"] + invoice_data["montant_tva"]), step=0.01, key=f"tc_{pdf_file.name}", disabled=True)
-                        invoice_data["moyen_paiement"] = st.selectbox("Moyen paiement",
-                            ["Moyen paiement","LCR","Virement","CB","Chèque","Prélèvement","Traite","?"],
-                            key=f"mp_{pdf_file.name}")
+                        invoice_data["montant_ht"]   = st.number_input("Montant HT (€)",
+                            value=ht_disp,  step=0.01, key=f"ht_{pdf_file.name}")
+                        invoice_data["montant_tva"]  = st.number_input("Montant TVA (€)",
+                            value=tva_disp, step=0.01, key=f"tv_{pdf_file.name}")
+                        # TTC read-only, always = HT + TVA
+                        st.number_input(
+                            "Montant TTC (€)  [= HT + TVA, auto]",
+                            value=invoice_data["montant_ht"] + invoice_data["montant_tva"],
+                            step=0.01, key=f"tc_{pdf_file.name}", disabled=True
+                        )
+                        invoice_data["moyen_paiement"] = st.selectbox(
+                            "Moyen paiement",
+                            ["Moyen paiement", "LCR", "Virement", "CB", "Chèque", "Prélèvement", "Traite", "?"],
+                            key=f"mp_{pdf_file.name}"
+                        )
                     st.form_submit_button("✅ Confirmer", use_container_width=True)
 
                 all_invoice_data.append((pdf_file.name, invoice_data))
@@ -647,7 +745,9 @@ def render_invoice_tab():
             for fname, rnum in rows_added:
                 st.write(f"  • **{fname}** → ligne {rnum}")
 
-            orig_name = excel_file.name.replace(".xlsm","_updated.xlsm").replace(".xlsx","_updated.xlsx")
+            orig_name = (excel_file.name
+                         .replace(".xlsm", "_updated.xlsm")
+                         .replace(".xlsx", "_updated.xlsx"))
             st.download_button(
                 "⬇️ Télécharger le fichier Excel mis à jour",
                 data=output,
@@ -658,7 +758,7 @@ def render_invoice_tab():
 
 
 # ═══════════════════════════════════════════════════════════════
-# ── MAIN APP ───────────────────────────────────────────────────
+# MAIN APP
 # ═══════════════════════════════════════════════════════════════
 
 st.title("Ayada TDR - Tableau de Bord Stock")
