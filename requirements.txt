@@ -1,13 +1,14 @@
 streamlit
 pandas
 openpyxl
-fpdf
+fpdf2
 passlib
 plotly
-LinearRegression
+scikit-learn
 reportlab
 PyMuPDF
 PyPDF2
 dataframe-image
 xlsxwriter
 pillow
+pdfplumber
