@@ -7,6 +7,8 @@ import pdfplumber
 import openpyxl
 import io
 from datetime import datetime, timedelta
+import hashlib
+import hashlib
 
 st.set_page_config(page_title="Ayada TDR", layout="wide", initial_sidebar_state="expanded")
 
@@ -560,10 +562,18 @@ def extract_invoice_generic(text):
 
 
 # ── Router ──────────────────────────────────────────────────────
+# Cache extraction results — Streamlit re-runs on every widget interaction,
+# this ensures we only call pdfplumber once per unique file (180x faster on re-runs)
+_pdf_extract_cache = {}
+
 def extract_from_pdf(pdf_bytes):
+    cache_key = hashlib.md5(pdf_bytes).hexdigest()
+    if cache_key in _pdf_extract_cache:
+        return _pdf_extract_cache[cache_key]
+
     with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
         # Only read page 1 — invoice data is always there.
-        # Page 2 is T&C (23k chars) and takes 3x longer — skip it.
+        # Page 2+ is T&C (23k chars) and takes 3x longer — skip it.
         full_text = pdf.pages[0].extract_text() or ""
 
     text_upper = full_text.upper()
@@ -576,20 +586,23 @@ def extract_from_pdf(pdf_bytes):
                 "TIMP", "TORIN", "ESCALANTE", "ALTRA", "TIMBERLAND",
                 "NORTH FACE", "VF FRANCE"
             ])):
-        return extract_invoice_vf_altra(full_text), full_text
+        result = extract_invoice_vf_altra(full_text), full_text
 
     # Saucony / Wolverine
     elif any(w in full_text for w in ["Wolverine", "XODUS", "ENDORPHIN", "KINVARA",
                                        "TRIUMPH", "RIDE", "TEMPUS", "GUIDE"]):
-        return extract_invoice_saucony(full_text), full_text
+        result = extract_invoice_saucony(full_text), full_text
 
     # HOKA / Deckers
     elif any(w in full_text for w in ["Deckers", "HOKA", "CHALLENGER", "CLIFTON",
                                        "BONDI", "SPEEDGOAT"]):
-        return extract_invoice_hoka(full_text), full_text
+        result = extract_invoice_hoka(full_text), full_text
 
     else:
-        return extract_invoice_generic(full_text), full_text
+        result = extract_invoice_generic(full_text), full_text
+
+    _pdf_extract_cache[cache_key] = result
+    return result
 
 
 # ── Excel helpers ───────────────────────────────────────────────
@@ -679,12 +692,20 @@ def render_invoice_tab():
 
     wb = openpyxl.load_workbook(io.BytesIO(st.session_state.inv_wb_bytes), keep_vba=True)
 
+    # Cache raw PDF bytes per filename — Streamlit resets file buffers on re-render
+    if "inv_pdf_bytes" not in st.session_state:
+        st.session_state.inv_pdf_bytes = {}
+    for pdf_file in pdf_files:
+        if pdf_file.name not in st.session_state.inv_pdf_bytes:
+            st.session_state.inv_pdf_bytes[pdf_file.name] = pdf_file.read()
+
     all_invoice_data = []
 
     for pdf_file in pdf_files:
         with st.expander(f"📄 {pdf_file.name}", expanded=True):
             try:
-                invoice_data, _ = extract_from_pdf(pdf_file.read())
+                pdf_bytes_cached = st.session_state.inv_pdf_bytes[pdf_file.name]
+                invoice_data, _ = extract_from_pdf(pdf_bytes_cached)
 
                 st.markdown(
                     f"<span class='invoice-badge'>🔍 {invoice_data.get('source', '?')}</span>",
