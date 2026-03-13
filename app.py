@@ -341,23 +341,14 @@ def display_specific_designations(df):
 # ═══════════════════════════════════════════════════════════════
 
 def parse_french_amount(s):
-    """
-    Convert French-formatted number to float.
-    Handles spaces inside numbers: '4 384. 52' → 4384.52
-    66,00 → 66.0 | 1.234,56 → 1234.56 | 1 234,56 → 1234.56
-    """
     if s is None:
         return None
     s = str(s).strip()
-    # Remove all whitespace (handles '4 384. 52' → '4384.52')
     s = re.sub(r'\s+', '', s)
     if "," in s and "." in s:
-        # Both separators: dot = thousands, comma = decimal  e.g. 1.234,56
         s = s.replace(".", "").replace(",", ".")
     elif "," in s:
-        # Only comma: decimal separator  e.g. 66,00
         s = s.replace(",", ".")
-    # Only dot or plain number: already float-ready
     try:
         return float(s)
     except:
@@ -365,13 +356,6 @@ def parse_french_amount(s):
 
 
 def parse_date_inv(s):
-    """
-    Parse date string. Handles:
-      DD.MM.YYYY | D.MM.YYYY
-      DD/MM/YYYY | D/MM/YYYY | D/MM/YY
-      YYYY-MM-DD
-      DD.MM.YY
-    """
     if not s:
         return None
     s = s.strip()
@@ -387,13 +371,11 @@ def parse_date_inv(s):
 
 
 def _clean_iban(raw):
-    """Normalise extracted IBAN string: strip, uppercase, collapse internal spaces."""
     if not raw:
         return ""
     return re.sub(r'\s+', ' ', raw.strip().upper())
 
 
-# ── VF France brand prefix map ───────────────────────────────────
 _VF_BRAND_PREFIX = {
     "AL": "altra",
     "TM": "timberland",
@@ -410,24 +392,10 @@ def _vf_brand_from_article(code):
 
 # ════════════════════════════════════════════════════════════════
 # NEW BALANCE extractor
-# ────────────────────────────────────────────────────────────────
-# pdfplumber renders the NB logo font with letter-spacing, so
-# "Numéro" becomes "Nu m é ro" in extracted text.
-# All patterns must tolerate optional spaces inside keywords.
-#
-# Actual extracted lines:
-#   'Nu m é ro de Facture: 0232237 Réf de la Cde: 265479-2 ...'
-#   "Date de la Facture: 4/03/26 Numéro de Commande:F120454/000 Date d'Echéance: 03/04/26"
-#   'T V A Taux Base HT Montant TVA Total HT 4384.52'
-#   'F R 1 20.00 4384.52 876.90 Montant TVA 876.90'
-#   'TOTAL TTC 5261.42'
-#   'IBAN: FR 76 3005 6005 1205 1200 7707 349'
 # ════════════════════════════════════════════════════════════════
 def extract_invoice_new_balance(text):
     data = {}
 
-    # N° Facture — handle spaced font: "Nu m é ro de Facture: 0232237"
-    # Allow optional single spaces between chars of "Numéro"
     m = re.search(
         r"Nu\s*m\s*[eé\xe9]\s*r\s*o\s+de\s+Facture\s*:\s*(\d+)",
         text, re.IGNORECASE
@@ -435,33 +403,26 @@ def extract_invoice_new_balance(text):
     if m:
         data["n_facture"] = m.group(1).strip()
     else:
-        # Fallback: bare 7-digit number after any "Facture" keyword
         m = re.search(r"Facture\s*:\s*(\d{6,})", text)
         if m:
             data["n_facture"] = m.group(1).strip()
 
-    # Date de la Facture  (handles "4/03/26" → single-digit day)
     m = re.search(r"Date de la Facture\s*:\s*([\d/]+)", text)
     if m:
         data["date_facture"] = parse_date_inv(m.group(1))
 
-    # Date d'Échéance
     m = re.search(r"Date d.Ech[eé]ance\s*:\s*([\d/]+)", text)
     if m:
         data["echeance"] = parse_date_inv(m.group(1))
 
-    # N° Commande
     m = re.search(r"Num[eé]ro de Commande\s*:\s*(\S+)", text)
     if m:
         data["n_commande"] = m.group(1).strip()
 
-    # Designation — collect all product description lines
-    # New Balance lines look like:  "M REBEL V5" / "W880V15" / "RC SH 5 IN" etc.
     desig_lines = re.findall(
         r"^([A-Z][A-Z0-9 '/\-]{3,})\n",
         text, re.MULTILINE
     )
-    # Filter out boilerplate header strings
     _SKIP = {"NEW BALANCE FRANCE SARL", "HSBC FRANCE", "FRANCE", "A SUIVRE",
               "TVA SUR LES DEBITS", "EUR EURO", "VIREMENT BANCAIRE"}
     seen = []
@@ -472,22 +433,18 @@ def extract_invoice_new_balance(text):
     if seen:
         data["designation"] = " / ".join(seen[:6])
 
-    # Total HT  (may contain spaces: "4384. 52")
     m = re.search(r"Total HT\s+([\d\s.,]+)", text)
     if m:
         data["montant_ht"] = parse_french_amount(m.group(1))
 
-    # Montant TVA
     m = re.search(r"Montant TVA\s+([\d\s.,]+)", text)
     if m:
         data["montant_tva"] = parse_french_amount(m.group(1))
 
-    # TOTAL TTC (used only for display cross-check; we always recompute)
     m = re.search(r"TOTAL TTC\s+([\d\s.,]+)", text)
     if m:
         data["_ttc_pdf"] = parse_french_amount(m.group(1))
 
-    # IBAN
     m = re.search(r"IBAN\s*:\s*(FR[\d\s]+\d)", text)
     if m:
         data["iban"] = _clean_iban(m.group(1))
@@ -509,58 +466,40 @@ def extract_invoice_new_balance(text):
 
 # ════════════════════════════════════════════════════════════════
 # NÄAK extractor
-# ────────────────────────────────────────────────────────────────
-# REAL extracted layout (pdfplumber output):
-#   Line A: "Date de la facture : Date d'échéance : Date de livraison : Origine : ..."
-#   Line B: "Livraison de biens"                         ← value for Type d'opération
-#   Line C: "2026-03-13 2026-04-12 2026-03-13 S14279"   ← ALL date/origin values
-#
-# → Labels and values are on completely different lines.
-#   Must match the values line directly, NOT by label-proximity.
 # ════════════════════════════════════════════════════════════════
 def extract_invoice_naak(text):
     data = {}
 
-    # N° Facture  (format INV/2026/05136) — on its own line
     m = re.search(r"Facture\s+(INV/[\d/]+)", text)
     if m:
         data["n_facture"] = m.group(1).strip()
 
-    # ── Dates + Origine ────────────────────────────────────────
-    # All values are on ONE line: "2026-03-13 2026-04-12 2026-03-13 S14279"
-    # Positions: [0]=date_facture  [1]=echeance  [2]=date_livraison  [3]=origine
     m = re.search(
         r"(\d{4}-\d{2}-\d{2})\s+(\d{4}-\d{2}-\d{2})\s+\d{4}-\d{2}-\d{2}\s+(\S+)",
         text
     )
     if m:
-        data["date_facture"] = parse_date_inv(m.group(1))   # 2026-03-13
-        data["echeance"]     = parse_date_inv(m.group(2))   # 2026-04-12
-        data["n_commande"]   = m.group(3).strip()            # S14279
+        data["date_facture"] = parse_date_inv(m.group(1))
+        data["echeance"]     = parse_date_inv(m.group(2))
+        data["n_commande"]   = m.group(3).strip()
     else:
-        # Fallback: pick up any ISO dates individually
         dates = re.findall(r"\d{4}-\d{2}-\d{2}", text)
         if dates:
             data["date_facture"] = parse_date_inv(dates[0])
         if len(dates) >= 2:
             data["echeance"] = parse_date_inv(dates[1])
-        # Origine fallback
         m2 = re.search(r"Origine\s*[:\s]+\n?\s*(\S+)", text)
         if m2:
             data["n_commande"] = m2.group(1).strip()
 
-    # Collect product names for designation
-    # Lines like: "Energy Puree | Sweet Potatoes Butternut Squash - 6 Purees"
     product_lines = re.findall(
         r"Energy\s+(?:Puree|Gel|Bar|Waffle|Drink Mix)[^\n]+",
         text, re.IGNORECASE
     )
     if product_lines:
-        # Keep unique short labels
         short = []
         seen_labels = set()
         for line in product_lines:
-            # Extract type+flavour only
             m2 = re.match(r"(Energy\s+\w+\s*\|?\s*[\w\s]+?)(?:\s*-\s*\d+|\s*\d+\.)", line, re.IGNORECASE)
             label = (m2.group(1) if m2 else line[:50]).strip().rstrip("|").strip()
             if label not in seen_labels:
@@ -570,13 +509,10 @@ def extract_invoice_naak(text):
     else:
         data["designation"] = "Nutrition / Compléments sportifs"
 
-    # Montant HT  (= "Montant hors taxes  257,10 €")
     m = re.search(r"Montant hors taxes\s+([\d\s,\.]+)\s*€", text)
     if m:
         data["montant_ht"] = parse_french_amount(m.group(1))
 
-    # TVA  — Näak uses "TVA 5,5% on X €   Y €"  AND/OR "TVA 20% on Z €  W €"
-    # Sum all TVA amounts found
     tva_total = 0.0
     for tva_match in re.finditer(
         r"TVA\s+[\d,\.]+\s*%\s+on\s+[\d\s,\.]+\s*€\s+([\d\s,\.]+)\s*€",
@@ -588,12 +524,10 @@ def extract_invoice_naak(text):
     if tva_total:
         data["montant_tva"] = round(tva_total, 2)
 
-    # Total TTC  (= "Total  271,24 €")
     m = re.search(r"\bTotal\b\s+([\d\s,\.]+)\s*€", text)
     if m:
         data["_ttc_pdf"] = parse_french_amount(m.group(1))
 
-    # IBAN  (format "FR76 1009 6181 9100 0826 5750 203")
     m = re.search(r"IBAN\s*:\s*(FR[\d\s]+\d)", text)
     if m:
         data["iban"] = _clean_iban(m.group(1))
@@ -615,34 +549,16 @@ def extract_invoice_naak(text):
 
 # ════════════════════════════════════════════════════════════════
 # AMER SPORTS / SALOMON extractor
-# ────────────────────────────────────────────────────────────────
-# REAL pdfplumber layout — 4-column header table split over 3 lines:
-#
-#  Line L: "N° de facture / Date  N° de bon de livraison / DateVotre N° de commande / Date  Client / TVA L - TVA F"
-#  Line V: "4400011102  4062979869  SAL Footw&Gear SS26  376127"
-#  Line D: "06.02.2026  06.02.2026  02.07.2025  FR18895316792"
-#
-# col 1 = N° facture / date facture
-# col 2 = N° bon livraison / date livraison
-# col 3 = N° commande client / date commande   ← "SAL Footw&Gear SS26"
-# col 4 = Client code / TVA
-#
-# Échéance is on its own line pair:
-#  "Echéance:"
-#  "07.04.2026: EUR 5.312,81."
 # ════════════════════════════════════════════════════════════════
 def extract_invoice_amer_sports(text):
     data = {}
     lines = text.split('\n')
 
-    # ── Find the values line: starts with a 10-digit invoice number ──
-    # "4400011102 4062979869 SAL Footw&Gear SS26 376127"
     values_line  = None
     dates_line   = None
     for i, line in enumerate(lines):
         if re.match(r"^\d{10}\s+\d{10}\s+\S", line):
             values_line = line
-            # Next non-empty line has the dates
             for j in range(i+1, min(i+4, len(lines))):
                 if re.match(r"^\d{2}\.\d{2}\.\d{4}", lines[j]):
                     dates_line = lines[j]
@@ -650,42 +566,32 @@ def extract_invoice_amer_sports(text):
             break
 
     if values_line:
-        # "4400011102 4062979869 SAL Footw&Gear SS26 376127"
-        # col1=10-digit N°facture  col2=10-digit N°BL  col3=text N°commande  col4=6-digit client
         m = re.match(r"^(\d{10})\s+(\d{10})\s+(.+?)\s+(\d{6})\s*$", values_line.strip())
         if m:
             data["n_facture"]  = m.group(1)
-            data["n_commande"] = m.group(3).strip()   # "SAL Footw&Gear SS26"
+            data["n_commande"] = m.group(3).strip()
         else:
-            # Fallback: just grab the first number
             m2 = re.match(r"^(\d{7,})", values_line.strip())
             if m2:
                 data["n_facture"] = m2.group(1)
     else:
-        # Fallback: "Facture 4400011102" from page-2 header line
         m = re.search(r"\bFacture\s+(\d{7,})", text)
         if m:
             data["n_facture"] = m.group(1).strip()
 
     if dates_line:
-        # "06.02.2026 06.02.2026 02.07.2025 FR18895316792"
-        # First date = date_facture
         m = re.match(r"^(\d{2}\.\d{2}\.\d{4})", dates_line.strip())
         if m:
             data["date_facture"] = parse_date_inv(m.group(1))
 
-    # ── Échéance — line after "Echéance:" ───────────────────────
-    # "Echéance:\n07.04.2026: EUR 5.312,81."
     m = re.search(r"Ech[eé]ance\s*:\s*\n?\s*(\d{2}\.\d{2}\.\d{4})", text)
     if m:
         data["echeance"] = parse_date_inv(m.group(1))
     else:
-        # Same-line variant: "Echéance: 07.04.2026:"
         m = re.search(r"Ech[eé]ance\s*:\s*(\d{2}\.\d{2}\.\d{4})", text)
         if m:
             data["echeance"] = parse_date_inv(m.group(1))
 
-    # ── Brand from product section header ───────────────────────
     brands_found = re.findall(
         r"^(SALOMON|ATOMIC|WILSON|ARC'TERYX|PEAK PERFORMANCE|ARMADA|MAVIC|ENVE|SUUNTO)\s*$",
         text, re.MULTILINE | re.IGNORECASE
@@ -696,8 +602,6 @@ def extract_invoice_amer_sports(text):
     else:
         data["beneficiaire"] = "salomon"
 
-    # ── Designation — product description lines ──────────────────
-    # "1 L49174700 Shoes AERO GLIDE 4 GRVL Stormw/Lichen/Va 14PR 20,00% ..."
     desig_matches = re.findall(
         r"^\d+\s+[LC]{1,2}\d{6,8}\s+([A-Z][A-Z0-9 '\-/\.]+?)(?:\s+\d+\s*(?:PR|EA|PC))",
         text, re.MULTILINE
@@ -718,22 +622,18 @@ def extract_invoice_amer_sports(text):
         if m:
             data["designation"] = m.group(0).strip()[:120]
 
-    # ── Montant HT — "TOTAL NET HT   4.427,34" ──────────────────
     m = re.search(r"TOTAL\s+NET\s+HT\s+([\d\s.,]+)", text)
     if m:
         data["montant_ht"] = parse_french_amount(m.group(1))
 
-    # ── TVA — "TVA 20,00% de 4.427,34   885,47" ─────────────────
     m = re.search(r"TVA\s+[\d,]+\s*%\s+de\s+[\d\s.,]+\s+([\d\s.,]+)", text)
     if m:
         data["montant_tva"] = parse_french_amount(m.group(1))
 
-    # NET A PAYER — cross-check only, we always recompute TTC = HT + TVA
     m = re.search(r"NET\s+A\s+PAYER\s+EUR\s+([\d\s.,]+)", text)
     if m:
         data["_ttc_pdf"] = parse_french_amount(m.group(1))
 
-    # IBAN  (format "FR76 3000 3006 8300 0202 7977 822")
     m = re.search(r"IBAN\s*:\s*(FR[\d\s]+\d)", text)
     if m:
         data["iban"] = _clean_iban(m.group(1))
@@ -745,7 +645,7 @@ def extract_invoice_amer_sports(text):
     data.update({
         "categorie":         "Achats marchandises",
         "statut":            "Attente règlement",
-        "moyen_paiement":    "LCR",          # "LCR automatique" on the invoice
+        "moyen_paiement":    "LCR",
         "date_transmission": "A transmettre",
         "source":            "Amer Sports (Salomon / Atomic / Wilson…)",
     })
@@ -797,7 +697,6 @@ def extract_invoice_vf_altra(text):
     m = re.search(r"Total TVA\s+([\d\s.,]+)", text)
     if m:
         data["montant_tva"] = parse_french_amount(m.group(1))
-    # IBAN
     m = re.search(r"IBAN\s*:\s*(FR[\d\s]+\d)", text)
     if m:
         data["iban"] = _clean_iban(m.group(1))
@@ -911,7 +810,6 @@ def extract_from_pdf(pdf_bytes):
         return _pdf_extract_cache[cache_key]
 
     with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
-        # Read all pages for multi-page invoices (New Balance is 3 pages)
         pages_text = []
         for page in pdf.pages:
             t = page.extract_text()
@@ -921,7 +819,6 @@ def extract_from_pdf(pdf_bytes):
 
     text_upper = full_text.upper()
 
-    # ── New Balance ──────────────────────────────────────────────
     if (
         "NEW BALANCE" in text_upper
         or "NEWBALANCE" in text_upper
@@ -929,7 +826,6 @@ def extract_from_pdf(pdf_bytes):
     ):
         result = extract_invoice_new_balance(full_text), full_text
 
-    # ── Näak ────────────────────────────────────────────────────
     elif (
         "NÄAK" in text_upper
         or "NAAK" in text_upper
@@ -939,7 +835,6 @@ def extract_from_pdf(pdf_bytes):
     ):
         result = extract_invoice_naak(full_text), full_text
 
-    # ── Amer Sports (Salomon / Atomic / Wilson…) ─────────────────
     elif (
         "AMER SPORTS" in text_upper
         or "AMERSPORTS" in text_upper
@@ -949,7 +844,6 @@ def extract_from_pdf(pdf_bytes):
     ):
         result = extract_invoice_amer_sports(full_text), full_text
 
-    # ── VF France / Altra ───────────────────────────────────────
     elif (
         "VF (J) FRANCE" in full_text
         or re.search(r"\bAL[0-9A-Z]{6,}\b", full_text)
@@ -961,12 +855,10 @@ def extract_from_pdf(pdf_bytes):
     ):
         result = extract_invoice_vf_altra(full_text), full_text
 
-    # ── Saucony / Wolverine ─────────────────────────────────────
     elif any(w in full_text for w in ["Wolverine", "XODUS", "ENDORPHIN", "KINVARA",
                                        "TRIUMPH", "RIDE", "TEMPUS", "GUIDE"]):
         result = extract_invoice_saucony(full_text), full_text
 
-    # ── HOKA / Deckers ──────────────────────────────────────────
     elif any(w in full_text for w in ["Deckers", "HOKA", "CHALLENGER", "CLIFTON",
                                        "BONDI", "SPEEDGOAT"]):
         result = extract_invoice_hoka(full_text), full_text
@@ -990,14 +882,23 @@ def write_invoice_to_excel(wb, d):
     ht      = d.get("montant_ht")  or 0
     tva     = d.get("montant_tva") or 0
     ttc     = round(ht + tva, 2)
-    # IBAN goes into commentaire field
-    iban_str = d.get("iban", "")
+
+    iban_str    = d.get("iban", "")
     commentaire = d.get("commentaire", "")
     if iban_str and "IBAN" not in commentaire:
         commentaire = f"IBAN: {iban_str}" + (f" | {commentaire}" if commentaire else "")
 
+    import datetime as _dt
+    def _to_datetime(v):
+        """Convertit date → datetime pour qu'Excel accepte la valeur comme date."""
+        if v is None:
+            return None
+        if isinstance(v, _dt.date) and not isinstance(v, _dt.datetime):
+            return _dt.datetime(v.year, v.month, v.day)
+        return v
+
     vals = [
-        df_date, df_date, ech, None,
+        _to_datetime(df_date), _to_datetime(df_date), _to_datetime(ech), None,
         d.get("n_facture", ""),
         d.get("beneficiaire", ""),
         d.get("categorie", "Achats marchandises"),
@@ -1015,17 +916,10 @@ def write_invoice_to_excel(wb, d):
         ech.year             if ech     else None,
         commentaire,
     ]
+
+    # ── Écriture UNIQUEMENT des valeurs — aucun changement de format/style ──
     for col, val in enumerate(vals, start=1):
         ws.cell(row=row, column=col).value = val
-
-    import datetime as _dt
-    for date_col in [1, 2, 3]:
-        cell = ws.cell(row=row, column=date_col)
-        if cell.value is not None:
-            v = cell.value
-            if isinstance(v, _dt.date) and not isinstance(v, _dt.datetime):
-                cell.value = _dt.datetime(v.year, v.month, v.day)
-            cell.number_format = 'DD/MM/YYYY'
 
     return row
 
@@ -1109,7 +1003,6 @@ def render_invoice_tab():
                 m3.metric("N° Commande",   invoice_data.get("n_commande", "—"))
                 st.caption(f"Désignation : {invoice_data.get('designation', '—')}")
 
-                # IBAN display
                 if iban_val:
                     st.markdown(
                         f"<div class='iban-box'>🏦 IBAN : <b>{iban_val}</b></div>",
