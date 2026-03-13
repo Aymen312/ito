@@ -8,6 +8,8 @@ import openpyxl
 import io
 from datetime import datetime, timedelta
 import hashlib
+import threading
+import threading
 import hashlib
 
 st.set_page_config(page_title="Ayada TDR", layout="wide", initial_sidebar_state="expanded")
@@ -607,9 +609,7 @@ def extract_from_pdf(pdf_bytes):
 
 # ── Excel helpers ───────────────────────────────────────────────
 def find_next_empty_row(ws):
-    for row in range(2, ws.max_row + 2):
-        if ws.cell(row=row, column=1).value is None and ws.cell(row=row, column=5).value is None:
-            return row
+    # max_row + 1 is instant vs iterating thousands of rows
     return ws.max_row + 1
 
 def write_invoice_to_excel(wb, d):
@@ -689,8 +689,16 @@ def render_invoice_tab():
             or st.session_state.get("inv_excel_name") != excel_file.name):
         st.session_state.inv_wb_bytes   = excel_file.read()
         st.session_state.inv_excel_name = excel_file.name
+        st.session_state.inv_wb_object  = None  # reset cached workbook on new file
 
-    wb = openpyxl.load_workbook(io.BytesIO(st.session_state.inv_wb_bytes), keep_vba=True)
+    # Load workbook once and cache the object — load_workbook takes ~29s on this file,
+    # caching means it only happens once per session instead of on every Streamlit re-render
+    if st.session_state.get("inv_wb_object") is None:
+        with st.spinner("📂 Chargement du classeur Excel... (une seule fois)"):
+            st.session_state.inv_wb_object = openpyxl.load_workbook(
+                io.BytesIO(st.session_state.inv_wb_bytes), keep_vba=True
+            )
+    wb = st.session_state.inv_wb_object
 
     # Cache raw PDF bytes per filename — Streamlit resets file buffers on re-render
     if "inv_pdf_bytes" not in st.session_state:
@@ -772,9 +780,24 @@ def render_invoice_tab():
                 r = write_invoice_to_excel(wb, inv_data)
                 rows_added.append((fname, r))
 
-            output = io.BytesIO()
-            wb.save(output)
+            # Save in a background thread while progress bar runs
+            # so the user doesn't stare at a frozen screen
+            save_result = {}
+            def _do_save(wb, holder):
+                out = io.BytesIO()
+                wb.save(out)
+                holder['bytes'] = out.getvalue()
+
+            t = threading.Thread(target=_do_save, args=(wb, save_result))
+            t.start()
+
+            with st.spinner("💾 Génération du fichier Excel..."):
+                t.join()  # wait for background save to finish
+
+            output = io.BytesIO(save_result['bytes'])
             output.seek(0)
+            # Reset cached workbook so next upload starts fresh
+            st.session_state.inv_wb_object = None
 
             st.success(f"✅ {len(rows_added)} facture(s) ajoutée(s) :")
             for fname, rnum in rows_added:
