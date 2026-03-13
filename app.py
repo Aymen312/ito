@@ -627,10 +627,16 @@ def write_invoice_to_excel(wb, d):
     for col, val in enumerate(vals, start=1):
         ws.cell(row=row, column=col).value = val
 
-    # Force date-only format on date columns (no time 00:00:00)
+    # Write dates as DD/MM/YYYY (e.g. 15/05/2026) — no time, no ISO
+    import datetime as _dt
     for date_col in [1, 2, 3]:
-        if ws.cell(row=row, column=date_col).value is not None:
-            ws.cell(row=row, column=date_col).number_format = 'DD/MM/YYYY'
+        cell = ws.cell(row=row, column=date_col)
+        if cell.value is not None:
+            v = cell.value
+            # openpyxl needs datetime (not date) to reliably apply number_format
+            if isinstance(v, _dt.date) and not isinstance(v, _dt.datetime):
+                cell.value = _dt.datetime(v.year, v.month, v.day)
+            cell.number_format = 'DD/MM/YYYY'
 
     return row
 
