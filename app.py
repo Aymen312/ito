@@ -562,7 +562,9 @@ def extract_invoice_generic(text):
 # ── Router ──────────────────────────────────────────────────────
 def extract_from_pdf(pdf_bytes):
     with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
-        full_text = "\n".join(page.extract_text() or "" for page in pdf.pages)
+        # Only read page 1 — invoice data is always there.
+        # Page 2 is T&C (23k chars) and takes 3x longer — skip it.
+        full_text = pdf.pages[0].extract_text() or ""
 
     text_upper = full_text.upper()
 
