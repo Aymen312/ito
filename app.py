@@ -626,6 +626,12 @@ def write_invoice_to_excel(wb, d):
     ]
     for col, val in enumerate(vals, start=1):
         ws.cell(row=row, column=col).value = val
+
+    # Force date-only format on date columns (no time 00:00:00)
+    for date_col in [1, 2, 3]:
+        if ws.cell(row=row, column=date_col).value is not None:
+            ws.cell(row=row, column=date_col).number_format = 'DD/MM/YYYY'
+
     return row
 
 
