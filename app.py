@@ -616,63 +616,76 @@ def extract_invoice_naak(text):
 # ════════════════════════════════════════════════════════════════
 # AMER SPORTS / SALOMON extractor
 # ────────────────────────────────────────────────────────────────
-# Detected patterns (Amer Sports facture):
-#   "N° de facture / Date   4400011102   06.02.2026"
-#   "Notre n° de facture:   4554863484"         ← internal ref
-#   "Votre N° de commande / Date   SAL Footw&Gear SS26   02.07.2025"
-#   "Echéance: 07.04.2026: EUR 5.312,81."
-#   "TOTAL NET HT    4.427,34"                  ← dot=thousands, comma=decimal
-#   "TVA 20,00% de 4.427,34   885,47"
-#   "NET A PAYER EUR   5.312,81"
-#   "Mode de paiement : LCR automatique"
-#   "IBAN : FR76 3000 3006 8300 0202 7977 822"
-#   Products listed under brand header "SALOMON" with codes like L49174700
+# REAL pdfplumber layout — 4-column header table split over 3 lines:
+#
+#  Line L: "N° de facture / Date  N° de bon de livraison / DateVotre N° de commande / Date  Client / TVA L - TVA F"
+#  Line V: "4400011102  4062979869  SAL Footw&Gear SS26  376127"
+#  Line D: "06.02.2026  06.02.2026  02.07.2025  FR18895316792"
+#
+# col 1 = N° facture / date facture
+# col 2 = N° bon livraison / date livraison
+# col 3 = N° commande client / date commande   ← "SAL Footw&Gear SS26"
+# col 4 = Client code / TVA
+#
+# Échéance is on its own line pair:
+#  "Echéance:"
+#  "07.04.2026: EUR 5.312,81."
 # ════════════════════════════════════════════════════════════════
 def extract_invoice_amer_sports(text):
     data = {}
+    lines = text.split('\n')
 
-    # N° Facture — "4400011102" on the line with "N° de facture / Date"
-    # Primary: dedicated header line
-    m = re.search(r"N[°º]\s+de\s+facture\s*/\s*Date\s+(\d{7,})", text)
-    if m:
-        data["n_facture"] = m.group(1).strip()
+    # ── Find the values line: starts with a 10-digit invoice number ──
+    # "4400011102 4062979869 SAL Footw&Gear SS26 376127"
+    values_line  = None
+    dates_line   = None
+    for i, line in enumerate(lines):
+        if re.match(r"^\d{10}\s+\d{10}\s+\S", line):
+            values_line = line
+            # Next non-empty line has the dates
+            for j in range(i+1, min(i+4, len(lines))):
+                if re.match(r"^\d{2}\.\d{2}\.\d{4}", lines[j]):
+                    dates_line = lines[j]
+                    break
+            break
+
+    if values_line:
+        # "4400011102 4062979869 SAL Footw&Gear SS26 376127"
+        # col1=10-digit N°facture  col2=10-digit N°BL  col3=text N°commande  col4=6-digit client
+        m = re.match(r"^(\d{10})\s+(\d{10})\s+(.+?)\s+(\d{6})\s*$", values_line.strip())
+        if m:
+            data["n_facture"]  = m.group(1)
+            data["n_commande"] = m.group(3).strip()   # "SAL Footw&Gear SS26"
+        else:
+            # Fallback: just grab the first number
+            m2 = re.match(r"^(\d{7,})", values_line.strip())
+            if m2:
+                data["n_facture"] = m2.group(1)
     else:
-        # Fallback: "Facture  4400011102" on page 2 header
+        # Fallback: "Facture 4400011102" from page-2 header line
         m = re.search(r"\bFacture\s+(\d{7,})", text)
         if m:
             data["n_facture"] = m.group(1).strip()
 
-    # Internal Amer Sports reference (stored in n_commande as extra info)
-    m = re.search(r"Notre\s+n[°º]\s+de\s+facture\s*:\s*(\d+)", text)
-    _internal_ref = m.group(1).strip() if m else ""
-
-    # Date de la facture — first DD.MM.YYYY after the invoice number block
-    m = re.search(r"N[°º]\s+de\s+facture\s*/\s*Date\s+\d+\s+([\d.]+)", text)
-    if m:
-        data["date_facture"] = parse_date_inv(m.group(1))
-    else:
-        # Fallback: "Date  06.02.2026" on page 2 header
-        m = re.search(r"\bDate\s+([\d]{2}\.[\d]{2}\.[\d]{4})", text)
+    if dates_line:
+        # "06.02.2026 06.02.2026 02.07.2025 FR18895316792"
+        # First date = date_facture
+        m = re.match(r"^(\d{2}\.\d{2}\.\d{4})", dates_line.strip())
         if m:
             data["date_facture"] = parse_date_inv(m.group(1))
 
-    # Échéance — "07.04.2026: EUR 5.312,81"
-    m = re.search(r"Ech[eé]ance\s*:\s*([\d.]+)\s*:", text)
+    # ── Échéance — line after "Echéance:" ───────────────────────
+    # "Echéance:\n07.04.2026: EUR 5.312,81."
+    m = re.search(r"Ech[eé]ance\s*:\s*\n?\s*(\d{2}\.\d{2}\.\d{4})", text)
     if m:
         data["echeance"] = parse_date_inv(m.group(1))
+    else:
+        # Same-line variant: "Echéance: 07.04.2026:"
+        m = re.search(r"Ech[eé]ance\s*:\s*(\d{2}\.\d{2}\.\d{4})", text)
+        if m:
+            data["echeance"] = parse_date_inv(m.group(1))
 
-    # N° commande client — "SAL Footw&Gear SS26" (may contain spaces)
-    m = re.search(r"Votre\s+N[°º]\s+de\s+commande\s*/\s*Date\s+([^\n\d]+)", text)
-    if m:
-        cmd = m.group(1).strip().rstrip("/").strip()
-        data["n_commande"] = cmd
-    # Append internal ref if available
-    if _internal_ref:
-        existing = data.get("n_commande", "")
-        data["n_commande"] = f"{existing} | Réf: {_internal_ref}".strip(" |")
-
-    # Detect brand(s) from product section headers
-    # Amer Sports invoices may contain multiple brands (SALOMON, ATOMIC, WILSON…)
+    # ── Brand from product section header ───────────────────────
     brands_found = re.findall(
         r"^(SALOMON|ATOMIC|WILSON|ARC'TERYX|PEAK PERFORMANCE|ARMADA|MAVIC|ENVE|SUUNTO)\s*$",
         text, re.MULTILINE | re.IGNORECASE
@@ -683,10 +696,10 @@ def extract_invoice_amer_sports(text):
     else:
         data["beneficiaire"] = "salomon"
 
-    # Designation — collect product descriptions (lines with article codes L/LC + desc)
-    # Article codes: L + 7–8 digits or LC + 7 digits
+    # ── Designation — product description lines ──────────────────
+    # "1 L49174700 Shoes AERO GLIDE 4 GRVL Stormw/Lichen/Va 14PR 20,00% ..."
     desig_matches = re.findall(
-        r"^[LC]{1,2}\d{6,8}\s+([A-Z][A-Z0-9 '\-/\.]+?)(?:\s+\d+\s+(?:PR|EA|PC))",
+        r"^\d+\s+[LC]{1,2}\d{6,8}\s+([A-Z][A-Z0-9 '\-/\.]+?)(?:\s+\d+\s*(?:PR|EA|PC))",
         text, re.MULTILINE
     )
     if desig_matches:
@@ -697,7 +710,6 @@ def extract_invoice_amer_sports(text):
                 seen.append(clean)
         data["designation"] = " / ".join(seen[:5]) + (" / …" if len(seen) > 5 else "")
     else:
-        # Fallback: known Salomon model names
         m = re.search(
             r"(AERO GLIDE|ULTRA GLIDE|GENESIS|SPEEDCROSS|SENSE RIDE|PULSAR|TRAIL BLAZER"
             r"|ADV SKIN|SOFT FLASK|SENSE FLOW|XA PRO)[^\n]*",
@@ -706,13 +718,12 @@ def extract_invoice_amer_sports(text):
         if m:
             data["designation"] = m.group(0).strip()[:120]
 
-    # Montant HT — "TOTAL NET HT   4.427,34"
-    # Amer Sports uses dot-thousands + comma-decimal: 4.427,34 → parse_french_amount handles this
+    # ── Montant HT — "TOTAL NET HT   4.427,34" ──────────────────
     m = re.search(r"TOTAL\s+NET\s+HT\s+([\d\s.,]+)", text)
     if m:
         data["montant_ht"] = parse_french_amount(m.group(1))
 
-    # TVA — "TVA 20,00% de 4.427,34   885,47"
+    # ── TVA — "TVA 20,00% de 4.427,34   885,47" ─────────────────
     m = re.search(r"TVA\s+[\d,]+\s*%\s+de\s+[\d\s.,]+\s+([\d\s.,]+)", text)
     if m:
         data["montant_tva"] = parse_french_amount(m.group(1))
