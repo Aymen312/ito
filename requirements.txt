@@ -1,5 +1,6 @@
 streamlit
 pandas
+pymupdf
 openpyxl
 fpdf2
 passlib
