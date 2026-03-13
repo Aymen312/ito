@@ -12,3 +12,10 @@ dataframe-image
 xlsxwriter
 pillow
 pdfplumber
+streamlit
+pandas
+numpy
+openpyxl
+pdfplumber
+xlsxwriter
+ 
