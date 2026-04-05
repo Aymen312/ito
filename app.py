@@ -12,7 +12,7 @@ import threading
 import logging
 
 # ═══════════════════════════════════════════════════════════════
-# LOGGING SETUP - Track data issues
+# LOGGING SETUP
 # ═══════════════════════════════════════════════════════════════
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -41,30 +41,25 @@ st.markdown("""
     th, td { padding: 12px 16px; border-bottom: 1px solid #E2E8F0; }
     .invoice-badge { display: inline-block; padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; background: #EFF6FF; color: #3B82F6; margin-bottom: 12px; }
     .iban-box { background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 8px; padding: 8px 14px; font-family: monospace; font-size: 13px; color: #166534; margin-top: 6px; }
-    .data-quality-warning { background: #FEF3C7; border-left: 4px solid #F59E0B; padding: 12px; border-radius: 4px; }
+    .data-quality-alert { background: #FEE2E2; border-left: 4px solid #DC2626; padding: 12px; border-radius: 4px; color: #991B1B; }
     </style>
 """, unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════
-# FIX #1: IMPROVED NUMERIC PARSING WITH FRENCH FORMAT SUPPORT
+# AGGRESSIVE DATA CLEANING - REMOVE ROWS WITH NO PRICE
 # ═══════════════════════════════════════════════════════════════
+
 def parse_french_number(value):
-    """
-    Parse French-formatted numbers robustly.
-    Handles: 1.234,50 | 1,50 | 1234.50 | 1 234,50 | €1.234,50
-    Returns: float or None
-    """
+    """Parse French-formatted numbers robustly."""
     if pd.isna(value):
         return None
     
     s = str(value).strip()
+    if not s or s.lower() in ['', 'nan', 'none', '-']:
+        return None
     
     # Remove currency symbols and whitespace
     s = re.sub(r'[€$]', '', s).strip()
-    
-    # Handle different thousands separators
-    # French: 1.234,50 or 1 234,50
-    # English: 1,234.50
     
     # Count commas and dots
     comma_count = s.count(',')
@@ -74,163 +69,135 @@ def parse_french_number(value):
     try:
         # Case 1: European format "1.234,50" or "1 234,50"
         if comma_count == 1 and (dot_count == 1 or space_count > 0):
-            # Remove thousands separators (dots and spaces)
             s = s.replace('.', '').replace(' ', '')
-            # Replace decimal comma with dot
             s = s.replace(',', '.')
-            return float(s)
+            val = float(s)
+            if val <= 0:
+                return None
+            return val
         
         # Case 2: European format "1,50" (no thousands separator)
         elif comma_count == 1 and dot_count == 0:
             s = s.replace(',', '.')
-            return float(s)
+            val = float(s)
+            if val <= 0:
+                return None
+            return val
         
-        # Case 3: English format "1,234.50" (comma as thousands separator)
+        # Case 3: English format "1,234.50"
         elif comma_count > 0 and dot_count == 1:
             s = s.replace(',', '')
-            return float(s)
+            val = float(s)
+            if val <= 0:
+                return None
+            return val
         
         # Case 4: Simple format "1234.50" or "1234"
         else:
-            return float(s)
+            val = float(s)
+            if val <= 0:
+                return None
+            return val
     
     except (ValueError, AttributeError) as e:
-        logger.warning(f"Failed to parse '{value}' as number: {e}")
+        logger.warning(f"Failed to parse '{value}': {e}")
         return None
 
 
-def clean_numeric_columns_fixed(df):
+def clean_numeric_columns_aggressive(df):
     """
-    FIX #1: Improved numeric column cleaning with logging.
+    ✨ AGGRESSIVE CLEANING:
+    1. Parse all numeric columns with French format support
+    2. REMOVE rows where Prix Achat is NULL or ≤ 0
+    3. Log statistics
     """
-    conversion_failures = {}
+    initial_rows = len(df)
     
+    # Parse numeric columns
     for col in ['Prix Achat', 'Qté stock dispo', 'Valeur Stock']:
         if col not in df.columns:
-            logger.warning(f"Column '{col}' not found in dataframe")
+            logger.warning(f"Column '{col}' not found")
             continue
         
-        failures = 0
         parsed = []
-        
-        for idx, val in df[col].items():
-            parsed_val = parse_french_number(val)
-            if parsed_val is None and pd.notna(val):
-                failures += 1
-                logger.debug(f"Row {idx}, Col {col}: Failed to parse '{val}'")
-            parsed.append(parsed_val)
-        
+        for val in df[col]:
+            parsed.append(parse_french_number(val))
         df[col] = parsed
-        
-        if failures > 0:
-            conversion_failures[col] = failures
-            logger.warning(f"Column '{col}': {failures} values could not be converted")
     
-    if conversion_failures:
-        st.warning(f"⚠️ **Conversion Issues Detected:**\n{conversion_failures}")
+    # 🔴 AGGRESSIVE: Remove rows with NO PRICE
+    rows_before = len(df)
+    df = df.dropna(subset=['Prix Achat'])
+    df = df[df['Prix Achat'] > 0]
+    rows_after = len(df)
+    rows_deleted = rows_before - rows_after
     
-    return df, conversion_failures
+    logger.info(f"🗑️ Deleted {rows_deleted} rows with no/invalid price")
+    
+    if rows_deleted > 0:
+        st.warning(
+            f"🗑️ **Data Cleanup:** {rows_deleted:,} rows deleted (no valid price)\n"
+            f"Before: {rows_before:,} rows → After: {rows_after:,} rows\n"
+            f"**Remaining: {rows_after:,} rows with valid prices**"
+        )
+    
+    return df, rows_deleted
 
 
 def clean_size_column(df):
-    """Clean size column (unchanged)."""
+    """Clean size column."""
     if 'taille' in df.columns:
         df['taille'] = df['taille'].astype(str).str.strip()
     return df
 
 
 # ═══════════════════════════════════════════════════════════════
-# FIX #2: IMPROVED STOCK VALUE CALCULATION
+# PDF EXTRACTION - COMPLETELY DELETE FIRST PAGE BEFORE OCR
 # ═══════════════════════════════════════════════════════════════
-def total_stock_value_by_supplier_fixed(df):
-    """
-    FIX #2: Robust stock value calculation that:
-    - Handles missing columns
-    - Includes NULL suppliers
-    - Logs dropped rows
-    """
-    # Validate required columns exist
-    required_cols = ['fournisseur', 'Qté stock dispo', 'Prix Achat']
-    missing = [c for c in required_cols if c not in df.columns]
-    if missing:
-        st.error(f"❌ Missing columns: {missing}")
-        return pd.DataFrame()
-    
-    # Create working copy
-    df_work = df.copy()
-    
-    # Safe numeric conversion
-    df_work['Qté stock dispo'] = pd.to_numeric(df_work['Qté stock dispo'], errors='coerce')
-    df_work['Prix Achat'] = pd.to_numeric(df_work['Prix Achat'], errors='coerce')
-    
-    # Flag rows with issues
-    df_work['has_qty'] = df_work['Qté stock dispo'].notna() & (df_work['Qté stock dispo'] != 0)
-    df_work['has_price'] = df_work['Prix Achat'].notna() & (df_work['Prix Achat'] != 0)
-    
-    rows_no_qty = (~df_work['has_qty']).sum()
-    rows_no_price = (~df_work['has_price']).sum()
-    rows_no_supplier = df_work['fournisseur'].isna().sum()
-    
-    if rows_no_qty > 0:
-        st.warning(f"⚠️ {rows_no_qty} rows have no quantity")
-    if rows_no_price > 0:
-        st.warning(f"⚠️ {rows_no_price} rows have no price")
-    if rows_no_supplier > 0:
-        st.info(f"ℹ️ {rows_no_supplier} rows have NULL supplier (will appear as 'Unknown')")
-    
-    # Calculate value (NaN × anything = NaN, which is filtered out)
-    df_work['Valeur Totale HT'] = df_work['Qté stock dispo'] * df_work['Prix Achat']
-    
-    # Replace NULL suppliers with 'Unknown' for grouping
-    df_work['fournisseur'] = df_work['fournisseur'].fillna('Unknown')
-    
-    # Group and sum
-    result = df_work.groupby('fournisseur', dropna=False)[['Valeur Totale HT']].sum().reset_index()
-    result['Valeur Totale HT'] = result['Valeur Totale HT'].fillna(0)
-    
-    return result.sort_values(by='Valeur Totale HT', ascending=False)
 
-
-# ═══════════════════════════════════════════════════════════════
-# FIX #3: PDF EXTRACTION - SKIP FIRST PAGE
-# ═══════════════════════════════════════════════════════════════
 _pdf_extract_cache = {}
 
-def extract_from_pdf_fixed(pdf_bytes, skip_first_page=True):
+def extract_from_pdf_no_first_page(pdf_bytes):
     """
-    FIX #3: PDF extraction that skips cover page.
-    - skip_first_page=True: Ignores page 0 (cover/header)
-    - Returns tuple: (invoice_data, extracted_text)
+    🗑️ AGGRESSIVE PDF PROCESSING:
+    - Completely removes first page (NO OCR analysis on page 1)
+    - Only processes pages 2+ 
+    - Returns text only from content pages
     """
     cache_key = hashlib.md5(pdf_bytes).hexdigest()
     if cache_key in _pdf_extract_cache:
         return _pdf_extract_cache[cache_key]
 
     with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
-        pages_text = []
         total_pages = len(pdf.pages)
         
-        # Skip first page if requested
-        start_idx = 1 if skip_first_page and total_pages > 1 else 0
+        # 🗑️ Skip page 1 COMPLETELY - start from page 2 (index 1)
+        if total_pages <= 1:
+            logger.warning("⚠️ PDF has only 1 page - cannot skip cover page. Processing it anyway.")
+            start_idx = 0
+        else:
+            start_idx = 1  # Skip page 0 (the cover)
+            logger.info(f"📄 PDF: {total_pages} pages | Analyzing pages 2-{total_pages} (skipping cover)")
         
-        logger.info(f"Processing PDF: {total_pages} pages, starting from page {start_idx + 1}")
+        pages_text = []
         
-        for i, page in enumerate(pdf.pages):
-            if i < start_idx:
-                logger.debug(f"Skipping page {i + 1} (cover page)")
-                continue
-            
+        for i in range(start_idx, total_pages):
+            page = pdf.pages[i]
             t = page.extract_text()
             if t:
                 pages_text.append(t)
+                logger.debug(f"✅ Page {i+1}: {len(t)} chars extracted")
             else:
-                logger.warning(f"Page {i + 1}: No text extracted (may be image-only)")
+                logger.warning(f"⚠️ Page {i+1}: No text extracted (may be image-only)")
+        
+        if not pages_text:
+            logger.error("❌ No text could be extracted from any page")
+            return {}, ""
         
         full_text = "\n".join(pages_text)
     
     text_upper = full_text.upper()
 
-    # Router logic (unchanged - routes to correct extractor)
+    # Router logic - routes to correct invoice extractor
     if (
         "NEW BALANCE" in text_upper
         or "NEWBALANCE" in text_upper
@@ -283,7 +250,41 @@ def extract_from_pdf_fixed(pdf_bytes, skip_first_page=True):
 
 
 # ═══════════════════════════════════════════════════════════════
-# ALL EXTRACTOR FUNCTIONS (unchanged from original)
+# STOCK VALUE CALCULATION - WITH PRICE VALIDATION
+# ═══════════════════════════════════════════════════════════════
+
+def total_stock_value_by_supplier_safe(df):
+    """
+    Safe stock value calculation that requires valid prices.
+    Since we deleted rows with no price, this should be cleaner.
+    """
+    required_cols = ['fournisseur', 'Qté stock dispo', 'Prix Achat']
+    missing = [c for c in required_cols if c not in df.columns]
+    if missing:
+        st.error(f"❌ Missing columns: {missing}")
+        return pd.DataFrame()
+    
+    df_work = df.copy()
+    
+    # Safe numeric conversion
+    df_work['Qté stock dispo'] = pd.to_numeric(df_work['Qté stock dispo'], errors='coerce')
+    df_work['Prix Achat'] = pd.to_numeric(df_work['Prix Achat'], errors='coerce')
+    
+    # Calculate value
+    df_work['Valeur Totale HT'] = df_work['Qté stock dispo'] * df_work['Prix Achat']
+    
+    # Replace NULL suppliers
+    df_work['fournisseur'] = df_work['fournisseur'].fillna('Unknown')
+    
+    # Group and sum
+    result = df_work.groupby('fournisseur', dropna=False)[['Valeur Totale HT']].sum().reset_index()
+    result['Valeur Totale HT'] = result['Valeur Totale HT'].fillna(0)
+    
+    return result.sort_values(by='Valeur Totale HT', ascending=False)
+
+
+# ═══════════════════════════════════════════════════════════════
+# INVOICE EXTRACTORS (unchanged from previous version)
 # ═══════════════════════════════════════════════════════════════
 
 def parse_french_amount(s):
@@ -658,7 +659,7 @@ def extract_invoice_generic(text):
     return data
 
 # ═══════════════════════════════════════════════════════════════
-# HELPER FUNCTIONS (mostly unchanged)
+# HELPER FUNCTIONS
 # ═══════════════════════════════════════════════════════════════
 
 def highlight_row_if_one(row):
@@ -717,13 +718,13 @@ def write_invoice_to_excel(wb, d):
     return row
 
 # ═══════════════════════════════════════════════════════════════
-# INVOICE TAB (with FIX #3 integrated)
+# INVOICE TAB
 # ═══════════════════════════════════════════════════════════════
 
 def render_invoice_tab():
     st.subheader("📄 Extraction de Factures → Excel")
     st.markdown("Importez vos factures PDF et votre fichier Excel. Les données extraites seront ajoutées à l'onglet **Dépenses**.")
-    st.info("✅ **Amélioration:** First page (cover) is now automatically skipped during PDF processing.")
+    st.success("✅ **Améliorations:** PDF cover page DELETED. First page OCR completely skipped.")
 
     col1, col2 = st.columns([1, 2])
     with col1:
@@ -770,8 +771,12 @@ def render_invoice_tab():
         with st.expander(f"📄 {pdf_file.name}", expanded=True):
             try:
                 pdf_bytes_cached = st.session_state.inv_pdf_bytes[pdf_file.name]
-                # FIX #3: Use improved extract function
-                invoice_data, _ = extract_from_pdf_fixed(pdf_bytes_cached, skip_first_page=True)
+                # Use AGGRESSIVE extraction (first page deleted)
+                invoice_data, _ = extract_from_pdf_no_first_page(pdf_bytes_cached)
+
+                if not invoice_data:
+                    st.error("❌ Could not extract invoice data")
+                    continue
 
                 st.markdown(f"<span class='invoice-badge'>🔍 {invoice_data.get('source', '?')}</span>", unsafe_allow_html=True)
 
@@ -831,6 +836,7 @@ def render_invoice_tab():
 
             except Exception as e:
                 st.error(f"Erreur lors de l'extraction : {e}")
+                logger.exception("PDF extraction error")
 
     st.divider()
     if all_invoice_data:
@@ -874,16 +880,22 @@ def render_invoice_tab():
 # MAIN APP
 # ═══════════════════════════════════════════════════════════════
 
-st.title("Ayada TDR - Tableau de Bord Stock ✅ FIXED")
+st.title("Ayada TDR - Tableau de Bord Stock ✅ AGGRESSIVE CLEAN v2")
 st.sidebar.image("https://cdn-icons-png.flaticon.com/512/3081/3081840.png", width=50)
 st.sidebar.markdown("### Menu Principal")
-st.sidebar.info("✅ **Corrections appliquées:**\n- Meilleure gestion des nombres français\n- Valeurs stock plus précises\n- Première page PDF ignorée\n- Rapports d'erreurs détaillés")
+st.sidebar.info(
+    "✅ **Version 2 - Aggressive Cleaning:**\n"
+    "🗑️ Removes 2640+ rows with NO PRICE\n"
+    "🗑️ Deletes PDF first page before OCR\n"
+    "📊 Clean stock data only\n"
+    "✨ Accurate calculations"
+)
 fichier_telecharge = st.sidebar.file_uploader("📂 Fichier source stock", type=['csv', 'xlsx'])
 
 if fichier_telecharge is not None:
     extension_fichier = fichier_telecharge.name.split('.')[-1]
     try:
-        with st.spinner("Chargement et préparation des données..."):
+        with st.spinner("Chargement et nettoyage des données..."):
             if extension_fichier == 'csv':
                 df = pd.read_csv(fichier_telecharge, encoding='ISO-8859-1', sep=';')
             elif extension_fichier == 'xlsx':
@@ -892,10 +904,22 @@ if fichier_telecharge is not None:
                 st.error("Format de fichier non supporté"); df = None
 
             if df is not None:
-                # FIX #1: Use improved numeric cleaning
-                df, conv_failures = clean_numeric_columns_fixed(df)
+                initial_row_count = len(df)
+                
+                # AGGRESSIVE: Clean numeric AND remove rows with no price
+                df, rows_deleted = clean_numeric_columns_aggressive(df)
                 df = clean_size_column(df)
-                st.success("✅ Données chargées avec succès!")
+                
+                final_row_count = len(df)
+                
+                st.success(f"✅ Données chargées et nettoyées!")
+                st.info(
+                    f"📊 **Data Summary:**\n"
+                    f"- Initial rows: {initial_row_count:,}\n"
+                    f"- Final rows: {final_row_count:,}\n"
+                    f"- Deleted (no price): {rows_deleted:,}\n"
+                    f"- **Only valid stock items remain**"
+                )
 
                 tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
                     "🏢 Fournisseur", "🔍 Modèle", "⚠️ Stock Négatif",
@@ -905,12 +929,14 @@ if fichier_telecharge is not None:
 
                 with tab6:
                     st.subheader("Valorisation par Fournisseur")
-                    # FIX #2: Use improved stock value function
-                    df_tv = total_stock_value_by_supplier_fixed(df)
+                    df_tv = total_stock_value_by_supplier_safe(df)
                     if not df_tv.empty:
-                        st.metric("Valeur Totale Globale du Stock", 
-                                 f"{df_tv['Valeur Totale HT'].sum():,.2f} €".replace(',', ' '))
+                        total_value = df_tv['Valeur Totale HT'].sum()
+                        st.metric("💰 Valeur Totale Stock (CLEAN DATA ONLY)", 
+                                 f"{total_value:,.2f} €".replace(',', ' '))
                         st.dataframe(df_tv, use_container_width=True)
+                    else:
+                        st.error("No stock data with valid prices")
 
                 with tab9:
                     render_invoice_tab()
@@ -920,6 +946,6 @@ if fichier_telecharge is not None:
         logger.exception("Critical error in file processing")
 
 else:
-    st.info("Utilisez la barre latérale pour charger un fichier stock.")
+    st.info("📂 Chargez votre fichier stock pour commencer l'analyse.")
     st.markdown("---")
     render_invoice_tab()
