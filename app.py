@@ -3,12 +3,6 @@ import pandas as pd
 from io import BytesIO
 import numpy as np
 import re
-import pdfplumber
-import openpyxl
-import io
-from datetime import datetime, timedelta
-import hashlib
-import threading
 import logging
 
 # ═══════════════════════════════════════════════════════════════
@@ -39,18 +33,20 @@ st.markdown("""
     table { border-collapse: collapse; width: 100%; background-color: white; box-shadow: 0px 1px 3px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden; }
     th { background-color: #0F172A; color: white; }
     th, td { padding: 12px 16px; border-bottom: 1px solid #E2E8F0; }
-    .invoice-badge { display: inline-block; padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; background: #EFF6FF; color: #3B82F6; margin-bottom: 12px; }
-    .iban-box { background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 8px; padding: 8px 14px; font-family: monospace; font-size: 13px; color: #166534; margin-top: 6px; }
-    .data-quality-alert { background: #FEE2E2; border-left: 4px solid #DC2626; padding: 12px; border-radius: 4px; color: #991B1B; }
+    .data-alert { background: #FEE2E2; border-left: 4px solid #DC2626; padding: 12px; border-radius: 4px; color: #991B1B; }
+    .data-complete { background: #DCFCE7; border-left: 4px solid #16A34A; padding: 12px; border-radius: 4px; color: #15803D; }
     </style>
 """, unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════
-# AGGRESSIVE DATA CLEANING - REMOVE ROWS WITH NO PRICE
+# ROBUST NUMBER PARSING - French & English formats
 # ═══════════════════════════════════════════════════════════════
 
 def parse_french_number(value):
-    """Parse French-formatted numbers robustly."""
+    """
+    Parse numbers in French or English format.
+    Handles: 1.234,50 | 1,50 | 1234.50 | 1 234,50
+    """
     if pd.isna(value):
         return None
     
@@ -58,89 +54,125 @@ def parse_french_number(value):
     if not s or s.lower() in ['', 'nan', 'none', '-']:
         return None
     
-    # Remove currency symbols and whitespace
     s = re.sub(r'[€$]', '', s).strip()
     
-    # Count commas and dots
     comma_count = s.count(',')
     dot_count = s.count('.')
     space_count = s.count(' ')
     
     try:
-        # Case 1: European format "1.234,50" or "1 234,50"
+        # European: "1.234,50" or "1 234,50"
         if comma_count == 1 and (dot_count == 1 or space_count > 0):
             s = s.replace('.', '').replace(' ', '')
             s = s.replace(',', '.')
             val = float(s)
-            if val <= 0:
-                return None
-            return val
+            return val if val > 0 else None
         
-        # Case 2: European format "1,50" (no thousands separator)
+        # European: "1,50"
         elif comma_count == 1 and dot_count == 0:
             s = s.replace(',', '.')
             val = float(s)
-            if val <= 0:
-                return None
-            return val
+            return val if val > 0 else None
         
-        # Case 3: English format "1,234.50"
+        # English: "1,234.50"
         elif comma_count > 0 and dot_count == 1:
             s = s.replace(',', '')
             val = float(s)
-            if val <= 0:
-                return None
-            return val
+            return val if val > 0 else None
         
-        # Case 4: Simple format "1234.50" or "1234"
+        # Simple: "1234.50" or "1234"
         else:
             val = float(s)
-            if val <= 0:
-                return None
-            return val
-    
-    except (ValueError, AttributeError) as e:
-        logger.warning(f"Failed to parse '{value}': {e}")
+            return val if val > 0 else None
+    except:
         return None
 
 
-def clean_numeric_columns_aggressive(df):
+def analyze_file_completeness(df):
     """
-    ✨ AGGRESSIVE CLEANING:
-    1. Parse all numeric columns with French format support
-    2. REMOVE rows where Prix Achat is NULL or ≤ 0
-    3. Log statistics
+    Analyze data completeness and determine file type.
+    Returns: (data_completeness, has_prices, rows_with_price, rows_without_price)
     """
-    initial_rows = len(df)
+    total_rows = len(df)
+    
+    # Check for price column variations
+    price_cols = ['Prix Achat', 'Prix d\'achat', 'Prix Achat HT', 'Montant HT', 'Cost', 'Price']
+    price_col = None
+    
+    for col in price_cols:
+        if col in df.columns:
+            price_col = col
+            break
+    
+    if price_col is None:
+        # No price column found
+        return {
+            'completeness': 'NO_PRICES',
+            'has_prices': False,
+            'price_column': None,
+            'rows_with_price': 0,
+            'rows_without_price': total_rows,
+            'percentage_complete': 0,
+            'message': '⚠️ No price column found - Working with quantities only'
+        }
+    
+    # Check how many rows have prices
+    rows_with_price = df[price_col].notna().sum()
+    rows_without_price = total_rows - rows_with_price
+    percentage = (rows_with_price / total_rows * 100) if total_rows > 0 else 0
+    
+    if rows_with_price == 0:
+        completeness = 'NO_DATA'
+        message = f'⚠️ Price column "{price_col}" exists but all values are empty'
+    elif rows_with_price < total_rows * 0.5:
+        completeness = 'INCOMPLETE'
+        message = f'⚠️ Only {rows_with_price:,}/{total_rows:,} items have prices ({percentage:.1f}%)'
+    elif rows_with_price < total_rows:
+        completeness = 'MOSTLY_COMPLETE'
+        message = f'⚠️ {rows_without_price:,} items missing prices ({100-percentage:.1f}%)'
+    else:
+        completeness = 'COMPLETE'
+        message = f'✅ All {total_rows:,} items have valid prices'
+    
+    return {
+        'completeness': completeness,
+        'has_prices': rows_with_price > 0,
+        'price_column': price_col,
+        'rows_with_price': rows_with_price,
+        'rows_without_price': rows_without_price,
+        'percentage_complete': percentage,
+        'message': message
+    }
+
+
+def clean_numeric_columns_smart(df, price_column):
+    """
+    Smart cleaning that handles both complete and incomplete data.
+    """
+    conversion_failures = {}
+    rows_cleaned = 0
     
     # Parse numeric columns
-    for col in ['Prix Achat', 'Qté stock dispo', 'Valeur Stock']:
-        if col not in df.columns:
-            logger.warning(f"Column '{col}' not found")
+    for col in ['Prix Achat', price_column, 'Qté stock dispo', 'Valeur Stock', 'Montant HT']:
+        if col not in df.columns or col is None:
             continue
         
         parsed = []
+        failures = 0
+        
         for val in df[col]:
-            parsed.append(parse_french_number(val))
+            parsed_val = parse_french_number(val)
+            if parsed_val is None and pd.notna(val):
+                failures += 1
+            parsed.append(parsed_val)
+        
         df[col] = parsed
+        
+        if failures > 0:
+            conversion_failures[col] = failures
+            logger.warning(f"Column '{col}': {failures} failed conversions")
     
-    # 🔴 AGGRESSIVE: Remove rows with NO PRICE
-    rows_before = len(df)
-    df = df.dropna(subset=['Prix Achat'])
-    df = df[df['Prix Achat'] > 0]
-    rows_after = len(df)
-    rows_deleted = rows_before - rows_after
-    
-    logger.info(f"🗑️ Deleted {rows_deleted} rows with no/invalid price")
-    
-    if rows_deleted > 0:
-        st.warning(
-            f"🗑️ **Data Cleanup:** {rows_deleted:,} rows deleted (no valid price)\n"
-            f"Before: {rows_before:,} rows → After: {rows_after:,} rows\n"
-            f"**Remaining: {rows_after:,} rows with valid prices**"
-        )
-    
-    return df, rows_deleted
+    return df, conversion_failures
 
 
 def clean_size_column(df):
@@ -151,801 +183,235 @@ def clean_size_column(df):
 
 
 # ═══════════════════════════════════════════════════════════════
-# PDF EXTRACTION - COMPLETELY DELETE FIRST PAGE BEFORE OCR
+# STOCK ANALYSIS - Handles both complete and incomplete data
 # ═══════════════════════════════════════════════════════════════
 
-_pdf_extract_cache = {}
-
-def extract_from_pdf_no_first_page(pdf_bytes):
+def calculate_stock_value(df, price_column):
     """
-    🗑️ AGGRESSIVE PDF PROCESSING:
-    - Completely removes first page (NO OCR analysis on page 1)
-    - Only processes pages 2+ 
-    - Returns text only from content pages
+    Calculate stock value by supplier.
+    Handles both complete and incomplete price data.
     """
-    cache_key = hashlib.md5(pdf_bytes).hexdigest()
-    if cache_key in _pdf_extract_cache:
-        return _pdf_extract_cache[cache_key]
-
-    with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
-        total_pages = len(pdf.pages)
-        
-        # 🗑️ Skip page 1 COMPLETELY - start from page 2 (index 1)
-        if total_pages <= 1:
-            logger.warning("⚠️ PDF has only 1 page - cannot skip cover page. Processing it anyway.")
-            start_idx = 0
-        else:
-            start_idx = 1  # Skip page 0 (the cover)
-            logger.info(f"📄 PDF: {total_pages} pages | Analyzing pages 2-{total_pages} (skipping cover)")
-        
-        pages_text = []
-        
-        for i in range(start_idx, total_pages):
-            page = pdf.pages[i]
-            t = page.extract_text()
-            if t:
-                pages_text.append(t)
-                logger.debug(f"✅ Page {i+1}: {len(t)} chars extracted")
-            else:
-                logger.warning(f"⚠️ Page {i+1}: No text extracted (may be image-only)")
-        
-        if not pages_text:
-            logger.error("❌ No text could be extracted from any page")
-            return {}, ""
-        
-        full_text = "\n".join(pages_text)
-    
-    text_upper = full_text.upper()
-
-    # Router logic - routes to correct invoice extractor
-    if (
-        "NEW BALANCE" in text_upper
-        or "NEWBALANCE" in text_upper
-        or re.search(r"Num[eé]ro de Facture\s*:\s*0\d{6}", full_text)
-    ):
-        result = extract_invoice_new_balance(full_text), full_text
-
-    elif (
-        "NÄAK" in text_upper
-        or "NAAK" in text_upper
-        or re.search(r"Facture\s+INV/\d{4}/\d+", full_text)
-        or "NÄAK EUROPE" in text_upper
-        or "SILLINGY" in text_upper
-    ):
-        result = extract_invoice_naak(full_text), full_text
-
-    elif (
-        "AMER SPORTS" in text_upper
-        or "AMERSPORTS" in text_upper
-        or "SERVICECLIENTS.FRANCE@AMERSPORTS" in text_upper
-        or "VILLEFONTAINE" in text_upper
-        or bool(re.search(r"N[°º]\s+de\s+facture\s*/\s*Date", full_text))
-    ):
-        result = extract_invoice_amer_sports(full_text), full_text
-
-    elif (
-        "VF (J) FRANCE" in full_text
-        or re.search(r"\bAL[0-9A-Z]{6,}\b", full_text)
-        or any(w in text_upper for w in [
-            "EXPERIENCE FLOW", "LONE PEAK", "SUPERIOR", "OLYMPUS",
-            "TIMP", "TORIN", "ESCALANTE", "ALTRA", "TIMBERLAND",
-            "NORTH FACE", "VF FRANCE"
-        ])
-    ):
-        result = extract_invoice_vf_altra(full_text), full_text
-
-    elif any(w in full_text for w in ["Wolverine", "XODUS", "ENDORPHIN", "KINVARA",
-                                       "TRIUMPH", "RIDE", "TEMPUS", "GUIDE"]):
-        result = extract_invoice_saucony(full_text), full_text
-
-    elif any(w in full_text for w in ["Deckers", "HOKA", "CHALLENGER", "CLIFTON",
-                                       "BONDI", "SPEEDGOAT"]):
-        result = extract_invoice_hoka(full_text), full_text
-
-    else:
-        result = extract_invoice_generic(full_text), full_text
-
-    _pdf_extract_cache[cache_key] = result
-    return result
-
-
-# ═══════════════════════════════════════════════════════════════
-# STOCK VALUE CALCULATION - WITH PRICE VALIDATION
-# ═══════════════════════════════════════════════════════════════
-
-def total_stock_value_by_supplier_safe(df):
-    """
-    Safe stock value calculation that requires valid prices.
-    Since we deleted rows with no price, this should be cleaner.
-    """
-    required_cols = ['fournisseur', 'Qté stock dispo', 'Prix Achat']
-    missing = [c for c in required_cols if c not in df.columns]
-    if missing:
-        st.error(f"❌ Missing columns: {missing}")
-        return pd.DataFrame()
+    if price_column not in df.columns:
+        return None
     
     df_work = df.copy()
     
-    # Safe numeric conversion
+    # Parse numeric columns
     df_work['Qté stock dispo'] = pd.to_numeric(df_work['Qté stock dispo'], errors='coerce')
-    df_work['Prix Achat'] = pd.to_numeric(df_work['Prix Achat'], errors='coerce')
+    df_work[price_column] = pd.to_numeric(df_work[price_column], errors='coerce')
     
-    # Calculate value
-    df_work['Valeur Totale HT'] = df_work['Qté stock dispo'] * df_work['Prix Achat']
+    # For items WITH prices: calculate value
+    df_with_price = df_work[df_work[price_column].notna() & (df_work[price_column] > 0)].copy()
     
-    # Replace NULL suppliers
-    df_work['fournisseur'] = df_work['fournisseur'].fillna('Unknown')
+    if len(df_with_price) > 0:
+        df_with_price['Valeur Totale HT'] = df_with_price['Qté stock dispo'] * df_with_price[price_column]
+        df_with_price['fournisseur'] = df_with_price['fournisseur'].fillna('Unknown')
+        
+        result = df_with_price.groupby('fournisseur', dropna=False).agg({
+            'designation': 'count',
+            'Qté stock dispo': 'sum',
+            'Valeur Totale HT': 'sum'
+        }).rename(columns={'designation': 'Items'}).reset_index()
+        
+        result = result.sort_values('Valeur Totale HT', ascending=False)
+        return result
     
-    # Group and sum
-    result = df_work.groupby('fournisseur', dropna=False)[['Valeur Totale HT']].sum().reset_index()
-    result['Valeur Totale HT'] = result['Valeur Totale HT'].fillna(0)
-    
-    return result.sort_values(by='Valeur Totale HT', ascending=False)
-
-
-# ═══════════════════════════════════════════════════════════════
-# INVOICE EXTRACTORS (unchanged from previous version)
-# ═══════════════════════════════════════════════════════════════
-
-def parse_french_amount(s):
-    if s is None:
-        return None
-    s = str(s).strip()
-    s = re.sub(r'\s+', '', s)
-    if "," in s and "." in s:
-        s = s.replace(".", "").replace(",", ".")
-    elif "," in s:
-        s = s.replace(",", ".")
-    try:
-        return float(s)
-    except:
-        return None
-
-def parse_date_inv(s):
-    if not s:
-        return None
-    s = s.strip()
-    for fmt in ("%d.%m.%Y", "%d/%m/%Y", "%Y-%m-%d", "%d.%m.%y", "%d/%m/%y"):
-        try:
-            return datetime.strptime(s, fmt).date()
-        except:
-            pass
     return None
 
-def _clean_iban(raw):
-    if not raw:
-        return ""
-    return re.sub(r'\s+', ' ', raw.strip().upper())
-
-_VF_BRAND_PREFIX = {
-    "AL": "altra",
-    "TM": "timberland",
-    "NF": "the north face",
-    "VN": "vans",
-    "WR": "wrangler",
-    "LV": "lee",
-    "DK": "dickies",
-}
-
-def _vf_brand_from_article(code):
-    return _VF_BRAND_PREFIX.get(str(code).strip()[:2].upper(), "vf france")
-
-def extract_invoice_new_balance(text):
-    data = {}
-    m = re.search(r"Nu\s*m\s*[eé\xe9]\s*r\s*o\s+de\s+Facture\s*:\s*(\d+)", text, re.IGNORECASE)
-    if m:
-        data["n_facture"] = m.group(1).strip()
-    else:
-        m = re.search(r"Facture\s*:\s*(\d{6,})", text)
-        if m:
-            data["n_facture"] = m.group(1).strip()
-    m = re.search(r"Date de la Facture\s*:\s*([\d/]+)", text)
-    if m:
-        data["date_facture"] = parse_date_inv(m.group(1))
-    m = re.search(r"Date d.Ech[eé]ance\s*:\s*([\d/]+)", text)
-    if m:
-        data["echeance"] = parse_date_inv(m.group(1))
-    m = re.search(r"Num[eé]ro de Commande\s*:\s*(\S+)", text)
-    if m:
-        data["n_commande"] = m.group(1).strip()
-    desig_lines = re.findall(r"^([A-Z][A-Z0-9 '/\-]{3,})\n", text, re.MULTILINE)
-    _SKIP = {"NEW BALANCE FRANCE SARL", "HSBC FRANCE", "FRANCE", "A SUIVRE",
-              "TVA SUR LES DEBITS", "EUR EURO", "VIREMENT BANCAIRE"}
-    seen = []
-    for line in desig_lines:
-        clean = line.strip()
-        if clean.upper() not in _SKIP and len(clean) > 3 and clean not in seen:
-            seen.append(clean)
-    if seen:
-        data["designation"] = " / ".join(seen[:6])
-    m = re.search(r"Total HT\s+([\d\s.,]+)", text)
-    if m:
-        data["montant_ht"] = parse_french_amount(m.group(1))
-    m = re.search(r"Montant TVA\s+([\d\s.,]+)", text)
-    if m:
-        data["montant_tva"] = parse_french_amount(m.group(1))
-    m = re.search(r"TOTAL TTC\s+([\d\s.,]+)", text)
-    if m:
-        data["_ttc_pdf"] = parse_french_amount(m.group(1))
-    m = re.search(r"IBAN\s*:\s*(FR[\d\s]+\d)", text)
-    if m:
-        data["iban"] = _clean_iban(m.group(1))
-    ht  = data.get("montant_ht")  or 0.0
-    tva = data.get("montant_tva") or 0.0
-    data["montant_ttc"] = round(ht + tva, 2)
-    data.update({
-        "beneficiaire":      "new balance",
-        "categorie":         "Achats marchandises",
-        "statut":            "Attente règlement",
-        "moyen_paiement":    "Virement",
-        "date_transmission": "A transmettre",
-        "source":            "New Balance France",
-    })
-    return data
-
-def extract_invoice_naak(text):
-    data = {}
-    m = re.search(r"Facture\s+(INV/[\d/]+)", text)
-    if m:
-        data["n_facture"] = m.group(1).strip()
-    m = re.search(r"(\d{4}-\d{2}-\d{2})\s+(\d{4}-\d{2}-\d{2})\s+\d{4}-\d{2}-\d{2}\s+(\S+)", text)
-    if m:
-        data["date_facture"] = parse_date_inv(m.group(1))
-        data["echeance"]     = parse_date_inv(m.group(2))
-        data["n_commande"]   = m.group(3).strip()
-    else:
-        dates = re.findall(r"\d{4}-\d{2}-\d{2}", text)
-        if dates:
-            data["date_facture"] = parse_date_inv(dates[0])
-        if len(dates) >= 2:
-            data["echeance"] = parse_date_inv(dates[1])
-        m2 = re.search(r"Origine\s*[:\s]+\n?\s*(\S+)", text)
-        if m2:
-            data["n_commande"] = m2.group(1).strip()
-    product_lines = re.findall(r"Energy\s+(?:Puree|Gel|Bar|Waffle|Drink Mix)[^\n]+", text, re.IGNORECASE)
-    if product_lines:
-        short = []
-        seen_labels = set()
-        for line in product_lines:
-            m2 = re.match(r"(Energy\s+\w+\s*\|?\s*[\w\s]+?)(?:\s*-\s*\d+|\s*\d+\.)", line, re.IGNORECASE)
-            label = (m2.group(1) if m2 else line[:50]).strip().rstrip("|").strip()
-            if label not in seen_labels:
-                seen_labels.add(label)
-                short.append(label)
-        data["designation"] = " / ".join(short[:4]) + (" / …" if len(short) > 4 else "")
-    else:
-        data["designation"] = "Nutrition / Compléments sportifs"
-    m = re.search(r"Montant hors taxes\s+([\d\s,\.]+)\s*€", text)
-    if m:
-        data["montant_ht"] = parse_french_amount(m.group(1))
-    tva_total = 0.0
-    for tva_match in re.finditer(r"TVA\s+[\d,\.]+\s*%\s+on\s+[\d\s,\.]+\s*€\s+([\d\s,\.]+)\s*€", text):
-        val = parse_french_amount(tva_match.group(1))
-        if val:
-            tva_total += val
-    if tva_total:
-        data["montant_tva"] = round(tva_total, 2)
-    m = re.search(r"\bTotal\b\s+([\d\s,\.]+)\s*€", text)
-    if m:
-        data["_ttc_pdf"] = parse_french_amount(m.group(1))
-    m = re.search(r"IBAN\s*:\s*(FR[\d\s]+\d)", text)
-    if m:
-        data["iban"] = _clean_iban(m.group(1))
-    ht  = data.get("montant_ht")  or 0.0
-    tva = data.get("montant_tva") or 0.0
-    data["montant_ttc"] = round(ht + tva, 2)
-    data.update({
-        "beneficiaire":      "näak",
-        "categorie":         "Achats marchandises",
-        "statut":            "Attente règlement",
-        "moyen_paiement":    "Virement",
-        "date_transmission": "A transmettre",
-        "source":            "Näak Europe",
-    })
-    return data
-
-def extract_invoice_amer_sports(text):
-    data = {}
-    lines = text.split('\n')
-    values_line  = None
-    dates_line   = None
-    for i, line in enumerate(lines):
-        if re.match(r"^\d{10}\s+\d{10}\s+\S", line):
-            values_line = line
-            for j in range(i+1, min(i+4, len(lines))):
-                if re.match(r"^\d{2}\.\d{2}\.\d{4}", lines[j]):
-                    dates_line = lines[j]
-                    break
-            break
-    if values_line:
-        m = re.match(r"^(\d{10})\s+(\d{10})\s+(.+?)\s+(\d{6})\s*$", values_line.strip())
-        if m:
-            data["n_facture"]  = m.group(1)
-            data["n_commande"] = m.group(3).strip()
-        else:
-            m2 = re.match(r"^(\d{7,})", values_line.strip())
-            if m2:
-                data["n_facture"] = m2.group(1)
-    else:
-        m = re.search(r"\bFacture\s+(\d{7,})", text)
-        if m:
-            data["n_facture"] = m.group(1).strip()
-    if dates_line:
-        m = re.match(r"^(\d{2}\.\d{2}\.\d{4})", dates_line.strip())
-        if m:
-            data["date_facture"] = parse_date_inv(m.group(1))
-    m = re.search(r"Ech[eé]ance\s*:\s*\n?\s*(\d{2}\.\d{2}\.\d{4})", text)
-    if m:
-        data["echeance"] = parse_date_inv(m.group(1))
-    else:
-        m = re.search(r"Ech[eé]ance\s*:\s*(\d{2}\.\d{2}\.\d{4})", text)
-        if m:
-            data["echeance"] = parse_date_inv(m.group(1))
-    brands_found = re.findall(r"^(SALOMON|ATOMIC|WILSON|ARC'TERYX|PEAK PERFORMANCE|ARMADA|MAVIC|ENVE|SUUNTO)\s*$", text, re.MULTILINE | re.IGNORECASE)
-    if brands_found:
-        unique_brands = list(dict.fromkeys(b.title() for b in brands_found))
-        data["beneficiaire"] = " / ".join(unique_brands).lower()
-    else:
-        data["beneficiaire"] = "salomon"
-    desig_matches = re.findall(r"^\d+\s+[LC]{1,2}\d{6,8}\s+([A-Z][A-Z0-9 '\-/\.]+?)(?:\s+\d+\s*(?:PR|EA|PC))", text, re.MULTILINE)
-    if desig_matches:
-        seen = []
-        for d in desig_matches:
-            clean = d.strip()
-            if clean and clean not in seen:
-                seen.append(clean)
-        data["designation"] = " / ".join(seen[:5]) + (" / …" if len(seen) > 5 else "")
-    else:
-        m = re.search(r"(AERO GLIDE|ULTRA GLIDE|GENESIS|SPEEDCROSS|SENSE RIDE|PULSAR|TRAIL BLAZER|ADV SKIN|SOFT FLASK|SENSE FLOW|XA PRO)[^\n]*", text, re.IGNORECASE)
-        if m:
-            data["designation"] = m.group(0).strip()[:120]
-    m = re.search(r"TOTAL\s+NET\s+HT\s+([\d\s.,]+)", text)
-    if m:
-        data["montant_ht"] = parse_french_amount(m.group(1))
-    m = re.search(r"TVA\s+[\d,]+\s*%\s+de\s+[\d\s.,]+\s+([\d\s.,]+)", text)
-    if m:
-        data["montant_tva"] = parse_french_amount(m.group(1))
-    m = re.search(r"NET\s+A\s+PAYER\s+EUR\s+([\d\s.,]+)", text)
-    if m:
-        data["_ttc_pdf"] = parse_french_amount(m.group(1))
-    m = re.search(r"IBAN\s*:\s*(FR[\d\s]+\d)", text)
-    if m:
-        data["iban"] = _clean_iban(m.group(1))
-    ht  = data.get("montant_ht")  or 0.0
-    tva = data.get("montant_tva") or 0.0
-    data["montant_ttc"] = round(ht + tva, 2)
-    data.update({
-        "categorie":         "Achats marchandises",
-        "statut":            "Attente règlement",
-        "moyen_paiement":    "LCR",
-        "date_transmission": "A transmettre",
-        "source":            "Amer Sports (Salomon / Atomic / Wilson…)",
-    })
-    return data
-
-def extract_invoice_vf_altra(text):
-    data = {}
-    m = re.search(r"\bFacture\s+(\d{6,})", text)
-    if m:
-        data["n_facture"] = m.group(1)
-    m = re.search(r"Date facture\s+([\d.]+)", text)
-    if m:
-        data["date_facture"] = parse_date_inv(m.group(1))
-    else:
-        m = re.search(r"\bDate\b\s+(\d{2}\.\d{2}\.\d{2,4})", text)
-        if m:
-            data["date_facture"] = parse_date_inv(m.group(1))
-    m = re.search(r"Date\s+d\s+[ée]ch[ée]ance\s+([\d.]+)", text)
-    if m:
-        data["echeance"] = parse_date_inv(m.group(1))
-    m = re.search(r"No\.\s*cmmde\.\s*:\s*(\S+)", text)
-    if m:
-        data["n_commande"] = m.group(1)
-    desig_matches = re.findall(r"^([A-Z]{2}[A-Z0-9]{6,})\s+([A-Z][A-Z0-9 /\-]+?)\s+\d+\s+[\d,]+", text, re.MULTILINE)
-    if desig_matches:
-        data["beneficiaire"] = _vf_brand_from_article(desig_matches[0][0])
-        seen = []
-        for _, desc in desig_matches:
-            d = desc.strip()
-            if d not in seen:
-                seen.append(d)
-        data["designation"] = " / ".join(seen)[:120]
-    else:
-        data["beneficiaire"] = "vf france"
-        m = re.search(r"(EXPERIENCE FLOW|LONE PEAK|SUPERIOR|OLYMPUS|TIMP|TORIN|ESCALANTE|RIVERA|PARADIGM|PROVISION)[^\n]*", text, re.IGNORECASE)
-        if m:
-            data["designation"] = m.group(0).strip()[:120]
-    m = re.search(r"Total montant net\s+([\d\s.,]+)", text)
-    if m:
-        data["montant_ht"] = parse_french_amount(m.group(1))
-    m = re.search(r"Total TVA\s+([\d\s.,]+)", text)
-    if m:
-        data["montant_tva"] = parse_french_amount(m.group(1))
-    m = re.search(r"IBAN\s*:\s*(FR[\d\s]+\d)", text)
-    if m:
-        data["iban"] = _clean_iban(m.group(1))
-    ht  = data.get("montant_ht")  or 0.0
-    tva = data.get("montant_tva") or 0.0
-    data["montant_ttc"] = round(ht + tva, 2)
-    data.update({
-        "categorie":         "Achats marchandises",
-        "statut":            "Attente règlement",
-        "moyen_paiement":    "Moyen paiement",
-        "date_transmission": "A transmettre",
-        "source":            "VF France (Altra / Timberland / TNF / Vans)",
-    })
-    return data
-
-def extract_invoice_saucony(text):
-    data = {}
-    m = re.search(r"Num[ée]ro de document\s+(\d+)", text)
-    if m: data["n_facture"] = m.group(1)
-    data["beneficiaire"] = "saucony"
-    m = re.search(r"Datum\s+([\d.]+)", text)
-    if m: data["date_facture"] = parse_date_inv(m.group(1))
-    m = re.search(r"Cond\.\s*paiem\.\s+(\d+)\s+jours", text, re.IGNORECASE)
-    if m and data.get("date_facture"):
-        data["echeance"] = data["date_facture"] + timedelta(days=int(m.group(1)))
-    m = re.search(r"Notre commande N[°º]\s*[:\s]*(\S+)", text)
-    if m: data["n_commande"] = m.group(1)
-    m = re.search(r"Votre commande N[°º]\s*[:\s]*([^\n]+)", text)
-    if m: data["designation"] = m.group(1).strip()
-    m = re.search(r"Montant HT\s+[\d]+\s+([\d.,]+)", text)
-    if m: data["montant_ht"] = parse_french_amount(m.group(1))
-    m = re.search(r"TVA\s+[\d.,]+\s*%\s+[\d.,]+\s+([\d.,]+)", text)
-    if m: data["montant_tva"] = parse_french_amount(m.group(1))
-    m = re.search(r"IBAN\s*:\s*(FR[\d\s]+\d)", text)
-    if m: data["iban"] = _clean_iban(m.group(1))
-    ht  = data.get("montant_ht")  or 0.0
-    tva = data.get("montant_tva") or 0.0
-    data["montant_ttc"] = round(ht + tva, 2)
-    products = re.findall(r"(XODUS|ENDORPHIN|KINVARA|TRIUMPH|RIDE|TEMPUS|GUIDE)[^\n]+", text)
-    if products and not data.get("designation"):
-        data["designation"] = " / ".join(set(products))[:100]
-    data.update({"categorie": "Achats marchandises", "statut": "Attente règlement",
-                 "moyen_paiement": "Moyen paiement", "date_transmission": "A transmettre",
-                 "source": "Saucony / Wolverine"})
-    return data
-
-def extract_invoice_hoka(text):
-    data = {}
-    m = re.search(r"Num[ée]ro de facture\s*[:\s]*(\d+)", text)
-    if m: data["n_facture"] = m.group(1)
-    m = re.search(r"Marque\s*[:\s]*([\w]+)", text)
-    data["beneficiaire"] = m.group(1).lower() if m else "hoka"
-    m = re.search(r"Date de facture\s*[:\s]*([\d/]+)", text)
-    if m: data["date_facture"] = parse_date_inv(m.group(1))
-    m = re.search(r"Date d'[ée]ch[ée]ance\s*[:\s]*([\d/]+)", text)
-    if m: data["echeance"] = parse_date_inv(m.group(1))
-    m = re.search(r"(HE-\d+)", text)
-    if m: data["n_commande"] = m.group(1)
-    m = re.search(r"Sous Total\s+EUR\s+([\d.,]+)", text)
-    if m: data["montant_ht"] = float(m.group(1).replace(",", "."))
-    m = re.search(r"Total TVA\s+EUR\s+([\d.,]+)", text)
-    if m: data["montant_tva"] = float(m.group(1).replace(",", "."))
-    m = re.search(r"IBAN\s*:\s*(FR[\d\s]+\d)", text)
-    if m: data["iban"] = _clean_iban(m.group(1))
-    ht  = data.get("montant_ht")  or 0.0
-    tva = data.get("montant_tva") or 0.0
-    data["montant_ttc"] = round(ht + tva, 2)
-    products = re.findall(r"\d{7}-([A-Z0-9 /]+)\n", text)
-    if products: data["designation"] = " / ".join(set(products))[:100]
-    else:
-        m = re.search(r"(CHALLENGER|CLIFTON|BONDI|MAFATE|SPEEDGOAT|RINCON|ARAHI)[^\n]*", text)
-        if m: data["designation"] = m.group(0).strip()[:100]
-    data.update({"categorie": "Achats marchandises", "statut": "Attente règlement",
-                 "moyen_paiement": "Moyen paiement", "date_transmission": "A transmettre",
-                 "source": "HOKA / Deckers"})
-    return data
-
-def extract_invoice_generic(text):
-    data = {}
-    for pat in [r"[Ff]acture\s*N[°º]?\s*[:\s]*([\w\-/]+)", r"N[°º]\s+[Ff]acture\s*[:\s]*([\w\-]+)"]:
-        m = re.search(pat, text)
-        if m: data["n_facture"] = m.group(1).strip(); break
-    m = re.search(r"(\d{1,2}[./]\d{2}[./]\d{2,4})", text)
-    if m: data["date_facture"] = parse_date_inv(m.group(1))
-    for label, key in [("Montant HT", "montant_ht"), ("TVA", "montant_tva")]:
-        m = re.search(label + r"[^\d]*([\d.,]+)", text, re.IGNORECASE)
-        if m and key not in data: data[key] = parse_french_amount(m.group(1))
-    m = re.search(r"IBAN\s*:\s*(FR[\d\s]+\d)", text)
-    if m: data["iban"] = _clean_iban(m.group(1))
-    ht  = data.get("montant_ht")  or 0.0
-    tva = data.get("montant_tva") or 0.0
-    data["montant_ttc"] = round(ht + tva, 2)
-    data.update({"beneficiaire": "?", "categorie": "Achats marchandises", "statut": "Attente règlement",
-                 "moyen_paiement": "Moyen paiement", "date_transmission": "A transmettre",
-                 "source": "Format générique"})
-    return data
-
-# ═══════════════════════════════════════════════════════════════
-# HELPER FUNCTIONS
-# ═══════════════════════════════════════════════════════════════
 
 def highlight_row_if_one(row):
-    if row['Qté stock dispo'] == 1:
+    """Highlight rows with quantity = 1."""
+    if 'Qté stock dispo' in row.index and row['Qté stock dispo'] == 1:
         return ['background-color: #FEE2E2; color: #991B1B' for _ in row]
     return [''] * len(row)
 
-def find_next_empty_row(ws):
-    return ws.max_row + 1
-
-def write_invoice_to_excel(wb, d):
-    ws = wb["Dépenses"]
-    row = find_next_empty_row(ws)
-    df_date = d.get("date_facture")
-    ech     = d.get("echeance")
-    ht      = d.get("montant_ht")  or 0
-    tva     = d.get("montant_tva") or 0
-    ttc     = round(ht + tva, 2)
-
-    iban_str    = d.get("iban", "")
-    commentaire = d.get("commentaire", "")
-    if iban_str and "IBAN" not in commentaire:
-        commentaire = f"IBAN: {iban_str}" + (f" | {commentaire}" if commentaire else "")
-
-    import datetime as _dt
-    def _to_datetime(v):
-        if v is None:
-            return None
-        if isinstance(v, _dt.date) and not isinstance(v, _dt.datetime):
-            return _dt.datetime(v.year, v.month, v.day)
-        return v
-
-    vals = [
-        _to_datetime(df_date), _to_datetime(df_date), _to_datetime(ech), None,
-        d.get("n_facture", ""),
-        d.get("beneficiaire", ""),
-        d.get("categorie", "Achats marchandises"),
-        d.get("n_commande", ""),
-        d.get("designation", ""),
-        d.get("moyen_paiement", "Moyen paiement"),
-        ht, tva, ttc,
-        d.get("date_transmission", "A transmettre"),
-        d.get("statut", "Attente règlement"),
-        None, None,
-        df_date.month        if df_date else None,
-        df_date.year         if df_date else None,
-        ech.isocalendar()[1] if ech     else None,
-        ech.month            if ech     else None,
-        ech.year             if ech     else None,
-        commentaire,
-    ]
-
-    for col, val in enumerate(vals, start=1):
-        ws.cell(row=row, column=col).value = val
-
-    return row
-
-# ═══════════════════════════════════════════════════════════════
-# INVOICE TAB
-# ═══════════════════════════════════════════════════════════════
-
-def render_invoice_tab():
-    st.subheader("📄 Extraction de Factures → Excel")
-    st.markdown("Importez vos factures PDF et votre fichier Excel. Les données extraites seront ajoutées à l'onglet **Dépenses**.")
-    st.success("✅ **Améliorations:** PDF cover page DELETED. First page OCR completely skipped.")
-
-    col1, col2 = st.columns([1, 2])
-    with col1:
-        st.markdown("#### 📊 Fichier Excel")
-        excel_file = st.file_uploader("Classeur .xlsm / .xlsx", type=["xlsm", "xlsx"], key="inv_excel")
-    with col2:
-        st.markdown("#### 🧾 Factures PDF")
-        pdf_files = st.file_uploader("Une ou plusieurs factures", type=["pdf"], accept_multiple_files=True, key="inv_pdfs")
-
-    if not excel_file and not pdf_files:
-        st.info("👆 Importez votre fichier Excel et vos factures PDF pour commencer.")
-        return
-    if excel_file and not pdf_files:
-        st.info("📎 Maintenant importez vos factures PDF.")
-        return
-    if not excel_file and pdf_files:
-        st.info("📊 Maintenant importez votre fichier Excel (.xlsm).")
-        return
-
-    st.divider()
-    st.markdown("### 📋 Données extraites")
-
-    if ("inv_wb_bytes" not in st.session_state or st.session_state.get("inv_excel_name") != excel_file.name):
-        st.session_state.inv_wb_bytes   = excel_file.read()
-        st.session_state.inv_excel_name = excel_file.name
-        st.session_state.inv_wb_object  = None
-
-    if st.session_state.get("inv_wb_object") is None:
-        with st.spinner("📂 Chargement du classeur Excel..."):
-            st.session_state.inv_wb_object = openpyxl.load_workbook(
-                io.BytesIO(st.session_state.inv_wb_bytes), keep_vba=True
-            )
-    wb = st.session_state.inv_wb_object
-
-    if "inv_pdf_bytes" not in st.session_state:
-        st.session_state.inv_pdf_bytes = {}
-    for pdf_file in pdf_files:
-        if pdf_file.name not in st.session_state.inv_pdf_bytes:
-            st.session_state.inv_pdf_bytes[pdf_file.name] = pdf_file.read()
-
-    all_invoice_data = []
-
-    for pdf_file in pdf_files:
-        with st.expander(f"📄 {pdf_file.name}", expanded=True):
-            try:
-                pdf_bytes_cached = st.session_state.inv_pdf_bytes[pdf_file.name]
-                # Use AGGRESSIVE extraction (first page deleted)
-                invoice_data, _ = extract_from_pdf_no_first_page(pdf_bytes_cached)
-
-                if not invoice_data:
-                    st.error("❌ Could not extract invoice data")
-                    continue
-
-                st.markdown(f"<span class='invoice-badge'>🔍 {invoice_data.get('source', '?')}</span>", unsafe_allow_html=True)
-
-                df_date  = invoice_data.get("date_facture")
-                ech_date = invoice_data.get("echeance")
-                ht_disp  = float(invoice_data.get("montant_ht")  or 0.0)
-                tva_disp = float(invoice_data.get("montant_tva") or 0.0)
-                ttc_disp = round(ht_disp + tva_disp, 2)
-                iban_val = invoice_data.get("iban", "")
-
-                m1, m2, m3 = st.columns(3)
-                m1.metric("N° Facture",    invoice_data.get("n_facture", "—"))
-                m1.metric("Bénéficiaire",  invoice_data.get("beneficiaire", "—").upper())
-                m2.metric("Montant HT",    f"{ht_disp:.2f} €")
-                m2.metric("TVA",           f"{tva_disp:.2f} €")
-                m2.metric("TTC (HT+TVA)",  f"{ttc_disp:.2f} €")
-                m3.metric("Date facture",  df_date.strftime("%d/%m/%Y")  if df_date  else "—")
-                m3.metric("Échéance",      ech_date.strftime("%d/%m/%Y") if ech_date else "—")
-                m3.metric("N° Commande",   invoice_data.get("n_commande", "—"))
-                st.caption(f"Désignation : {invoice_data.get('designation', '—')}")
-
-                if iban_val:
-                    st.markdown(f"<div class='iban-box'>🏦 IBAN : <b>{iban_val}</b></div>", unsafe_allow_html=True)
-                else:
-                    st.warning("⚠️ IBAN non détecté dans ce PDF.")
-
-                with st.form(key=f"form_{pdf_file.name}"):
-                    st.markdown("**✏️ Corriger si nécessaire**")
-                    fc1, fc2 = st.columns(2)
-                    with fc1:
-                        invoice_data["n_facture"]    = st.text_input("N° Facture",
-                            value=invoice_data.get("n_facture", ""),    key=f"nf_{pdf_file.name}")
-                        invoice_data["beneficiaire"] = st.text_input("Bénéficiaire",
-                            value=invoice_data.get("beneficiaire", ""), key=f"bn_{pdf_file.name}")
-                        invoice_data["n_commande"]   = st.text_input("N° Commande",
-                            value=invoice_data.get("n_commande", ""),   key=f"nc_{pdf_file.name}")
-                        invoice_data["designation"]  = st.text_input("Désignation",
-                            value=invoice_data.get("designation", ""),  key=f"dg_{pdf_file.name}")
-                        invoice_data["iban"]         = st.text_input("IBAN",
-                            value=iban_val,                              key=f"ib_{pdf_file.name}")
-                    with fc2:
-                        invoice_data["montant_ht"]   = st.number_input("Montant HT (€)",
-                            value=ht_disp,  step=0.01, key=f"ht_{pdf_file.name}")
-                        invoice_data["montant_tva"]  = st.number_input("Montant TVA (€)",
-                            value=tva_disp, step=0.01, key=f"tv_{pdf_file.name}")
-                        st.number_input("Montant TTC (€)  [= HT + TVA, auto]",
-                            value=invoice_data["montant_ht"] + invoice_data["montant_tva"],
-                            step=0.01, key=f"tc_{pdf_file.name}", disabled=True)
-                        invoice_data["moyen_paiement"] = st.selectbox(
-                            "Moyen paiement",
-                            ["Virement", "Moyen paiement", "LCR", "CB", "Chèque", "Prélèvement", "Traite", "?"],
-                            index=0 if invoice_data.get("moyen_paiement") == "Virement" else 1,
-                            key=f"mp_{pdf_file.name}")
-                    st.form_submit_button("✅ Confirmer", use_container_width=True)
-
-                all_invoice_data.append((pdf_file.name, invoice_data))
-
-            except Exception as e:
-                st.error(f"Erreur lors de l'extraction : {e}")
-                logger.exception("PDF extraction error")
-
-    st.divider()
-    if all_invoice_data:
-        if st.button("💾 Écrire dans Excel et télécharger", type="primary", use_container_width=True):
-            rows_added = []
-            for fname, inv_data in all_invoice_data:
-                r = write_invoice_to_excel(wb, inv_data)
-                rows_added.append((fname, r))
-
-            save_result = {}
-            def _do_save(wb, holder):
-                out = io.BytesIO()
-                wb.save(out)
-                holder['bytes'] = out.getvalue()
-
-            t = threading.Thread(target=_do_save, args=(wb, save_result))
-            t.start()
-            with st.spinner("💾 Génération du fichier Excel..."):
-                t.join()
-
-            output = io.BytesIO(save_result['bytes'])
-            output.seek(0)
-            st.session_state.inv_wb_object = None
-
-            st.success(f"✅ {len(rows_added)} facture(s) ajoutée(s) :")
-            for fname, rnum in rows_added:
-                st.write(f"  • **{fname}** → ligne {rnum}")
-
-            orig_name = (excel_file.name
-                         .replace(".xlsm", "_updated.xlsm")
-                         .replace(".xlsx", "_updated.xlsx"))
-            st.download_button(
-                "⬇️ Télécharger le fichier Excel mis à jour",
-                data=output,
-                file_name=orig_name,
-                mime="application/vnd.ms-excel.sheet.macroEnabled.12",
-                use_container_width=True
-            )
 
 # ═══════════════════════════════════════════════════════════════
 # MAIN APP
 # ═══════════════════════════════════════════════════════════════
 
-st.title("Ayada TDR - Tableau de Bord Stock ✅ AGGRESSIVE CLEAN v2")
+st.title("Ayada TDR - Tableau de Bord Stock ✨")
 st.sidebar.image("https://cdn-icons-png.flaticon.com/512/3081/3081840.png", width=50)
 st.sidebar.markdown("### Menu Principal")
 st.sidebar.info(
-    "✅ **Version 2 - Aggressive Cleaning:**\n"
-    "🗑️ Removes 2640+ rows with NO PRICE\n"
-    "🗑️ Deletes PDF first page before OCR\n"
-    "📊 Clean stock data only\n"
-    "✨ Accurate calculations"
+    "✅ **Smart Analysis:**\n"
+    "📊 Works with complete prices\n"
+    "📊 Works with partial prices\n"
+    "📊 Works without prices\n"
+    "🔄 Automatic data detection"
 )
+
 fichier_telecharge = st.sidebar.file_uploader("📂 Fichier source stock", type=['csv', 'xlsx'])
 
 if fichier_telecharge is not None:
     extension_fichier = fichier_telecharge.name.split('.')[-1]
     try:
-        with st.spinner("Chargement et nettoyage des données..."):
+        with st.spinner("Chargement et analyse des données..."):
             if extension_fichier == 'csv':
                 df = pd.read_csv(fichier_telecharge, encoding='ISO-8859-1', sep=';')
             elif extension_fichier == 'xlsx':
                 df = pd.read_excel(fichier_telecharge)
             else:
-                st.error("Format de fichier non supporté"); df = None
+                st.error("Format de fichier non supporté")
+                df = None
 
             if df is not None:
                 initial_row_count = len(df)
                 
-                # AGGRESSIVE: Clean numeric AND remove rows with no price
-                df, rows_deleted = clean_numeric_columns_aggressive(df)
+                # ANALYZE DATA COMPLETENESS
+                completeness_info = analyze_file_completeness(df)
+                price_column = completeness_info['price_column']
+                
+                # Display data quality alert
+                if completeness_info['completeness'] == 'COMPLETE':
+                    st.markdown(
+                        f"<div class='data-complete'>{completeness_info['message']}</div>",
+                        unsafe_allow_html=True
+                    )
+                else:
+                    st.markdown(
+                        f"<div class='data-alert'>{completeness_info['message']}</div>",
+                        unsafe_allow_html=True
+                    )
+                
+                # Clean numeric columns
+                df, conv_failures = clean_numeric_columns_smart(df, price_column)
                 df = clean_size_column(df)
                 
-                final_row_count = len(df)
+                # Show summary
+                st.success(f"✅ Données chargées: {initial_row_count:,} articles")
                 
-                st.success(f"✅ Données chargées et nettoyées!")
-                st.info(
-                    f"📊 **Data Summary:**\n"
-                    f"- Initial rows: {initial_row_count:,}\n"
-                    f"- Final rows: {final_row_count:,}\n"
-                    f"- Deleted (no price): {rows_deleted:,}\n"
-                    f"- **Only valid stock items remain**"
-                )
+                if completeness_info['has_prices']:
+                    with_price = completeness_info['rows_with_price']
+                    without_price = completeness_info['rows_without_price']
+                    st.info(
+                        f"📊 **Stock Summary:**\n"
+                        f"- Items with prices: {with_price:,} ✅\n"
+                        f"- Items without prices: {without_price:,} ⚠️\n"
+                        f"- Data completeness: {completeness_info['percentage_complete']:.1f}%"
+                    )
 
-                tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
+                # CREATE TABS
+                tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
                     "🏢 Fournisseur", "🔍 Modèle", "⚠️ Stock Négatif",
                     "👙 Anita", "🦶 Sidas", "💰 Valeur Stock",
-                    "👟 Catégories", "📊 Tailles Manquantes", "📄 Factures"
+                    "👟 Catégories", "📊 Tailles"
                 ])
 
-                with tab6:
-                    st.subheader("Valorisation par Fournisseur")
-                    df_tv = total_stock_value_by_supplier_safe(df)
-                    if not df_tv.empty:
-                        total_value = df_tv['Valeur Totale HT'].sum()
-                        st.metric("💰 Valeur Totale Stock (CLEAN DATA ONLY)", 
-                                 f"{total_value:,.2f} €".replace(',', ' '))
-                        st.dataframe(df_tv, use_container_width=True)
-                    else:
-                        st.error("No stock data with valid prices")
+                with tab1:
+                    st.subheader("Rechercher par Fournisseur")
+                    fournisseur = st.text_input("Entrez le nom du fournisseur:")
+                    if fournisseur:
+                        fournisseur = fournisseur.strip().upper()
+                        df['fournisseur'] = df['fournisseur'].fillna('')
+                        df_filtered = df[df['fournisseur'].str.upper() == fournisseur]
+                        if not df_filtered.empty:
+                            st.write(f"**{len(df_filtered)} articles trouvés**")
+                            st.dataframe(df_filtered, use_container_width=True)
+                        else:
+                            st.warning("Aucun article trouvé pour ce fournisseur")
 
-                with tab9:
-                    render_invoice_tab()
+                with tab2:
+                    st.subheader("Rechercher par Modèle")
+                    designation = st.text_input("Entrez le modèle/désignation:")
+                    if designation:
+                        designation = designation.strip().upper()
+                        df['designation'] = df['designation'].fillna('')
+                        df_filtered = df[df['designation'].str.upper().str.contains(designation)]
+                        if not df_filtered.empty:
+                            st.write(f"**{len(df_filtered)} articles trouvés**")
+                            st.dataframe(df_filtered, use_container_width=True)
+                        else:
+                            st.warning("Aucun article trouvé pour ce modèle")
+
+                with tab3:
+                    st.subheader("⚠️ Stock Négatif")
+                    df['Qté stock dispo'] = pd.to_numeric(df['Qté stock dispo'], errors='coerce').fillna(0)
+                    df_negative = df[df['Qté stock dispo'] < 0]
+                    if not df_negative.empty:
+                        st.dataframe(df_negative, use_container_width=True)
+                    else:
+                        st.success("✅ Aucun stock négatif")
+
+                with tab6:
+                    st.subheader("💰 Valorisation Stock")
+                    
+                    if completeness_info['has_prices']:
+                        df_tv = calculate_stock_value(df, price_column)
+                        if df_tv is not None and not df_tv.empty:
+                            total_value = df_tv['Valeur Totale HT'].sum()
+                            st.metric("Valeur Totale Stock", f"€{total_value:,.2f}".replace(',', ' '))
+                            
+                            # Display by supplier
+                            st.dataframe(df_tv, use_container_width=True)
+                            
+                            # Export option
+                            csv = df_tv.to_csv(index=False, sep=';')
+                            st.download_button(
+                                "📥 Télécharger valorisation CSV",
+                                data=csv,
+                                file_name="stock_value_by_supplier.csv",
+                                mime="text/csv"
+                            )
+                        else:
+                            st.info("Aucune donnée de prix disponible pour cette analyse")
+                    else:
+                        st.warning("⚠️ Pas de colonne prix trouvée - impossible de calculer la valorisation")
+                        st.info("Conseil: Vérifiez que votre fichier contient une colonne 'Prix Achat'")
+
+                with tab7:
+                    st.subheader("👟 Catégories de Produits")
+                    if 'famille' in df.columns:
+                        families = df['famille'].fillna('Autres').unique()
+                        selected_family = st.selectbox("Sélectionnez une catégorie:", families)
+                        
+                        df['famille'] = df['famille'].fillna('Autres')
+                        df_family = df[df['famille'] == selected_family]
+                        
+                        st.write(f"**{len(df_family)} articles dans {selected_family}**")
+                        st.dataframe(df_family, use_container_width=True)
+                    else:
+                        st.info("Colonne 'famille' non trouvée")
+
+                with tab8:
+                    st.subheader("📊 Analyse des Tailles")
+                    if 'taille' in df.columns:
+                        sizes = df['taille'].value_counts().head(20)
+                        st.bar_chart(sizes)
+                        st.dataframe(sizes.reset_index(), use_container_width=True)
+                    else:
+                        st.info("Colonne 'taille' non trouvée")
 
     except Exception as e:
         st.error(f"Erreur lors du traitement du fichier: {str(e)}")
         logger.exception("Critical error in file processing")
 
 else:
-    st.info("📂 Chargez votre fichier stock pour commencer l'analyse.")
+    st.info("📂 Chargez votre fichier stock pour commencer l'analyse")
     st.markdown("---")
-    render_invoice_tab()
+    st.markdown("""
+    ## 🎯 Utilisation
+    
+    1. **Préparation du fichier:**
+       - Format: CSV ou Excel
+       - Encodage: UTF-8 ou ISO-8859-1
+       - Séparateur: Point-virgule (;) pour CSV
+    
+    2. **Colonnes requises (minimum):**
+       - `fournisseur` - Nom du fournisseur
+       - `designation` - Nom du produit
+       - `Qté stock dispo` - Quantité en stock
+       - `taille` - Taille (optionnel)
+    
+    3. **Colonnes optionnelles (pour valorisation):**
+       - `Prix Achat` - Prix unitaire
+       - `famille` - Catégorie produit
+    
+    4. **Fonctionnalités:**
+       - ✅ Recherche par fournisseur
+       - ✅ Recherche par modèle
+       - ✅ Détection stock négatif
+       - ✅ Valorisation par fournisseur (si prix disponibles)
+       - ✅ Analyse par catégorie
+       - ✅ Distribution des tailles
+    """)
