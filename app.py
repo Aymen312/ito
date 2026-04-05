@@ -2,34 +2,208 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 import re
+import plotly.graph_objects as go
+import plotly.express as px
 
-st.set_page_config(page_title="Ayada TDR", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Ayada TDR - Stock Manager", layout="wide", initial_sidebar_state="expanded")
+
+# ═══════════════════════════════════════════════════════════════
+# ENHANCED STYLING
+# ═══════════════════════════════════════════════════════════════
 
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-    html, body,[class*="css"] { font-family: 'Inter', sans-serif; }
-    .stApp { background-color: #F8FAFC; }
-    h1, h2, h3 { color: #0F172A; font-weight: 700; letter-spacing: -0.025em; }
-    [data-testid="stSidebar"] { background-color: #FFFFFF; border-right: 1px solid #E2E8F0; box-shadow: 2px 0 8px rgba(0,0,0,0.02); }
-    .stTabs [data-baseweb="tab-list"] { background-color: #FFFFFF; padding: 4px; border-radius: 12px; border: 1px solid #E2E8F0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); gap: 8px; }
-    .stTabs [data-baseweb="tab"] { padding: 10px 16px; border-radius: 8px !important; border: none !important; color: #64748B; font-weight: 500; background-color: transparent; transition: all 0.2s ease-in-out; }
-    .stTabs [data-baseweb="tab"]:hover { color: #0F172A; background-color: #F1F5F9; }
-    .stTabs [aria-selected="true"] { background-color: #3B82F6 !important; color: #FFFFFF !important; box-shadow: 0 2px 4px rgba(59,130,246,0.3); }
-    .stButton>button { background-color: #0F172A; color: #FFFFFF; border: none; border-radius: 8px; padding: 10px 20px; font-weight: 600; transition: all 0.2s ease; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); width: 100%; }
-    .stButton>button:hover { background-color: #334155; transform: translateY(-1px); box-shadow: 0 6px 8px -1px rgba(0,0,0,0.15); color: white !important; }
-    .stTextInput>div>div>input, .stSelectbox>div>div>div { border-radius: 8px; border: 1px solid #CBD5E1; padding: 8px 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.02); }
-    [data-testid="stExpander"] { background-color: #FFFFFF; border-radius: 12px; border: 1px solid #E2E8F0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-    [data-testid="stFileUploadDropzone"] { border: 2px dashed #CBD5E1; border-radius: 12px; background-color: #FFFFFF; }
-    [data-testid="stFileUploadDropzone"]:hover { border-color: #3B82F6; background-color: #EFF6FF; }
-    table { border-collapse: collapse; width: 100%; background-color: white; box-shadow: 0px 1px 3px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden; }
-    th { background-color: #0F172A; color: white; }
-    th, td { padding: 12px 16px; border-bottom: 1px solid #E2E8F0; }
+    html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
+    
+    .stApp { 
+        background-color: #F8FAFC; 
+    }
+    
+    /* Typography */
+    h1 { 
+        color: #0F172A; 
+        font-weight: 700; 
+        letter-spacing: -0.025em;
+        font-size: 28px;
+        margin-bottom: 1.5rem;
+    }
+    h2 { 
+        color: #0F172A; 
+        font-weight: 600; 
+        font-size: 20px;
+        margin-bottom: 1rem;
+    }
+    h3 { 
+        color: #1E293B; 
+        font-weight: 600; 
+        font-size: 16px;
+    }
+    
+    /* Sidebar */
+    [data-testid="stSidebar"] { 
+        background-color: #FFFFFF; 
+        border-right: 1px solid #E2E8F0; 
+        box-shadow: 2px 0 8px rgba(0,0,0,0.02); 
+    }
+    
+    /* Tabs */
+    .stTabs [data-baseweb="tab-list"] { 
+        background-color: #FFFFFF; 
+        padding: 8px; 
+        border-radius: 12px; 
+        border: 1px solid #E2E8F0; 
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05); 
+        gap: 8px; 
+    }
+    .stTabs [data-baseweb="tab"] { 
+        padding: 10px 18px; 
+        border-radius: 8px !important; 
+        border: none !important; 
+        color: #64748B; 
+        font-weight: 500; 
+        background-color: transparent; 
+        transition: all 0.2s ease-in-out; 
+        font-size: 14px;
+    }
+    .stTabs [data-baseweb="tab"]:hover { 
+        color: #0F172A; 
+        background-color: #F1F5F9; 
+    }
+    .stTabs [aria-selected="true"] { 
+        background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%) !important; 
+        color: #FFFFFF !important; 
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); 
+    }
+    
+    /* Buttons */
+    .stButton > button { 
+        background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+        color: #FFFFFF; 
+        border: none; 
+        border-radius: 8px; 
+        padding: 10px 20px; 
+        font-weight: 600; 
+        transition: all 0.2s ease; 
+        box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.2); 
+        width: 100%; 
+    }
+    .stButton > button:hover { 
+        background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+        box-shadow: 0 6px 12px -1px rgba(59, 130, 246, 0.3); 
+    }
+    
+    /* Inputs */
+    .stTextInput > div > div > input, 
+    .stSelectbox > div > div > div,
+    .stSlider > div > div > div {
+        border-radius: 8px; 
+        border: 1.5px solid #CBD5E1; 
+        padding: 10px 12px; 
+        box-shadow: 0 1px 2px rgba(0,0,0,0.02); 
+        transition: all 0.2s ease;
+    }
+    .stTextInput > div > div > input:focus,
+    .stSelectbox > div > div > div:focus {
+        border-color: #3B82F6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    /* Expanders */
+    [data-testid="stExpander"] { 
+        background-color: #FFFFFF; 
+        border-radius: 12px; 
+        border: 1px solid #E2E8F0; 
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05); 
+    }
+    
+    /* File Upload */
+    [data-testid="stFileUploadDropzone"] { 
+        border: 2px dashed #CBD5E1; 
+        border-radius: 12px; 
+        background-color: #FFFFFF; 
+    }
+    [data-testid="stFileUploadDropzone"]:hover { 
+        border-color: #3B82F6; 
+        background-color: #EFF6FF; 
+    }
+    
+    /* Tables */
+    table { 
+        border-collapse: collapse; 
+        width: 100%; 
+        background-color: white; 
+        box-shadow: 0px 1px 3px rgba(0,0,0,0.08);
+        border-radius: 8px; 
+        overflow: hidden; 
+    }
+    th { 
+        background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+        color: white; 
+        font-weight: 600;
+        font-size: 13px;
+    }
+    th, td { 
+        padding: 14px 16px; 
+        border-bottom: 1px solid #E2E8F0; 
+        text-align: left;
+    }
+    tr:hover { 
+        background-color: #F8FAFC; 
+    }
+    
+    /* Metrics */
+    .metric-card {
+        background: linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%);
+        border: 1px solid #E2E8F0;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        text-align: center;
+    }
+    
+    /* Alert Boxes */
+    .alert-critical {
+        background: linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%);
+        border-left: 4px solid #DC2626;
+        border-radius: 8px;
+        padding: 1rem 1.25rem;
+        margin-bottom: 1rem;
+    }
+    .alert-warning {
+        background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+        border-left: 4px solid #F59E0B;
+        border-radius: 8px;
+        padding: 1rem 1.25rem;
+        margin-bottom: 1rem;
+    }
+    .alert-success {
+        background: linear-gradient(135deg, #DCFCE7 0%, #BBFBEE 100%);
+        border-left: 4px solid #10B981;
+        border-radius: 8px;
+        padding: 1rem 1.25rem;
+        margin-bottom: 1rem;
+    }
+    
+    /* Badge */
+    .badge {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+    .badge-critical { background: #FEE2E2; color: #991B1B; }
+    .badge-warning { background: #FEF3C7; color: #92400E; }
+    .badge-success { background: #DCFCE7; color: #065F46; }
+    .badge-info { background: #DBEAFE; color: #0C4A6E; }
     </style>
 """, unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════
-# STOCK DASHBOARD FUNCTIONS
+# UTILITY FUNCTIONS
 # ═══════════════════════════════════════════════════════════════
 
 def clean_numeric_columns(df):
@@ -43,160 +217,259 @@ def clean_size_column(df):
         df['taille'] = df['taille'].astype(str).str.strip()
     return df
 
-def highlight_row_if_one(row):
-    if row['Qté stock dispo'] == 1:
-        return ['background-color: #FEE2E2; color: #991B1B' for _ in row]
-    return [''] * len(row)
+def highlight_critical_qty(val):
+    """Red for qty=1, amber for qty<5"""
+    if val == 1:
+        return 'background-color: #FEE2E2; color: #991B1B; font-weight: 600;'
+    elif 1 < val < 5:
+        return 'background-color: #FEF3C7; color: #92400E;'
+    return ''
+
+def highlight_negative(val):
+    """Red for negative stock"""
+    if val < 0:
+        return 'background-color: #FEE2E2; color: #991B1B; font-weight: 600;'
+    return ''
+
+def get_stock_health(df):
+    """Calculate stock health metrics"""
+    total_skus = len(df)
+    total_qty = df['Qté stock dispo'].sum()
+    total_value = df['Valeur Stock'].sum() if 'Valeur Stock' in df.columns else 0
+    critical_items = len(df[df['Qté stock dispo'] == 1])
+    low_stock = len(df[(df['Qté stock dispo'] > 1) & (df['Qté stock dispo'] < 5)])
+    negative_items = len(df[df['Qté stock dispo'] < 0])
+    
+    return {
+        'total_skus': total_skus,
+        'total_qty': total_qty,
+        'total_value': total_value,
+        'critical_items': critical_items,
+        'low_stock': low_stock,
+        'negative_items': negative_items
+    }
+
+def display_kpi_dashboard(health):
+    """Display KPI metrics at top"""
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric(
+            label="📦 Total SKUs",
+            value=f"{health['total_skus']:,}",
+            delta=None,
+            help="Total number of unique products"
+        )
+    
+    with col2:
+        st.metric(
+            label="📊 Total Qty",
+            value=f"{health['total_qty']:,.0f}",
+            help="Total units in stock across all products"
+        )
+    
+    with col3:
+        st.metric(
+            label="💰 Stock Value",
+            value=f"€{health['total_value']:,.0f}",
+            help="Total stock value at cost (HT)"
+        )
+    
+    with col4:
+        pct_critical = (health['critical_items'] / health['total_skus'] * 100) if health['total_skus'] > 0 else 0
+        color = "🔴" if pct_critical > 10 else "🟡" if pct_critical > 5 else "🟢"
+        st.metric(
+            label=f"{color} Critical Items",
+            value=f"{health['critical_items']}",
+            delta=f"{pct_critical:.1f}% of stock",
+            help="Items with Qty = 1"
+        )
+
+def display_alerts(health):
+    """Display alert boxes for critical issues"""
+    alerts = []
+    
+    if health['negative_items'] > 0:
+        alerts.append({
+            'type': 'critical',
+            'title': f"⚠️ {health['negative_items']} Items with Negative Stock",
+            'message': 'Immediately review items with negative quantities',
+            'action': 'negative'
+        })
+    
+    if health['critical_items'] > health['total_skus'] * 0.15:
+        alerts.append({
+            'type': 'warning',
+            'title': f"⚠️ {health['critical_items']} Critical Items (Qty = 1)",
+            'message': 'Many items are running on single unit reserves',
+            'action': 'critical'
+        })
+    
+    if health['low_stock'] > health['total_skus'] * 0.20:
+        alerts.append({
+            'type': 'warning',
+            'title': f"📌 {health['low_stock']} Items Low Stock (Qty < 5)",
+            'message': 'Consider reordering items below 5 units',
+            'action': 'low'
+        })
+    
+    for alert in alerts:
+        if alert['type'] == 'critical':
+            st.markdown(f'<div class="alert-critical"><strong>{alert["title"]}</strong><br/>{alert["message"]}</div>', unsafe_allow_html=True)
+        elif alert['type'] == 'warning':
+            st.markdown(f'<div class="alert-warning"><strong>{alert["title"]}</strong><br/>{alert["message"]}</div>', unsafe_allow_html=True)
+
+# ═══════════════════════════════════════════════════════════════
+# VISUALIZATION FUNCTIONS
+# ═══════════════════════════════════════════════════════════════
+
+def create_supplier_value_donut(df):
+    """Create interactive donut chart of supplier values"""
+    supplier_value = df.groupby('fournisseur')['Valeur Stock'].sum().sort_values(ascending=False).head(10)
+    
+    fig = go.Figure(data=[go.Pie(
+        labels=supplier_value.index,
+        values=supplier_value.values,
+        hole=0.4,
+        marker=dict(
+            colors=['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', 
+                   '#06B6D4', '#EC4899', '#14B8A6', '#F97316', '#6366F1']
+        ),
+        hovertemplate='<b>%{label}</b><br>€%{value:,.2f}<br>%{percent}<extra></extra>',
+        textposition='inside',
+        textinfo='label+percent'
+    )])
+    
+    fig.update_layout(
+        title='Top 10 Suppliers by Stock Value',
+        height=400,
+        showlegend=True,
+        template='plotly_white',
+        font=dict(family='Inter, sans-serif', size=12, color='#0F172A'),
+        margin=dict(l=0, r=0, t=40, b=0)
+    )
+    
+    return fig
+
+def create_category_distribution(df):
+    """Create bar chart of stock by category"""
+    if 'famille' not in df.columns:
+        return None
+    
+    category_qty = df.groupby('famille')['Qté stock dispo'].sum().sort_values(ascending=True)
+    
+    fig = go.Figure(data=[go.Bar(
+        y=category_qty.index,
+        x=category_qty.values,
+        orientation='h',
+        marker=dict(color='#3B82F6'),
+        hovertemplate='<b>%{y}</b><br>%{x:,.0f} units<extra></extra>'
+    )])
+    
+    fig.update_layout(
+        title='Stock Quantity by Category',
+        height=300,
+        showlegend=False,
+        template='plotly_white',
+        font=dict(family='Inter, sans-serif', size=12, color='#0F172A'),
+        xaxis_title='Quantity',
+        yaxis_title='',
+        margin=dict(l=150, r=20, t=40, b=20)
+    )
+    
+    return fig
+
+def create_size_heatmap(df, designation):
+    """Create heatmap of sizes by supplier for a designation"""
+    if 'taille' not in df.columns or 'fournisseur' not in df.columns:
+        return None
+    
+    df_design = df[df['designation'].str.upper() == designation.upper()] if designation else df
+    
+    if df_design.empty:
+        return None
+    
+    pivot_data = pd.crosstab(
+        df_design['taille'],
+        df_design['fournisseur'],
+        values=df_design['Qté stock dispo'],
+        aggfunc='sum',
+        fill_value=0
+    )
+    
+    fig = go.Figure(data=go.Heatmap(
+        z=pivot_data.values,
+        x=pivot_data.columns,
+        y=pivot_data.index,
+        colorscale='RdYlGn',
+        hovertemplate='Size: %{y}<br>Supplier: %{x}<br>Qty: %{z}<extra></extra>'
+    ))
+    
+    fig.update_layout(
+        title=f'Size Distribution - {designation}',
+        height=400,
+        template='plotly_white',
+        font=dict(family='Inter, sans-serif', size=12),
+        margin=dict(l=80, r=20, t=40, b=80)
+    )
+    
+    return fig
+
+# ═══════════════════════════════════════════════════════════════
+# STOCK ANALYSIS FUNCTIONS
+# ═══════════════════════════════════════════════════════════════
+
+def filter_negative_stock(df):
+    df['Qté stock dispo'] = df['Qté stock dispo'].fillna(0)
+    df_neg = df[df['Qté stock dispo'] < 0].copy()
+    return df_neg[['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'Qté stock dispo', 'Valeur Stock']]
 
 def display_supplier_info(df, fournisseur):
     colonnes_afficher = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
     fournisseur = fournisseur.strip().upper()
     df['fournisseur'] = df['fournisseur'].fillna('')
     df_filtered = df[df['fournisseur'].str.upper() == fournisseur] if fournisseur else pd.DataFrame(columns=colonnes_afficher)
+    
     if not df_filtered.empty:
         designations_rayons = df_filtered.groupby(['designation', 'rayon']).size().reset_index(name='Nombre de références')
         designations_rayons = designations_rayons.sort_values(['designation', 'rayon'])
-        with st.expander(f"Désignations disponibles pour {fournisseur}", expanded=True):
+        
+        with st.expander(f"📋 Désignations pour {fournisseur}", expanded=True):
             designations_rayons['selection'] = designations_rayons.apply(lambda x: f"{x['designation']} ({x['rayon']})", axis=1)
-            selected = st.selectbox("Sélectionnez une désignation pour voir les tailles manquantes", designations_rayons['selection'])
+            selected = st.selectbox("Sélectionnez une désignation", designations_rayons['selection'], key=f"sup_{fournisseur}")
             selected_design, selected_rayon = selected.split(" (")
             selected_rayon = selected_rayon[:-1]
+            
             filtered = df_filtered[(df_filtered['designation'] == selected_design) & (df_filtered['rayon'] == selected_rayon)]
-            if selected_rayon.upper() == 'FEMME':
-                expected_sizes = [round(x * 0.5, 1) for x in range(10, 21)]
-            elif selected_rayon.upper() == 'HOMME':
-                expected_sizes = [round(x * 0.5, 1) for x in range(14, 29)]
-            else:
-                existing_sizes = filtered['taille'].unique()
-                expected_sizes = sorted([float(x.replace(',', '.')) for x in existing_sizes if str(x).replace('.', '').isdigit()])
-            def extract_size_value(size_str):
-                try:
-                    cleaned = str(size_str).upper().replace('US', '').strip().replace(',', '.')
-                    if '.' in cleaned:
-                        int_part, dec_part = cleaned.split('.', 1)
-                        cleaned = f"{int_part.lstrip('0') or '0'}.{dec_part}"
-                    else:
-                        cleaned = cleaned.lstrip('0') or '0'
-                    return float(cleaned)
-                except:
-                    return None
-            size_qtys = {}
-            size_mapping = {}
-            for _, row in filtered.iterrows():
-                size = row['taille']
-                qty = row['Qté stock dispo']
-                size_value = extract_size_value(size)
-                if size_value is not None:
-                    if size_value not in size_qtys:
-                        size_qtys[size_value] = 0
-                        size_mapping[size_value] = str(size)
-                    size_qtys[size_value] += qty
-                else:
-                    if size not in size_qtys:
-                        size_qtys[size] = 0
-                    size_qtys[size] += qty
-            if selected_rayon.upper() in ['FEMME', 'HOMME']:
-                missing_sizes = [str(e) for e in expected_sizes if float(e) not in [s for s in size_qtys.keys() if isinstance(s, float)]]
-            else:
-                missing_sizes = []
-            st.markdown(f"**Tailles disponibles pour {selected_design} ({selected_rayon}):**")
-            display_sizes = []
-            for size in sorted(size_qtys.keys()):
-                qty = size_qtys[size]
-                display_size = size_mapping.get(size, str(size))
-                display_text = f"{display_size} ({qty})"
-                if qty == 1:
-                    display_text = f"<span style='color:#DC2626; font-weight:bold;'>{display_text}</span>"
-                display_sizes.append(display_text)
-            st.markdown(", ".join(display_sizes), unsafe_allow_html=True)
-            if missing_sizes:
-                st.markdown(f"**Tailles manquantes ({selected_rayon}):**")
-                st.info(", ".join(missing_sizes))
-            else:
-                st.success("Toutes les tailles attendues sont disponibles.")
-    return df_filtered[colonnes_afficher]
+            
+            if not filtered.empty:
+                st.subheader(f"{selected_design} - {selected_rayon}")
+                styled_df = filtered[colonnes_afficher].style.applymap(
+                    lambda x: highlight_critical_qty(x) if isinstance(x, (int, float)) and x == int(x) else '',
+                    subset=['Qté stock dispo']
+                )
+                st.dataframe(styled_df, use_container_width=True, height=400)
+    
+    return df_filtered[colonnes_afficher] if not df_filtered.empty else pd.DataFrame(columns=colonnes_afficher)
 
 def display_designation_info(df, designation):
     colonnes_a_afficher = ['barcode', 'taille', 'rayon', 'couleur', 'designation', 'Qté stock dispo']
     designation = designation.strip().upper()
     df['designation'] = df['designation'].fillna('')
     df_filtered = df[df['designation'].str.upper() == designation] if designation else pd.DataFrame(columns=colonnes_a_afficher)
-    def normalize_size(size):
-        if pd.isna(size): return ''
-        size_str = str(size).strip()
-        if '.' in size_str:
-            int_part, dec_part = size_str.split('.', 1)
-            size_str = f"{int_part.lstrip('0') or '0'}.{dec_part}"
-        else:
-            size_str = size_str.lstrip('0') or '0'
-        return size_str
-    if 'taille' in df_filtered.columns:
-        df_filtered['taille_normalisee'] = df_filtered['taille'].apply(normalize_size)
-    sum_by_size = pd.DataFrame()
-    if not df_filtered.empty and 'taille_normalisee' in df_filtered.columns:
-        df_filtered['taille_num'] = pd.to_numeric(df_filtered['taille_normalisee'], errors='coerce')
-        sum_by_size = df_filtered.groupby(['taille_normalisee', 'rayon'])['Qté stock dispo'].sum().reset_index()
-        sum_by_size.columns = ['Taille', 'Rayon', 'Total Qté dispo']
-        sum_by_size['taille_num'] = pd.to_numeric(sum_by_size['Taille'], errors='coerce')
-        sum_by_size = sum_by_size.sort_values('taille_num').drop(columns=['taille_num'])
-    def highlight_row_if_one_cond(row):
-        if 'taille_normalisee' in row and row['taille_normalisee'] in sum_by_size['Taille'].values:
-            mask = (sum_by_size['Taille'] == row['taille_normalisee'])
-            if 'rayon' in sum_by_size.columns:
-                mask &= (sum_by_size['Rayon'] == row['rayon'])
-            total = sum_by_size.loc[mask, 'Total Qté dispo'].values[0] if any(mask) else 0
-            if total == 1:
-                return ['background-color: #FEE2E2; color: #991B1B'] * len(row)
-        return [''] * len(row)
-    if not df_filtered.empty and 'taille_num' in df_filtered.columns:
-        df_filtered = df_filtered.sort_values('taille_num')
-    st.dataframe(df_filtered[colonnes_a_afficher].style.apply(highlight_row_if_one_cond, axis=1), use_container_width=True)
-    if not sum_by_size.empty:
-        sum_homme = sum_by_size[sum_by_size['Rayon'] == 'HOMME']
-        sum_femme = sum_by_size[sum_by_size['Rayon'] == 'FEMME']
-        def highlight_total_if_one(val):
-            return 'background-color: #FEE2E2; color: #991B1B' if val == 1 else ''
-        col1, col2 = st.columns(2)
-        if not sum_homme.empty:
-            with col1:
-                st.subheader("Somme par taille - HOMME")
-                st.dataframe(sum_homme[['Taille', 'Total Qté dispo']].style.applymap(highlight_total_if_one, subset=['Total Qté dispo']), use_container_width=True)
-        if not sum_femme.empty:
-            with col2:
-                st.subheader("Somme par taille - FEMME")
-                st.dataframe(sum_femme[['Taille', 'Total Qté dispo']].style.applymap(highlight_total_if_one, subset=['Total Qté dispo']), use_container_width=True)
-
-def filter_negative_stock(df):
-    colonnes_affichier = ['fournisseur', 'barcode', 'couleur', 'taille', 'designation', 'rayon', 'marque', 'famille', 'Qté stock dispo', 'Valeur Stock']
-    df['Qté stock dispo'] = df['Qté stock dispo'].fillna(0)
-    return df[df['Qté stock dispo'] < 0][colonnes_affichier]
-
-def display_anita_sizes(df):
-    df_anita = df[df['fournisseur'].str.upper() == "ANITA"]
-    tailles = [f"{num}{letter}" for num in [85, 90, 95, 100, 105, 110] for letter in 'ABCDEF']
-    df_anita_sizes = df_anita[df_anita['taille'].isin(tailles)]
-    df_anita_sizes = df_anita_sizes.groupby('taille')['Qté stock dispo'].sum().reindex(tailles, fill_value=0)
-    return df_anita_sizes.replace(0, "Nul")
-
-def display_sidas_levels(df):
-    df['fournisseur'] = df['fournisseur'].fillna('')
-    df = df.dropna(subset=['couleur', 'taille'])
-    df_sidas = df[df['fournisseur'].str.upper().str.contains("SIDAS")]
-    levels = ['LOW', 'MID', 'HIGH']
-    sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL']
-    results = {}
-    for level in levels:
-        df_sidas_level = df_sidas[df_sidas['couleur'].str.upper() == level]
-        df_sizes = df_sidas_level[df_sidas_level['taille'].isin(sizes)]
-        df_sizes_grouped = df_sizes.groupby(['taille', 'designation'])['Qté stock dispo'].sum().unstack(fill_value=0).replace(0, "Nul")
-        df_sizes_with_designation = df_sizes_grouped.stack().reset_index().rename(columns={0: 'Qté stock dispo'})
-        results[level] = df_sizes_with_designation
-        unavailable = [s for s in sizes if s not in df_sidas_level['taille'].unique()]
-        if unavailable:
-            st.warning(f"Tailles indisponibles pour SIDAS niveau {level}: {', '.join(unavailable)}")
-        else:
-            st.success(f"Toutes les tailles SIDAS niveau {level} sont en stock.")
-    return results
+    
+    if not df_filtered.empty:
+        df_display = df_filtered[colonnes_a_afficher].copy()
+        styled_df = df_display.style.applymap(
+            lambda x: highlight_critical_qty(x) if isinstance(x, (int, float)) and x == int(x) else '',
+            subset=['Qté stock dispo']
+        )
+        st.dataframe(styled_df, use_container_width=True)
+        
+        # Show heatmap
+        fig = create_size_heatmap(df, designation)
+        if fig:
+            st.plotly_chart(fig, use_container_width=True)
 
 def total_stock_value_by_supplier(df):
     df['Qté stock dispo'] = pd.to_numeric(df['Qté stock dispo'], errors='coerce').fillna(0)
@@ -205,201 +478,281 @@ def total_stock_value_by_supplier(df):
     total_value_by_supplier = df.groupby('fournisseur')['Valeur Totale HT'].sum().reset_index()
     return total_value_by_supplier.sort_values(by='Valeur Totale HT', ascending=False)
 
-def sort_sizes(df):
-    df['taille'] = pd.Categorical(df['taille'],
-        categories=sorted(df['taille'].unique(),
-            key=lambda x: (int(x[:-1]), x[-1]) if str(x)[:-1].isdigit() else (float('inf'), x)),
-        ordered=True)
-    return df.sort_values('taille')
-
 def display_stock_by_family(df):
     familles = ["CHAUSSURES RANDO", "CHAUSSURES RUNN", "CHAUSSURE TRAIL"]
     for famille in familles:
-        st.subheader(f"Catégorie : {famille}")
+        st.subheader(f"👟 {famille}")
         df['famille'] = df['famille'].fillna('')
         df_family = df[df['famille'].str.upper() == famille]
-        if 'Valeur Stock' not in df_family.columns or df_family['Valeur Stock'].isnull().all():
-            df_family['Valeur Stock'] = df_family['Qté stock dispo'] * df_family.get('Prix Achat', 0)
-        total_stock = df_family['Qté stock dispo'].sum()
-        total_stock_value = df_family['Valeur Stock'].sum()
-        col1, col2 = st.columns(2)
-        col1.metric("Qté dispo totale", f"{int(total_stock)}")
-        col2.metric("Valeur totale du stock HT", f"{total_stock_value:,.2f} €".replace(',', ' '))
-        rayon_filter = st.selectbox(f"Filtrer par Rayon pour {famille}:", ['Tous', 'Homme', 'Femme', 'Autre'], key=f"rayon_{famille}")
-        if rayon_filter != 'Tous':
-            df_family['rayon'] = df_family['rayon'].fillna('')
-            if rayon_filter in ['Homme', 'Femme']:
-                df_family = df_family[df_family['rayon'].str.upper() == rayon_filter.upper()]
-            else:
-                df_family = df_family[~df_family['rayon'].str.upper().isin(['HOMME', 'FEMME'])]
+        
         if not df_family.empty:
-            df_family = sort_sizes(df_family.copy())
-            st.dataframe(df_family[['rayon', 'fournisseur', 'couleur', 'taille', 'designation', 'marque', 'ssfamille', 'Qté stock dispo', 'Valeur Stock']].style.apply(highlight_row_if_one, axis=1), use_container_width=True)
-        else:
-            st.info(f"Aucune information disponible pour {famille} dans le rayon {rayon_filter}.")
-        st.markdown("---")
-
-def display_specific_designations(df):
-    brand_col = "marque" if "marque" in df.columns else "fournisseur"
-    for c in [brand_col, "designation", "taille", "famille", "ssfamille", "rayon"]:
-        if c not in df.columns:
-            df[c] = ""
-        df[c] = df[c].fillna("").astype(str)
-    shoe_mask = (
-        df["famille"].str.upper().str.contains("CHAUSS", na=False) |
-        df["ssfamille"].str.upper().str.contains("CHAUSS", na=False) |
-        df["designation"].str.upper().str.contains(r"RUN|TRAIL|RANDO|CHAUSS|SHOE", na=False)
-    )
-    df_shoes = df[shoe_mask].copy() if not df[shoe_mask].empty else df.copy()
-    preferred = ["ASICS", "BROOKS", "HOKA", "LA SPORTIVA", "MIZUNO", "NEW BALANCE", "SALOMON", "SAUCONY"]
-    brands_series = df_shoes[brand_col].str.upper().str.strip()
-    brand_counts = brands_series.value_counts()
-    brands = [b for b in preferred if b in brand_counts.index] or brand_counts.head(12).index.tolist()
-    suppliers = {b: [d for d in sorted(df_shoes.loc[brands_series == b, "designation"].astype(str).str.strip().unique()) if d] for b in brands}
-    def normalize_size(size):
-        if pd.isna(size): return ""
-        s = str(size).upper().strip().replace(",", ".")
-        s = re.sub(r"\b(US|UK|EU)\b", "", s).strip()
-        s = re.sub(r"\s+", " ", s)
-        if re.fullmatch(r"\d+[A-Z]", s): return s
-        def format_half(v): return f"{round(float(v) * 2) / 2:.1f}"
-        unicode_frac = {"½": (1,2), "⅓": (1,3), "⅔": (2,3), "¼": (1,4), "¾": (3,4)}
-        for symb, (num, den) in unicode_frac.items():
-            if symb in s:
-                bm = re.search(r"(\d+(\.\d+)?)", s.replace(symb, ""))
-                base = float(bm.group(1)) if bm else 0.0
-                return format_half(base + num / den)
-        m = re.match(r"^(\d+)\s+(\d+)\s*/\s*(\d+)$", s)
-        if m:
-            return format_half(int(m.group(1)) + int(m.group(2)) / (int(m.group(3)) or 1))
-        m = re.search(r"(\d+(\.\d+)?)", s)
-        return format_half(float(m.group(1))) if m else s
-    cols = st.columns(4)
-    for i, supplier in enumerate(sorted(suppliers.keys())):
-        with cols[i % 4]:
-            if st.button(supplier, key=f"btn_{supplier}"):
-                st.session_state.selected_supplier = supplier
-    if 'selected_supplier' in st.session_state:
-        supplier = st.session_state.selected_supplier
-        designations = suppliers[supplier]
-        df_filtered = df[df['designation'].str.upper().isin([d.upper() for d in designations])].copy()
-        if not df_filtered.empty:
-            df_filtered['taille_normalisee'] = df_filtered['taille'].apply(normalize_size)
-            results = []
-            for designation in sorted(designations):
-                df_design = df_filtered[df_filtered['designation'].str.upper() == designation.upper()]
-                is_woman = " W" in designation.upper() or "WOMAN" in designation.upper()
-                if supplier == "SALOMON":
-                    sizes = list(range(4, 10)) if is_woman else list(range(6, 14))
-                    expected = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes[:-1]]
-                elif supplier == "LA SPORTIVA":
-                    sizes = list(range(36, 43)) if is_woman else list(range(40, 49))
-                    expected = [f"{x/2:.1f}" for x in range(sizes[0]*2, sizes[-1]*2+1)]
-                elif supplier == "MIZUNO":
-                    raw = [4.0,4.5,5.0,5.5,6.5,7.0,7.5,8.0,9.0] if is_woman else [6.0,6.5,7.0,7.5,8.0,9.0,10.0,10.5,11.0,11.5,12.0]
-                    expected = [f"{s:.1f}" for s in raw]
-                elif supplier == "NEW BALANCE":
-                    sizes = list(range(5, 11)) if is_woman else list(range(7, 15))
-                    expected = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x < 13]
-                else:
-                    sizes = list(range(5, 11)) if is_woman else list(range(7, 15))
-                    expected = [f"{x}.0" for x in sizes] + [f"{x}.5" for x in sizes if x < 13]
-                available = df_design['taille_normalisee'].dropna().unique()
-                missing = [s for s in expected if s not in available]
-                results.append({'Modèle': designation, 'Tailles disponibles': len(available), 'Tailles manquantes': ", ".join(missing) if missing else "Complet"})
-            results_df = pd.DataFrame(results)
-            st.markdown(f"### {supplier} - Stock disponible")
-            st.dataframe(results_df, use_container_width=True)
-            st.markdown("---")
+            total_stock = df_family['Qté stock dispo'].sum()
+            total_value = df_family['Valeur Stock'].sum()
+            
             col1, col2 = st.columns(2)
-            with col1:
-                try:
-                    output = BytesIO()
-                    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                        results_df.to_excel(writer, sheet_name=f"{supplier}_Stock", index=False)
-                    st.download_button("📊 Exporter en Excel (XLSX)", data=output.getvalue(), file_name=f"{supplier}_stock.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-                except Exception as e:
-                    st.error(f"Erreur Excel: {str(e)}")
-            with col2:
-                try:
-                    st.download_button("📄 Exporter en CSV", data=results_df.to_csv(index=False, sep=';'), file_name=f"{supplier}_stock.csv", mime="text/csv")
-                except Exception as e:
-                    st.error(f"Erreur CSV: {str(e)}")
-
+            col1.metric("📦 Quantity", f"{int(total_stock):,} units", help="Total units in this category")
+            col2.metric("💰 Value", f"€{total_value:,.0f}", help="Total value at cost")
+            
+            rayon_filter = st.selectbox(f"Filter by gender:", ['All', 'Homme', 'Femme', 'Other'], key=f"rayon_{famille}")
+            if rayon_filter != 'All':
+                df_family['rayon'] = df_family['rayon'].fillna('')
+                if rayon_filter in ['Homme', 'Femme']:
+                    df_family = df_family[df_family['rayon'].str.upper() == rayon_filter.upper()]
+            
+            if not df_family.empty:
+                styled_df = df_family[['rayon', 'fournisseur', 'couleur', 'taille', 'designation', 'marque', 'Qté stock dispo', 'Valeur Stock']].style.applymap(
+                    lambda x: highlight_critical_qty(x) if isinstance(x, (int, float)) and x == int(x) else '',
+                    subset=['Qté stock dispo']
+                )
+                st.dataframe(styled_df, use_container_width=True)
+        
+        st.divider()
 
 # ═══════════════════════════════════════════════════════════════
 # MAIN APP
 # ═══════════════════════════════════════════════════════════════
 
-st.title("Ayada TDR - Tableau de Bord Stock")
+st.title("🎯 Ayada TDR - Advanced Stock Manager")
+
 st.sidebar.image("https://cdn-icons-png.flaticon.com/512/3081/3081840.png", width=50)
-st.sidebar.markdown("### Menu Principal")
-st.sidebar.info("Téléchargez un fichier CSV ou Excel pour commencer l'analyse.")
-fichier_telecharge = st.sidebar.file_uploader("📂 Fichier source stock", type=['csv', 'xlsx'])
+st.sidebar.markdown("### 📂 Data Import")
+st.sidebar.info("Upload your stock file to begin analysis")
+fichier_telecharge = st.sidebar.file_uploader("Stock file (CSV/XLSX)", type=['csv', 'xlsx'])
 
 if fichier_telecharge is not None:
     extension_fichier = fichier_telecharge.name.split('.')[-1]
+    
     try:
-        with st.spinner("Chargement et préparation des données..."):
+        with st.spinner("⏳ Loading and processing data..."):
             if extension_fichier == 'csv':
                 df = pd.read_csv(fichier_telecharge, encoding='ISO-8859-1', sep=';')
             elif extension_fichier == 'xlsx':
                 df = pd.read_excel(fichier_telecharge)
             else:
-                st.error("Format de fichier non supporté"); df = None
-
+                st.error("❌ Unsupported file format")
+                df = None
+            
             if df is not None:
                 df = clean_numeric_columns(df)
                 df = clean_size_column(df)
-                st.success("Données chargées avec succès!")
-
+                st.success("✅ Data loaded successfully!")
+                
+                # Calculate health metrics
+                health = get_stock_health(df)
+                
+                # Display KPI Dashboard
+                st.markdown("## 📊 Stock Health Dashboard")
+                display_kpi_dashboard(health)
+                
+                st.divider()
+                
+                # Display Alerts
+                display_alerts(health)
+                
+                st.divider()
+                
+                # Create tabs
                 tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
-                    "🏢 Fournisseur", "🔍 Modèle", "⚠️ Stock Négatif",
-                    "👙 Anita", "🦶 Sidas", "💰 Valeur Stock",
-                    "👟 Catégories", "📊 Tailles Manquantes"
+                    "💰 Supplier Values",
+                    "🏢 Supplier Details",
+                    "🔍 Model Search",
+                    "⚠️ Negative Stock",
+                    "📦 Categories",
+                    "👟 Size Analysis",
+                    "📈 Analytics",
+                    "⚙️ Export"
                 ])
-
+                
+                # TAB 1: Supplier Values
                 with tab1:
-                    fournisseur = st.text_input("Rechercher un fournisseur:")
-                    df_filtered = display_supplier_info(df.copy(), fournisseur)
-                    if not df_filtered.empty:
-                        st.dataframe(df_filtered.style.apply(highlight_row_if_one, axis=1), use_container_width=True)
-                    elif fournisseur:
-                        st.warning("Aucune information disponible pour ce fournisseur.")
-
+                    st.markdown("### Top Suppliers by Stock Value")
+                    
+                    col1, col2 = st.columns([2, 1])
+                    
+                    with col1:
+                        fig_donut = create_supplier_value_donut(df)
+                        st.plotly_chart(fig_donut, use_container_width=True)
+                    
+                    with col2:
+                        st.markdown("**Top 10 Suppliers**")
+                        df_tv = total_stock_value_by_supplier(df)
+                        for idx, row in df_tv.head(10).iterrows():
+                            st.metric(
+                                row['fournisseur'].upper(),
+                                f"€{row['Valeur Totale HT']:,.0f}"
+                            )
+                
+                # TAB 2: Supplier Details
                 with tab2:
-                    designation = st.text_input("Rechercher un modèle exact:")
-                    display_designation_info(df.copy(), designation)
-
+                    st.markdown("### Search by Supplier")
+                    
+                    col1, col2 = st.columns([2, 1])
+                    with col1:
+                        fournisseur = st.text_input("📍 Supplier name:", placeholder="e.g., New Balance, Salomon...")
+                    with col2:
+                        st.write("")
+                        if st.button("🔍 Search", use_container_width=True):
+                            st.session_state.search_supplier = fournisseur
+                    
+                    if fournisseur:
+                        df_filtered = display_supplier_info(df.copy(), fournisseur)
+                        if df_filtered.empty:
+                            st.warning(f"❌ No supplier found matching '{fournisseur}'")
+                
+                # TAB 3: Model Search
                 with tab3:
-                    st.subheader("Produits en stock négatif")
-                    st.dataframe(filter_negative_stock(df.copy()).style.apply(highlight_row_if_one, axis=1), use_container_width=True)
-
+                    st.markdown("### Search by Product Model")
+                    
+                    col1, col2 = st.columns([2, 1])
+                    with col1:
+                        designation = st.text_input("🏷️ Model name:", placeholder="e.g., Clifton, Brooks Ghost...")
+                    with col2:
+                        st.write("")
+                        if st.button("🔍 Find", use_container_width=True):
+                            st.session_state.search_model = designation
+                    
+                    if designation:
+                        display_designation_info(df.copy(), designation)
+                
+                # TAB 4: Negative Stock
                 with tab4:
-                    st.subheader("Disponibilité Anita")
-                    st.dataframe(display_anita_sizes(df), use_container_width=True)
-
+                    st.markdown("### 🚨 Items with Negative Stock")
+                    
+                    df_neg = filter_negative_stock(df.copy())
+                    
+                    if df_neg.empty:
+                        st.success("✅ No negative stock items!")
+                    else:
+                        st.error(f"⚠️ {len(df_neg)} items with negative quantity")
+                        
+                        styled_df = df_neg.style.applymap(
+                            lambda x: 'background-color: #FEE2E2; color: #991B1B; font-weight: 600;' if x < 0 else '',
+                            subset=['Qté stock dispo']
+                        )
+                        st.dataframe(styled_df, use_container_width=True)
+                        
+                        # Export negative items
+                        csv = df_neg.to_csv(index=False, sep=';')
+                        st.download_button(
+                            "⬇️ Export Negative Items (CSV)",
+                            csv,
+                            "negative_items.csv",
+                            "text/csv",
+                            use_container_width=True
+                        )
+                
+                # TAB 5: Categories
                 with tab5:
-                    st.subheader("Disponibilité Semelles Sidas")
-                    for level, df_level in display_sidas_levels(df).items():
-                        st.markdown(f"**Niveau {level}**")
-                        st.dataframe(df_level.style.apply(highlight_row_if_one, axis=1), use_container_width=True)
-
+                    st.markdown("### Stock by Category")
+                    display_stock_by_family(df.copy())
+                
+                # TAB 6: Size Analysis
                 with tab6:
-                    st.subheader("Valorisation par Fournisseur")
-                    df_tv = total_stock_value_by_supplier(df)
-                    st.metric("Valeur Totale Globale du Stock", f"{df_tv['Valeur Totale HT'].sum():,.2f} €".replace(',', ' '))
-                    st.dataframe(df_tv, use_container_width=True)
-
+                    st.markdown("### Size Distribution Analysis")
+                    
+                    if 'designation' in df.columns:
+                        designations = sorted([d for d in df['designation'].unique() if pd.notna(d)])
+                        selected_design = st.selectbox("Select product:", designations)
+                        
+                        if selected_design:
+                            fig = create_size_heatmap(df, selected_design)
+                            if fig:
+                                st.plotly_chart(fig, use_container_width=True)
+                
+                # TAB 7: Analytics
                 with tab7:
-                    display_stock_by_family(df)
-
+                    st.markdown("### 📈 Stock Analytics")
+                    
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        fig_cat = create_category_distribution(df)
+                        if fig_cat:
+                            st.plotly_chart(fig_cat, use_container_width=True)
+                    
+                    with col2:
+                        st.markdown("### Quantity Distribution")
+                        qty_stats = {
+                            'Critical (=1)': len(df[df['Qté stock dispo'] == 1]),
+                            'Low (2-4)': len(df[(df['Qté stock dispo'] >= 2) & (df['Qté stock dispo'] <= 4)]),
+                            'Medium (5-10)': len(df[(df['Qté stock dispo'] >= 5) & (df['Qté stock dispo'] <= 10)]),
+                            'Good (11-20)': len(df[(df['Qté stock dispo'] >= 11) & (df['Qté stock dispo'] <= 20)]),
+                            'Excellent (>20)': len(df[df['Qté stock dispo'] > 20]),
+                            'Negative': len(df[df['Qté stock dispo'] < 0])
+                        }
+                        
+                        for label, count in qty_stats.items():
+                            if label == 'Critical (=1)':
+                                st.metric(f"🔴 {label}", count)
+                            elif label == 'Low (2-4)':
+                                st.metric(f"🟠 {label}", count)
+                            elif label == 'Negative':
+                                st.metric(f"⚫ {label}", count)
+                            else:
+                                st.metric(f"🟢 {label}", count)
+                
+                # TAB 8: Export
                 with tab8:
-                    st.subheader("Analyse de la profondeur de gamme (Chaussures)")
-                    display_specific_designations(df.copy())
-
+                    st.markdown("### 📥 Export Data")
+                    
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        st.subheader("Current View")
+                        csv = df.to_csv(index=False, sep=';')
+                        st.download_button(
+                            "⬇️ CSV Export",
+                            csv,
+                            "stock_export.csv",
+                            "text/csv",
+                            use_container_width=True
+                        )
+                    
+                    with col2:
+                        st.subheader("Excel with Formatting")
+                        buffer = BytesIO()
+                        with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
+                            df.to_excel(writer, sheet_name='Stock', index=False)
+                        st.download_button(
+                            "⬇️ Excel Export",
+                            buffer.getvalue(),
+                            "stock_export.xlsx",
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            use_container_width=True
+                        )
+                    
+                    st.divider()
+                    st.markdown("### Filter & Export")
+                    
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        show_critical = st.checkbox("Only Critical Items (Qty=1)", value=False)
+                        show_negative = st.checkbox("Only Negative Stock", value=False)
+                    
+                    with col2:
+                        show_low = st.checkbox("Only Low Stock (<5)", value=False)
+                    
+                    export_df = df.copy()
+                    if show_critical:
+                        export_df = export_df[export_df['Qté stock dispo'] == 1]
+                    if show_negative:
+                        export_df = export_df[export_df['Qté stock dispo'] < 0]
+                    if show_low:
+                        export_df = export_df[export_df['Qté stock dispo'] < 5]
+                    
+                    if not export_df.empty:
+                        csv_filtered = export_df.to_csv(index=False, sep=';')
+                        st.download_button(
+                            f"⬇️ Export Filtered ({len(export_df)} items)",
+                            csv_filtered,
+                            "stock_filtered.csv",
+                            "text/csv",
+                            use_container_width=True
+                        )
+    
     except Exception as e:
-        st.error(f"Erreur lors du traitement du fichier: {str(e)}")
+        st.error(f"❌ Error processing file: {str(e)}")
+        st.info("Please check your file format and try again.")
 
 else:
-    st.info("Utilisez la barre latérale pour charger un fichier stock pour commencer.")
+    st.info("👈 Use the sidebar to upload your stock file (CSV or XLSX)")
